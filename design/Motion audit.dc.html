@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #100E0B; }
+  * { box-sizing: border-box; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  button { font: inherit; }
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}" style="min-height: 100vh; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); padding: 64px 24px 96px; display: flex; justify-content: center;">
+  <div style="width: 100%; max-width: 780px; display: flex; flex-direction: column;">
+
+    <div style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--text-secondary); letter-spacing: 0.01em;">design-motion-principles · audit mode · 1 September 2026</div>
+    <div style="font-family: var(--font-display); font-variation-settings: var(--display-vf); font-size: 40px; line-height: 44px; letter-spacing: -0.01em; margin: 12px 0 8px;">Motion audit</div>
+    <div style="font-size: 17px; line-height: 26px; color: var(--text-secondary); max-width: 60ch; text-wrap: pretty;">Ex Libris, phases 0 to 7. Every animation in the prototype and in MOTION.md, checked against the skill's frequency gate, duration guidance, accessibility mandate and anti-pattern gate.</div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; margin: 32px 0 8px; padding: 20px 0; border-top: 0.5px solid var(--hairline); border-bottom: 0.5px solid var(--hairline);">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; line-height: 14px; color: var(--text-secondary);">Project type</div>
+        <div style="font-size: 15px; line-height: 22px;">Mobile app, single user, offline</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; line-height: 14px; color: var(--text-secondary);">Primary lens</div>
+        <div style="font-size: 15px; line-height: 22px;">Jakub — production polish</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; line-height: 14px; color: var(--text-secondary);">Secondary</div>
+        <div style="font-size: 15px; line-height: 22px;">Emil — restraint and speed</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 11px; line-height: 14px; color: var(--text-secondary);">Selective</div>
+        <div style="font-size: 15px; line-height: 22px;">Jhey — the finish moment only</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: baseline; gap: 16px; margin: 40px 0 4px;">
+      <div style="font-family: var(--font-display); font-variation-settings: var(--display-vf-sm); font-size: 22px; line-height: 28px;">Findings</div>
+      <span style="flex: 1;"></span>
+      <div style="display: flex; border: 0.5px solid var(--hairline); border-radius: var(--radius-pill); overflow: hidden;">
+        <button onClick="{{ showAll }}" style="all: unset; cursor: pointer; padding: 6px 14px; font-size: 13px; background: {{ f.allBg }}; color: {{ f.allInk }};">All</button>
+        <button onClick="{{ showHigh }}" style="all: unset; cursor: pointer; padding: 6px 14px; font-size: 13px; background: {{ f.highBg }}; color: {{ f.highInk }};">Act first</button>
+      </div>
+    </div>
+
+    <sc-for list="{{ findings }}" as="x" hint-placeholder-count="9">
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 24px 0; border-top: 0.5px solid var(--hairline);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: {{ x.sevInk }}; border: 0.5px solid {{ x.sevBorder }}; background: {{ x.sevFill }};">{{ x.sev }}</span>
+          <span style="font-size: 11px; line-height: 14px; color: var(--text-secondary);">{{ x.lens }}</span>
+          <span style="flex: 1;"></span>
+          <span style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--text-secondary);">{{ x.id }}</span>
+        </div>
+        <div style="font-family: var(--font-display); font-variation-settings: var(--display-vf-sm); font-size: 22px; line-height: 28px;">{{ x.title }}</div>
+        <div style="font-size: 15px; line-height: 22px; color: var(--text-secondary); max-width: 66ch; text-wrap: pretty;">{{ x.body }}</div>
+        <div style="display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--radius-card); background: var(--surface-raised); border: 0.5px solid var(--hairline);">
+          <span style="font-size: 11px; line-height: 22px; color: var(--text-secondary); flex: none;">Fix</span>
+          <span style="font-size: 15px; line-height: 22px; text-wrap: pretty;">{{ x.fix }}</span>
+        </div>
+        <sc-if value="{{ x.code }}">
+          <pre style="margin: 0; padding: 14px 16px; overflow-x: auto; border-radius: var(--radius-card); background: var(--surface-sunken); border: 0.5px solid var(--hairline); font-family: var(--font-mono); font-size: 12px; line-height: 20px; color: var(--text-primary);">{{ x.code }}</pre>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <div style="font-family: var(--font-display); font-variation-settings: var(--display-vf-sm); font-size: 22px; line-height: 28px; margin: 48px 0 4px;">What already passes</div>
+    <div style="font-size: 15px; line-height: 22px; color: var(--text-secondary); max-width: 66ch; margin-bottom: 8px; text-wrap: pretty;">Recorded so a later session does not "improve" any of it.</div>
+    <sc-for list="{{ passes }}" as="p" hint-placeholder-count="6">
+      <div style="display: flex; gap: 16px; padding: 13px 0; border-top: 0.5px solid var(--hairline);">
+        <span style="font-size: 15px; line-height: 22px; flex: none; width: 200px;">{{ p.head }}</span>
+        <span style="font-size: 15px; line-height: 22px; color: var(--text-secondary); text-wrap: pretty;">{{ p.body }}</span>
+      </div>
+    </sc-for>
+
+    <div style="font-family: var(--font-display); font-variation-settings: var(--display-vf-sm); font-size: 22px; line-height: 28px; margin: 48px 0 12px;">Order to fix</div>
+    <div style="font-size: 15px; line-height: 22px; color: var(--text-secondary); max-width: 66ch; text-wrap: pretty;">M-01 and M-02 are the two that change how the app feels rather than how it reads: exits, then the tab cross-fade. M-03 and M-04 are half-hour fixes on top. M-05 is the only place the audit asks for more motion rather than less, and it is licensed precisely because it happens rarely. M-06 through M-09 are polish and can wait for the Phase 9 critique pass.</div>
+
+    <div style="margin-top: 48px; padding-top: 24px; border-top: 0.5px solid var(--hairline); font-size: 13px; line-height: 18px; color: var(--text-secondary); max-width: 66ch; text-wrap: pretty;">Audited against the skill's SKILL.md core: mode detection, context-to-lens weighting, the frequency gate, duration guidance and the accessibility mandate. The three per-designer reference files could not be reached from this environment, so lens attributions are applied from the framework's own descriptions of each designer rather than from their detailed recipe lists.</div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:880,&quot;height&quot;:1100},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;showCode&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Report&quot;}}">
+const SEV = {
+  high: ['var(--danger)', 'var(--danger)', 'var(--danger-soft)'],
+  med:  ['var(--accent-text)', 'var(--accent)', 'transparent'],
+  low:  ['var(--text-secondary)', 'var(--hairline-strong)', 'transparent']
+};
+
+const FINDINGS = [
+  { id: 'M-01', sev: 'high', lens: 'Jakub — production polish',
+    title: 'Surfaces that animate in and vanish in one frame',
+    body: 'FIXED 1 September. The drawer and the Surprise me card both had entrances — a 240ms slide, a scale-in — and both disappeared instantly when dismissed. Asymmetric enter/exit is the most visible unfinished edge a prototype has, and the project already owned the right token for it without ever calling it: --ease-exit was in tokens.css and in no JS path. Correction to the first draft of this audit: the add sheet and the note editor were never in this group — both shrink back into the FAB through their view transition, which is a real exit.',
+    fix: 'Done: exitOut() reverses the transform over 120ms on --ease-exit and fades the scrim with it, then unmounts. The new FAB menu and the add-by-hand sheet were built on it from the start.',
+    code: 'closeDrawer() {\n  const el = this.drawerRef.current;\n  if (!el || this.reduced) return this.setState({ drawer: false });\n  el.style.transition = \'transform var(--dur-fast) var(--ease-exit)\';\n  el.style.transform = \'translateX(-100%)\';\n  el.addEventListener(\'transitionend\', () => this.setState({ drawer: false }), { once: true });\n}' },
+
+  { id: 'M-02', sev: 'high', lens: 'Emil — the frequency gate',
+    title: 'Every bottom-nav tab switch runs a 240ms cross-fade',
+    body: 'nav() routes every screen change through document.startViewTransition, and the helmet gives ::view-transition-old/new(root) 240ms on --ease-settle. That is right for a drill-down, where the transition explains where you went. Tab switching is the highest-frequency interaction in the app — the frequency gate puts anything triggered that often at instant or no animation, and a cross-fade there taxes the same four taps hundreds of times.',
+    fix: 'Skip the view transition for lateral moves between the four tabs; keep it for drill-downs (home to detail, series, universe, backup). One flag on nav() is enough.',
+    code: 'nav(next, { lateral } = {}) {\n  const go = () => new Promise(res => this.setState({ editor: false, ...next }, res));\n  if (lateral || !document.startViewTransition || this.reduced) return go();\n  document.startViewTransition(go);\n}' },
+
+  { id: 'M-03', sev: 'med', lens: 'Emil, with Jakub agreeing',
+    title: 'The add sheet springs on the way out as well as in',
+    body: 'The add-surface view-transition group is given --ease-spring in both directions, so dismissing the sheet overshoots slightly on the way down. MOTION.md states the rule this breaks in its own words: --ease-exit is for dismissals that should not spring back. A dismissal that bounces reads as the app second-guessing the tap.',
+    fix: 'Split the group rule: keep --ease-spring for the open, and set --ease-exit at --dur-fast on the closing pass by toggling a data attribute on the root before closeAdd starts its transition.',
+    code: '::view-transition-group(add-surface) {\n  animation-duration: var(--dur-base);\n  animation-timing-function: var(--ease-spring);\n}\n[data-closing] ::view-transition-group(add-surface) {\n  animation-duration: var(--dur-fast);\n  animation-timing-function: var(--ease-exit);\n}' },
+
+  { id: 'M-04', sev: 'med', lens: 'Jakub — production polish',
+    title: 'The switch knob jumps; only its track animates',
+    body: 'Three switches (series sections, help from a model, pin a note) transition their background over 120ms but move the knob by flipping justify-content, which is a layout change and cannot tween. The one part of the control the eye follows is the one part that teleports.',
+    fix: 'Keep the track a flex box but drive the knob with transform: translateX(18px), transitioned over --dur-fast on --ease-snap. Same visual, and the knob travels.',
+    code: '<span style="width: 20px; height: 20px; border-radius: 999px; background: {{ knob }};\n  transform: {{ knobX }}; transition: transform var(--dur-fast) var(--ease-snap);">' },
+
+  { id: 'M-05', sev: 'med', lens: 'Jhey — the one licensed delighter',
+    title: 'The finish moment is the rarest screen in the app and nothing moves on it',
+    body: 'Marking a work finished happens perhaps twenty times a year. That is exactly the frequency band where expressive motion is welcome, and it is the emotional peak of the product — the moment the app exists to acknowledge. Today the tick is painted, the haptic fires, and the screen is static. The audit asks for more motion here, not less, and here only.',
+    fix: 'Draw the tick once: stroke-dasharray with dashoffset animating to 0 over 240ms on --ease-out, starting 60ms after the screen commits so it is not lost in the screen transition. No bounce, no confetti, no scale — a line being drawn, then stillness.',
+    code: '@keyframes exl-tick { to { stroke-dashoffset: 0 } }\n/* path length 28: dasharray 28, dashoffset 28 */\nanimation: exl-tick var(--dur-slow) var(--ease-out) 60ms both;' },
+
+  { id: 'M-06', sev: 'med', lens: 'Jakub — production polish',
+    title: 'Progress bars never animate, including when the user moves them',
+    body: 'MOTION.md bans progress animation outright: the bar is a fact, not an event. Correct on load — a bar that fills on every screen entrance is the cheapest fake in mobile design. But the same rule currently covers the case where the user themselves taps to chapter 413, and a value the user just changed should be seen changing, or they cannot tell the tap registered.',
+    fix: 'Split the rule by cause. No transition on mount or on data load; a 180ms width transition on --ease-out when the change originates from a user edit. One boolean on the component.' },
+
+  { id: 'M-07', sev: 'low', lens: 'Jakub — production polish',
+    title: 'Hover colour changes have no transition',
+    body: 'Every style-hover in the prototype swaps background or border instantly. On the phone this is invisible, and the app is a phone app — but the prototype is judged on a desktop, where an instant swap on a 60px row reads as a flicker rather than a response.',
+    fix: 'One shared declaration on interactive rows: transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out). Colour only. Never a hover scale, which is the anti-pattern this is one step away from.' },
+
+  { id: 'M-08', sev: 'low', lens: 'Emil — restraint',
+    title: 'The axis word cuts hard between stops',
+    body: 'Dragging the axis scale swaps a 40px display word per stop crossed. The haptic tick carries the event, which is why this is low, but at that type size an instant swap between two long words (Slow burn to Relentless) reads as a flicker rather than a change.',
+    fix: 'A 90ms opacity dip on the word only, driven by the same setState that fires the tick. Nothing moves — a hint of a crossfade, no slide, no scale. If it becomes noticeable, remove it: the tick is already doing the work.' },
+
+  { id: 'M-09', sev: 'low', lens: 'Performance',
+    title: 'The nav bar blurs a live scrolling surface',
+    body: 'backdrop-filter: blur(20px) saturate(1.4) over a list that scrolls under it is a per-frame compositing cost, and the target is a mid-range Android device with a 2,000-item library behind it. It is not motion, but it is the thing most likely to make the motion that is there drop frames.',
+    fix: 'Profile the bar during a fast scroll on real hardware. If frames drop, drop saturate() first, then reduce the blur radius; only fall back to a solid --surface-base fill if both fail. Keep the fill above 70% either way, or the 11px tab labels fail AA over a passing cover.' }
+];
+
+const PASSES = [
+  { head: 'Reduced motion', body: 'Handled at the token level — three durations to 0ms, three easings to linear — and again in JS, where view transitions are skipped entirely rather than shortened and every imperative entrance returns early. The one deliberate exception is documented: haptics still fire, because reduced motion is about motion, not touch.' },
+  { head: 'Nothing over 250ms', body: '--dur-slow at 240ms is the slowest thing in the app, which sits inside the 200 to 500ms polish band and under the 300ms productivity ceiling. No duration needs changing anywhere in the system.' },
+  { head: 'Springs are rationed', body: 'After the 1 September revision, --ease-spring is only the FAB and the two sheets it becomes; everything routine moved to --ease-out. That is the correct split — overshoot on ordinary motion reads as instability.' },
+  { head: 'Anti-pattern gate', body: 'No pulsing indicators, no infinite loops, no hover-scale, no staggered list entrances, no parallax, no fake shimmer standing in for progress. The splash bar advances on real load events, including failures.' },
+  { head: 'Deliberate stillness', body: 'MOTION.md keeps a list of what is intentionally not animated — scroll entrances, card hovers, ambient movement, spine mount animations under virtualisation. An audit can only credit restraint that is written down.' },
+  { head: 'One signature moment', body: 'The cover flight is a genuine shared-element transition on the flattest curve in the set, and it carries context rather than decorating a navigation. It is also the only place in the app that gets one.' }
+];
+
+class Component extends DCLogic {
+  state = { filter: 'all' };
+
+  renderVals() {
+    const p = this.props;
+    const only = this.state.filter;
+    const list = FINDINGS.filter(x => only === 'all' || x.sev === 'high');
+    const seg = on => ({ bg: on ? 'var(--surface-raised)' : 'transparent',
+                         ink: on ? 'var(--text-primary)' : 'var(--text-secondary)' });
+    const a = seg(only === 'all'), h = seg(only !== 'all');
+    return {
+      theme: p.theme || 'dark',
+      findings: list.map(x => {
+        const [ink, border, fill] = SEV[x.sev];
+        return { ...x, sev: x.sev === 'med' ? 'medium' : x.sev,
+                 sevInk: ink, sevBorder: border, sevFill: fill,
+                 code: p.showCode === false ? '' : (x.code || '') };
+      }),
+      passes: PASSES,
+      f: { allBg: a.bg, allInk: a.ink, highBg: h.bg, highInk: h.ink },
+      showAll: () => this.setState({ filter: 'all' }),
+      showHigh: () => this.setState({ filter: 'high' })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

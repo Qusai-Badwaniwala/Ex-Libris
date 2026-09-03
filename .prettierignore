@@ -1,0 +1,8 @@
+dist
+dev-dist
+coverage
+# The design contract, vendored verbatim. Formatting it IS drift.
+src/styles/tokens.css
+src/data/taxonomy.json
+public
+design

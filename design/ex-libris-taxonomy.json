@@ -1,0 +1,550 @@
+{
+  "version": 1,
+  "genres": [
+    {
+      "name": "Fantasy",
+      "colorIndex": 4,
+      "colorName": "Jade",
+      "hex": "#4F8A73",
+      "description": "Secondary worlds, magic, myth. The default home for epic, dark, urban and portal fantasy."
+    },
+    {
+      "name": "Progression & Cultivation",
+      "colorIndex": 1,
+      "colorName": "Amber",
+      "hex": "#C8873F",
+      "description": "Xianxia, wuxia, xuanhuan, LitRPG, system and tower novels. Stories whose engine is measurable advancement. Split out from Fantasy deliberately — it is the largest category in web fiction and burying it is why Goodreads fails you."
+    },
+    {
+      "name": "Science Fiction",
+      "colorIndex": 6,
+      "colorName": "Slate",
+      "hex": "#5A7184",
+      "description": "Speculative technology and futures. Hard SF through space opera and cyberpunk."
+    },
+    {
+      "name": "Horror",
+      "colorIndex": 8,
+      "colorName": "Plum",
+      "hex": "#9C5A72",
+      "description": "Fear as the primary aim. Cosmic, psychological, body, gothic, survival."
+    },
+    {
+      "name": "Mystery & Crime",
+      "colorIndex": 5,
+      "colorName": "Teal",
+      "hex": "#4E7A82",
+      "description": "A question to be answered. Detective, procedural, noir, heist."
+    },
+    {
+      "name": "Thriller",
+      "colorIndex": 0,
+      "colorName": "Clay",
+      "hex": "#B5705A",
+      "description": "Tension as the primary aim. Espionage, political, techno, psychological."
+    },
+    {
+      "name": "Romance",
+      "colorIndex": 9,
+      "colorName": "Rose",
+      "hex": "#B0707A",
+      "description": "A relationship is the central plot, not a subplot."
+    },
+    {
+      "name": "Action & Adventure",
+      "colorIndex": 2,
+      "colorName": "Ochre",
+      "hex": "#A8904A",
+      "description": "Physical stakes, journeys, martial conflict, survival."
+    },
+    {
+      "name": "Historical",
+      "colorIndex": 10,
+      "colorName": "Umber",
+      "hex": "#8A6A50",
+      "description": "The past as subject, real or lightly altered. Includes alternate history."
+    },
+    {
+      "name": "Literary & Contemporary",
+      "colorIndex": 11,
+      "colorName": "Stone",
+      "hex": "#7E7A72",
+      "description": "Character and prose foremost. Realist fiction, no genre machinery."
+    },
+    {
+      "name": "Comedy & Slice of Life",
+      "colorIndex": 3,
+      "colorName": "Moss",
+      "hex": "#6B8F5E",
+      "description": "Humour or the everyday as the point."
+    },
+    {
+      "name": "Non-fiction",
+      "colorIndex": 7,
+      "colorName": "Indigo",
+      "hex": "#6A6B96",
+      "description": "History, science, philosophy, biography, essays, reference."
+    }
+  ],
+  "tagGroups": [
+    {
+      "group": "Subgenre",
+      "tags": [
+        "Xianxia",
+        "Wuxia",
+        "Xuanhuan",
+        "Cultivation",
+        "LitRPG",
+        "Progression Fantasy",
+        "System",
+        "Dungeon Crawl",
+        "Tower Climbing",
+        "Gate/Hunter",
+        "Regression",
+        "Reincarnation",
+        "Transmigration",
+        "Isekai",
+        "Villainess",
+        "Academy",
+        "Epic Fantasy",
+        "Dark Fantasy",
+        "Grimdark",
+        "Urban Fantasy",
+        "Portal Fantasy",
+        "Sword and Sorcery",
+        "Low Fantasy",
+        "Mythic Retelling",
+        "Fairy Tale",
+        "Cosmic Horror",
+        "Eldritch",
+        "Psychological Horror",
+        "Body Horror",
+        "Gothic",
+        "Survival Horror",
+        "Apocalyptic",
+        "Post-Apocalyptic",
+        "Dystopia",
+        "Utopia",
+        "Cyberpunk",
+        "Biopunk",
+        "Steampunk",
+        "Space Opera",
+        "Hard SF",
+        "Military SF",
+        "First Contact",
+        "Time Travel",
+        "Alternate History",
+        "Noir",
+        "Hardboiled",
+        "Police Procedural",
+        "Legal",
+        "Spy",
+        "Heist",
+        "Whodunnit",
+        "Techno-thriller",
+        "Kingdom Building",
+        "Base Building",
+        "Crafting",
+        "Business/Trade",
+        "Sports",
+        "Cooking",
+        "Farming",
+        "Slice of Life",
+        "Mecha",
+        "Superhero",
+        "Wholesome",
+        "Satire",
+        "Absurdist",
+        "Xianxia Comedy",
+        "Litfic"
+      ]
+    },
+    {
+      "group": "Setting",
+      "tags": [
+        "Ancient China",
+        "Ancient Korea",
+        "Ancient Japan",
+        "Medieval Europe",
+        "Victorian",
+        "Steam Age",
+        "Modern Day",
+        "Near Future",
+        "Far Future",
+        "Deep Space",
+        "Alien World",
+        "Virtual Reality",
+        "Multiverse",
+        "Afterlife",
+        "Underworld",
+        "Heavens/Immortal Realm",
+        "Wasteland",
+        "Frontier",
+        "Royal Court",
+        "Empire",
+        "Guild",
+        "Military",
+        "Academy/School",
+        "University",
+        "Corporate",
+        "Prison",
+        "Island",
+        "Ocean",
+        "Underground",
+        "Small Town",
+        "Megacity",
+        "Secret Society",
+        "Hidden World",
+        "Tower",
+        "Dungeon"
+      ]
+    },
+    {
+      "group": "Protagonist",
+      "tags": [
+        "Ruthless MC",
+        "Calculating MC",
+        "Amoral MC",
+        "Villain MC",
+        "Antihero",
+        "Morally Grey MC",
+        "Heroic MC",
+        "Reluctant MC",
+        "Weak to Strong",
+        "Strong from the Start",
+        "Overpowered MC",
+        "Underdog",
+        "Genius MC",
+        "Scholar MC",
+        "Strategist MC",
+        "Assassin MC",
+        "Merchant MC",
+        "Artisan MC",
+        "Cultivator MC",
+        "Immortal MC",
+        "Non-human MC",
+        "Monster MC",
+        "Regressor MC",
+        "Reincarnated MC",
+        "Transmigrator MC",
+        "Male MC",
+        "Female MC",
+        "Ensemble Cast",
+        "Multiple Protagonists",
+        "Unreliable Narrator",
+        "Cold MC",
+        "Charismatic MC",
+        "Lazy MC",
+        "Obsessive MC"
+      ]
+    },
+    {
+      "group": "Themes",
+      "tags": [
+        "Revenge",
+        "Betrayal",
+        "Power Struggle",
+        "Political Intrigue",
+        "Court Intrigue",
+        "Conspiracy",
+        "War",
+        "Rebellion",
+        "Class Struggle",
+        "Corruption",
+        "Tyranny",
+        "Survival",
+        "Ambition",
+        "Redemption",
+        "Loss of Humanity",
+        "Immortality",
+        "Mortality",
+        "Grief",
+        "Loneliness",
+        "Identity",
+        "Memory",
+        "Free Will",
+        "Sacrifice",
+        "Loyalty",
+        "Found Family",
+        "Rivalry",
+        "Mentorship",
+        "Coming of Age",
+        "Faith and Religion",
+        "Gods and Divinity",
+        "Demons",
+        "Prophecy",
+        "Curses",
+        "Bloodlines",
+        "Secrets and Knowledge",
+        "Forbidden Magic",
+        "Technology vs Magic",
+        "Nature vs Civilisation",
+        "Colonialism",
+        "Slavery",
+        "Genocide",
+        "Trauma",
+        "Madness",
+        "Obsession",
+        "Isolation"
+      ]
+    },
+    {
+      "group": "Craft",
+      "tags": [
+        "Hard Magic System",
+        "Soft Magic System",
+        "Rigorous Worldbuilding",
+        "Dense Lore",
+        "Intricate Plotting",
+        "Foreshadowing",
+        "Twist Ending",
+        "Ambiguous Ending",
+        "Bleak Ending",
+        "Earned Ending",
+        "No Ending",
+        "Slow Burn",
+        "Fast Paced",
+        "Episodic",
+        "Arc-based",
+        "Nonlinear",
+        "Multiple POV",
+        "First Person",
+        "Third Person",
+        "Epistolary",
+        "Frame Narrative",
+        "Time Skip",
+        "Long Running",
+        "Short",
+        "Standalone",
+        "Unfinished",
+        "Hiatus",
+        "Dropped by Author"
+      ]
+    },
+    {
+      "group": "Origin",
+      "tags": [
+        "Chinese (CN)",
+        "Korean (KR)",
+        "Japanese (JP)",
+        "English Original",
+        "Web Serial",
+        "Royal Road",
+        "Light Novel",
+        "Manhwa",
+        "Manhua",
+        "Manga",
+        "Published Novel",
+        "Translated",
+        "Machine Translated",
+        "Fan Translation",
+        "Official Translation",
+        "Shounen",
+        "Seinen",
+        "Shoujo",
+        "Josei"
+      ]
+    },
+    {
+      "group": "Content warnings",
+      "tags": [
+        "Graphic Violence",
+        "Gore",
+        "Torture",
+        "Sexual Content",
+        "Sexual Violence",
+        "Child Harm",
+        "Animal Cruelty",
+        "Suicide",
+        "Self-Harm",
+        "Substance Abuse",
+        "Cannibalism",
+        "Body Horror",
+        "Slavery",
+        "Depictions of Cruelty"
+      ]
+    }
+  ],
+  "sourceMapping": [
+    {
+      "source": "AniList",
+      "incoming": "Action",
+      "genre": "Action & Adventure",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Adventure",
+      "genre": "Action & Adventure",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Comedy",
+      "genre": "Comedy & Slice of Life",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Drama",
+      "genre": "Literary & Contemporary",
+      "note": "Weak signal — prefer a second genre if present"
+    },
+    {
+      "source": "AniList",
+      "incoming": "Fantasy",
+      "genre": "Fantasy",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Horror",
+      "genre": "Horror",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Mecha",
+      "genre": "Science Fiction",
+      "note": "+ tag Mecha"
+    },
+    {
+      "source": "AniList",
+      "incoming": "Mystery",
+      "genre": "Mystery & Crime",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Psychological",
+      "genre": "Thriller",
+      "note": "+ tag Psychological Horror if Horror also present"
+    },
+    {
+      "source": "AniList",
+      "incoming": "Romance",
+      "genre": "Romance",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Sci-Fi",
+      "genre": "Science Fiction",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Slice of Life",
+      "genre": "Comedy & Slice of Life",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Supernatural",
+      "genre": "Fantasy",
+      "note": "+ tag Urban Fantasy when modern setting"
+    },
+    {
+      "source": "AniList",
+      "incoming": "Thriller",
+      "genre": "Thriller",
+      "note": ""
+    },
+    {
+      "source": "AniList",
+      "incoming": "Sports",
+      "genre": "Action & Adventure",
+      "note": "+ tag Sports"
+    },
+    {
+      "source": "AniList",
+      "incoming": "Ecchi / Hentai",
+      "genre": "— drop —",
+      "note": "Not mapped. Discard on ingest."
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Xianxia",
+      "genre": "Progression & Cultivation",
+      "note": "+ tag Xianxia"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Wuxia",
+      "genre": "Progression & Cultivation",
+      "note": "+ tag Wuxia"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Xuanhuan",
+      "genre": "Progression & Cultivation",
+      "note": "+ tag Xuanhuan"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Martial Arts",
+      "genre": "Action & Adventure",
+      "note": "+ tag Wuxia when CN origin"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "School Life",
+      "genre": "Comedy & Slice of Life",
+      "note": "+ tag Academy/School"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Tragedy",
+      "genre": "Literary & Contemporary",
+      "note": "+ tag Bleak Ending"
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Harem / Smut / Adult",
+      "genre": "— drop —",
+      "note": "Not mapped. Discard on ingest."
+    },
+    {
+      "source": "NovelUpdates",
+      "incoming": "Shounen / Seinen / Shoujo / Josei",
+      "genre": "— tag only —",
+      "note": "Origin group, never a genre"
+    },
+    {
+      "source": "MangaDex",
+      "incoming": "group: genre",
+      "genre": "map per table above",
+      "note": ""
+    },
+    {
+      "source": "MangaDex",
+      "incoming": "group: theme",
+      "genre": "— tag only —",
+      "note": "Lands in Themes or Setting"
+    },
+    {
+      "source": "MangaDex",
+      "incoming": "group: format",
+      "genre": "— tag only —",
+      "note": "Lands in Craft"
+    },
+    {
+      "source": "MangaDex",
+      "incoming": "group: content warning",
+      "genre": "— tag only —",
+      "note": "Lands in Content warnings"
+    },
+    {
+      "source": "Open Library",
+      "incoming": "subjects[]",
+      "genre": "fuzzy match",
+      "note": "OL subjects are uncontrolled and noisy. Match against genre names and tag names case-insensitively; discard anything unmatched rather than creating a tag."
+    },
+    {
+      "source": "Google Books",
+      "incoming": "categories[]",
+      "genre": "fuzzy match",
+      "note": "BISAC-derived, e.g. 'Fiction / Fantasy / Epic'. Split on '/' and match each segment."
+    }
+  ]
+}

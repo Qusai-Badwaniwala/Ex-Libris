@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Newsreader:opsz,wght@6..72,300..600&family=Instrument+Serif&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #16130F; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-bright); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); min-height: 100vh; padding: 64px 40px 96px; display: flex; flex-direction: column; align-items: center;">
+<div style="width: 100%; max-width: 1080px; display: flex; flex-direction: column; gap: 64px;">
+
+  <header style="display: flex; flex-direction: column; gap: 12px; border-bottom: 0.5px solid var(--hairline); padding-bottom: 32px;">
+    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.01em;">Ex Libris · phase 0 · direction</div>
+    <h1 style="font-family: var(--font-ui); font-weight: 500; font-size: 30px; line-height: 34px; margin: 0; letter-spacing: -0.01em;">Two decisions to make, and the system they sit in</h1>
+    <p style="margin: 0; max-width: 62ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">The serif and the figure are yours to pick. Everything below them — palette, scale, motion — is built and will not change unless you want it to. Page chrome here is set in the interface face, not in any of the three candidates, so nothing is weighted.</p>
+  </header>
+
+  <!-- ── 1 · TYPE ───────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 28px; margin: 0;">1 · The display serif</h2>
+      <p style="margin: 0; max-width: 68ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">Each column shows the wordmark, a book card at real size, and an axis line. The axis line is the hardest test — it is the one place the serif carries meaning rather than decoration.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+
+      <!-- Fraunces -->
+      <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Fraunces</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">variable · opsz, wght, SOFT, WONK</div>
+        </div>
+        <div style="font-family: 'Fraunces', serif; font-variation-settings: 'opsz' 96, 'SOFT' 20, 'WONK' 1; font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em;">Ex Libris</div>
+        <div style="display: flex; gap: 16px;">
+          <div style="width: 64px; height: 96px; flex: none; border-radius: var(--radius-card); background: #5A3A34; box-shadow: var(--cover-inset); display: flex; align-items: flex-end; padding: 8px;">
+            <div style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: rgba(255,255,255,0.72);">cover</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+            <div style="font-family: 'Fraunces', serif; font-variation-settings: 'opsz' 36, 'SOFT' 20, 'WONK' 1; font-size: 22px; line-height: 28px; letter-spacing: -0.01em;">The Verdigris Ledger</div>
+            <div style="font-size: 13px; line-height: 18px; color: var(--text-secondary);">A. Marchetti</div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-variation-settings: 'opsz' 14; font-size: 13px; line-height: 18px; color: var(--text-secondary);">
+              <span>Monstrous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Rigorous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Merciless</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Most character of the three. The wonk axis gives it a slight woodblock irregularity that reads as printed rather than typeset. Risk: at 13px the axis line gets busy.</p>
+      </div>
+
+      <!-- Newsreader -->
+      <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Newsreader</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">variable · opsz, wght, italic</div>
+        </div>
+        <div style="font-family: 'Newsreader', serif; font-variation-settings: 'opsz' 72; font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em;">Ex Libris</div>
+        <div style="display: flex; gap: 16px;">
+          <div style="width: 64px; height: 96px; flex: none; border-radius: var(--radius-card); background: #5A3A34; box-shadow: var(--cover-inset); display: flex; align-items: flex-end; padding: 8px;">
+            <div style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: rgba(255,255,255,0.72);">cover</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+            <div style="font-family: 'Newsreader', serif; font-variation-settings: 'opsz' 30; font-size: 22px; line-height: 28px; letter-spacing: -0.01em;">The Verdigris Ledger</div>
+            <div style="font-size: 13px; line-height: 18px; color: var(--text-secondary);">A. Marchetti</div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: 'Newsreader', serif; font-variation-settings: 'opsz' 14; font-size: 13px; line-height: 18px; color: var(--text-secondary);">
+              <span>Monstrous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Rigorous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Merciless</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Built for reading at length. Holds up smallest of the three, and the optical size axis means a 40px title and a 13px axis line are genuinely different drawings. Least distinctive at the wordmark.</p>
+      </div>
+
+      <!-- Instrument Serif -->
+      <div style="display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Instrument Serif</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">single weight · roman + italic</div>
+        </div>
+        <div style="font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 40px; line-height: 44px; letter-spacing: -0.01em;">Ex Libris</div>
+        <div style="display: flex; gap: 16px;">
+          <div style="width: 64px; height: 96px; flex: none; border-radius: var(--radius-card); background: #5A3A34; box-shadow: var(--cover-inset); display: flex; align-items: flex-end; padding: 8px;">
+            <div style="font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: rgba(255,255,255,0.72);">cover</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+            <div style="font-family: 'Instrument Serif', serif; font-size: 22px; line-height: 28px; letter-spacing: -0.005em;">The Verdigris Ledger</div>
+            <div style="font-size: 13px; line-height: 18px; color: var(--text-secondary);">A. Marchetti</div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: 'Instrument Serif', serif; font-size: 13px; line-height: 18px; color: var(--text-secondary);">
+              <span>Monstrous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Rigorous</span>
+              <span style="width: 0.5px; height: 12px; background: var(--hairline-strong);"></span>
+              <span>Merciless</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">High contrast, editorial, a display face doing an interface job. Best wordmark of the three. One weight only and thin strokes disappear at 13px on a phone — the axis line would have to move up to 15px.</p>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Interface face — IBM Plex Sans, proposed</div>
+        <p style="margin: 0; max-width: 72ch; font-size: 13px; line-height: 18px; color: var(--text-muted);">The brief allowed Inter or an alternative with proper tabular figures. The frontend-design skill names Inter as a face to avoid, and it carries the exact cliché §3.6 is steering away from. Plex is humanist rather than neutral, variable, free to self-host, and slightly technical in a way that suits the subject matter.</p>
+      </div>
+      <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-end;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">tabular</div>
+          <div style="font-variant-numeric: tabular-nums; font-size: 17px; line-height: 26px;">Chapter 1,138 / 2,300</div>
+          <div style="font-variant-numeric: tabular-nums; font-size: 17px; line-height: 26px;">Chapter 1,141 / 2,300</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-faint);">proportional — the cheap-app tell</div>
+          <div style="font-size: 17px; line-height: 26px; color: var(--text-secondary);">Chapter 1,138 / 2,300</div>
+          <div style="font-size: 17px; line-height: 26px; color: var(--text-secondary);">Chapter 1,141 / 2,300</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2 · PALETTE ────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 28px; margin: 0;">2 · Palette, both themes</h2>
+      <p style="margin: 0; max-width: 68ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">Exactly as specified. Light mode adds one thing the brief asked for: a 0.5px inset on covers so they stop floating. Dark mode does not get it.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+      <div style="background: var(--surface-base); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Dark — primary</div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">surfaces</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-sunken); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">sunken</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-base); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">base</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-raised); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">raised</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-overlay); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">overlay</div></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">text</div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-primary);">Primary — titles and body</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-secondary);">Secondary — metadata</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-muted);">Muted — hints and placeholders</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-faint);">Faint — disabled</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">accent · cool</div>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-deep);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">deep</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-muted);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">muted</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">accent</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-bright);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">bright</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--cool);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">cool</div></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">status</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 4px 12px 4px 8px; border-radius: var(--radius-pill); border: 0.5px solid var(--hairline);"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--status-reading);"></span><span style="font-size: 13px;">Reading</span></div>
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 4px 12px 4px 8px; border-radius: var(--radius-pill); border: 0.5px solid var(--hairline);"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--status-caughtup);"></span><span style="font-size: 13px;">Caught up</span></div>
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 4px 12px 4px 8px; border-radius: var(--radius-pill); border: 0.5px solid var(--hairline);"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--status-finished);"></span><span style="font-size: 13px;">Finished</span></div>
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 4px 12px 4px 8px; border-radius: var(--radius-pill); border: 0.5px solid var(--hairline);"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--status-dropped);"></span><span style="font-size: 13px;">Dropped</span></div>
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 4px 12px 4px 8px; border-radius: var(--radius-pill); border: 0.5px solid var(--hairline);"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--status-wishlist);"></span><span style="font-size: 13px;">Wishlist</span></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">genre spectrum — chips only</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-0); background: color-mix(in oklab, var(--genre-0) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-0) 34%, transparent);">Progression</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-1); background: color-mix(in oklab, var(--genre-1) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-1) 34%, transparent);">Cultivation</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-2); background: color-mix(in oklab, var(--genre-2) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-2) 34%, transparent);">Dark fantasy</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-3); background: color-mix(in oklab, var(--genre-3) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-3) 34%, transparent);">Litrpg</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-4); background: color-mix(in oklab, var(--genre-4) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-4) 34%, transparent);">Xianxia</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-5); background: color-mix(in oklab, var(--genre-5) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-5) 34%, transparent);">Sci-fi</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-6); background: color-mix(in oklab, var(--genre-6) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-6) 34%, transparent);">Thriller</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-7); background: color-mix(in oklab, var(--genre-7) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-7) 34%, transparent);">Weird</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-8); background: color-mix(in oklab, var(--genre-8) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-8) 34%, transparent);">Horror</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-9); background: color-mix(in oklab, var(--genre-9) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-9) 34%, transparent);">Romance</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-10); background: color-mix(in oklab, var(--genre-10) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-10) 34%, transparent);">Historical</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-11); background: color-mix(in oklab, var(--genre-11) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-11) 34%, transparent);">Litfic</span>
+          </div>
+        </div>
+      </div>
+
+      <div data-theme="light" style="background: var(--surface-base); color: var(--text-primary); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Light — equal, not an afterthought</div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">surfaces</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-sunken); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">sunken</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-base); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">base</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-raised); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">raised</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 48px; border-radius: var(--radius-chip); background: var(--surface-overlay); border: 0.5px solid var(--hairline);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">overlay</div></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">text</div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-primary);">Primary — titles and body</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-secondary);">Secondary — metadata</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-muted);">Muted — hints and placeholders</div>
+            <div style="font-size: 15px; line-height: 22px; color: var(--text-faint);">Faint — disabled</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">accent · cool</div>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-deep);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">deep</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-muted);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">muted</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">accent</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--accent-bright);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">bright</div></div>
+            <div style="display: flex; flex-direction: column; gap: 4px;"><div style="height: 40px; border-radius: var(--radius-chip); background: var(--cool);"></div><div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">cool</div></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">covers — inset only in light</div>
+          <div style="display: flex; gap: 8px;">
+            <div style="width: 56px; height: 84px; border-radius: var(--radius-card); background: #C9BBA6; box-shadow: var(--cover-inset);"></div>
+            <div style="width: 56px; height: 84px; border-radius: var(--radius-card); background: #EAE3D6; box-shadow: var(--cover-inset);"></div>
+            <div style="width: 56px; height: 84px; border-radius: var(--radius-card); background: #EAE3D6;"></div>
+            <div style="align-self: flex-end; font-family: var(--font-mono); font-size: 11px; line-height: 14px; color: var(--text-muted); padding-bottom: 4px;">← no inset:<br>it floats</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">genre spectrum</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-0); background: color-mix(in oklab, var(--genre-0) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-0) 34%, transparent);">Progression</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-1); background: color-mix(in oklab, var(--genre-1) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-1) 34%, transparent);">Cultivation</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-2); background: color-mix(in oklab, var(--genre-2) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-2) 34%, transparent);">Dark fantasy</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-3); background: color-mix(in oklab, var(--genre-3) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-3) 34%, transparent);">Litrpg</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-4); background: color-mix(in oklab, var(--genre-4) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-4) 34%, transparent);">Xianxia</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-5); background: color-mix(in oklab, var(--genre-5) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-5) 34%, transparent);">Sci-fi</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-6); background: color-mix(in oklab, var(--genre-6) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-6) 34%, transparent);">Thriller</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-7); background: color-mix(in oklab, var(--genre-7) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-7) 34%, transparent);">Weird</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-8); background: color-mix(in oklab, var(--genre-8) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-8) 34%, transparent);">Horror</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-9); background: color-mix(in oklab, var(--genre-9) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-9) 34%, transparent);">Romance</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-10); background: color-mix(in oklab, var(--genre-10) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-10) 34%, transparent);">Historical</span>
+            <span style="font-size: 11px; line-height: 14px; padding: 4px 8px; border-radius: var(--radius-chip); color: var(--genre-11); background: color-mix(in oklab, var(--genre-11) 14%, transparent); border: 0.5px solid color-mix(in oklab, var(--genre-11) 34%, transparent);">Litfic</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 40px; flex-wrap: wrap; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+      <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 280px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Reading vs Caught up — same hue, different track</div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">The brief left the device open. Continuous fill for Reading; a segmented track for Caught up, with the fill stopping flush at the last published chapter. It reads as the edge of what exists, not as partway through.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; min-width: 300px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums;"><span>Reading</span><span>Chapter 412 / 1,140</span></div>
+          <div style="height: 3px; border-radius: 999px; background: var(--hairline); overflow: hidden;"><div style="width: 36%; height: 100%; background: var(--status-reading);"></div></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums;"><span>Caught up</span><span>Chapter 1,140 published</span></div>
+          <div style="height: 3px; border-radius: 999px; background: repeating-linear-gradient(90deg, var(--hairline) 0 6px, transparent 6px 9px);"><div style="width: 100%; height: 100%; background: repeating-linear-gradient(90deg, var(--status-caughtup) 0 6px, transparent 6px 9px);"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3 · SCALE ──────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 32px;">
+    <h2 style="font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 28px; margin: 0;">3 · Spacing and radius</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div style="padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">4 · 8 · 12 · 16 · 24 · 32 · 40 · 64 — nothing off-grid</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 4px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">4</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 8px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">8</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 12px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">12</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 16px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">16</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 24px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">24</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 32px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">32</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 40px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">40</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;"><div style="width: 64px; height: 12px; background: var(--accent);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">64</span></div>
+        </div>
+      </div>
+      <div style="padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">radius carries hierarchy — one radius on everything is a tell</div>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 4px; border: 0.5px solid var(--hairline-strong); background: var(--surface-overlay);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">4 chip</span></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 8px; border: 0.5px solid var(--hairline-strong); background: var(--surface-overlay);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">8 button</span></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 12px; border: 0.5px solid var(--hairline-strong); background: var(--surface-overlay);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">12 card</span></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 16px; border: 0.5px solid var(--hairline-strong); background: var(--surface-overlay);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">16 sheet</span></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;"><div style="width: 56px; height: 56px; border-radius: 999px; border: 0.5px solid var(--hairline-strong); background: var(--surface-overlay);"></div><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">999 pill</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4 · MOTION ─────────────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 28px; margin: 0;">4 · Motion — three real springs</h2>
+      <p style="margin: 0; max-width: 68ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">Encoded as <code style="font-family: var(--font-mono); font-size: 13px; color: var(--accent);">linear()</code>, not ease-in-out. Tap a row to run it. The difference is small on a bar and large on a phone.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card);">
+      <button onClick="{{ playSnap }}" style="all: unset; cursor: pointer; display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center; padding: 12px; border-radius: var(--radius-button);" style-hover="background: var(--surface-overlay);">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; color: var(--text-primary);">snap · 120ms</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">taps, toggles, axis stops</span></div>
+        <div style="height: 24px; position: relative; border-bottom: 0.5px solid var(--hairline);"><div ref="{{ snapRef }}" style="position: absolute; bottom: 4px; left: 0; width: 20px; height: 20px; border-radius: 999px; background: var(--accent);"></div></div>
+      </button>
+      <button onClick="{{ playSpring }}" style="all: unset; cursor: pointer; display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center; padding: 12px; border-radius: var(--radius-button);" style-hover="background: var(--surface-overlay);">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; color: var(--text-primary);">spring · 180ms</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">FAB, sheets — 6% overshoot</span></div>
+        <div style="height: 24px; position: relative; border-bottom: 0.5px solid var(--hairline);"><div ref="{{ springRef }}" style="position: absolute; bottom: 4px; left: 0; width: 20px; height: 20px; border-radius: 999px; background: var(--accent);"></div></div>
+      </button>
+      <button onClick="{{ playSettle }}" style="all: unset; cursor: pointer; display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: center; padding: 12px; border-radius: var(--radius-button);" style-hover="background: var(--surface-overlay);">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 15px; color: var(--text-primary);">settle · 240ms</span><span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">cover flight — almost no overshoot</span></div>
+        <div style="height: 24px; position: relative; border-bottom: 0.5px solid var(--hairline);"><div ref="{{ settleRef }}" style="position: absolute; bottom: 4px; left: 0; width: 20px; height: 20px; border-radius: 999px; background: var(--accent);"></div></div>
+      </button>
+      <p style="margin: 4px 0 0; font-size: 13px; line-height: 18px; color: var(--text-muted); max-width: 68ch;">A photograph that overshoots reads as wobble, not as spring — which is why the cover flight gets the flattest of the three, and the FAB gets the bounciest.</p>
+    </div>
+  </section>
+
+  <!-- ── 5 · ILLUSTRATION ───────────────────────────────────── -->
+  <section style="display: flex; flex-direction: column; gap: 32px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="font-family: var(--font-ui); font-weight: 500; font-size: 22px; line-height: 28px; margin: 0;">5 · The recurring figure — two directions</h2>
+      <p style="margin: 0; max-width: 68ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">Both directions are monoline, one weight, one ink, and both appear five to eight times in the whole app and never on a screen that has books on it. One caveat before you look: SVG figure drawing is the weakest thing I do. Ornaments, frames and rules will be good. A figure will be a competent diagram of a figure, and one of these two is beyond that — it says so on its card rather than pretending otherwise.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+      <div style="padding: 32px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">A · the crow</div>
+        <div style="display: flex; gap: 32px; align-items: center; justify-content: center; padding: 24px 0;">
+          <svg width="140" height="140" viewBox="0 0 120 120" fill="none" stroke="{{ ink }}" stroke-width="{{ strokeW }}" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M46 40 C40 42 33 44 25 46 L44 53"></path>
+            <path d="M46 38 C58 34 74 41 84 57 C93 72 91 88 83 98"></path>
+            <path d="M44 53 C40 61 40 73 46 85 C52 94 68 100 83 98"></path>
+            <path d="M58 59 C70 61 79 71 83 85"></path>
+            <path d="M83 98 L110 107"></path>
+            <path d="M60 99 L60 108 M70 99 L70 108"></path>
+            <path d="M54 108 L66 108 M64 108 L76 108"></path>
+            <circle cx="49" cy="45" r="1.4" fill="{{ ink }}" stroke="none"></circle>
+          </svg>
+          <svg width="140" height="140" viewBox="0 0 120 120" fill="none" stroke="{{ ink }}" stroke-width="{{ strokeW }}" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="14" y="14" width="92" height="92" rx="2"></rect>
+            <rect x="20" y="20" width="80" height="80" rx="1"></rect>
+            <path d="M20 34 L100 34 M20 86 L100 86"></path>
+            <path d="M60 24 L64 28 L60 32 L56 28 Z"></path>
+            <path d="M60 88 L64 92 L60 96 L56 92 Z"></path>
+            <path d="M34 60 L30 60 M90 60 L86 60"></path>
+          </svg>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-secondary);">A watcher, not a companion. Sits on an empty state's rule and looks at nothing. Reads well against ruthless protagonists and hard magic, and it survives being drawn very small — a crow at 24px is still a crow.</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Risk: crows are common shorthand for dark fiction. It could read as on-the-nose.</p>
+      </div>
+
+      <div style="padding: 32px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">B · the hands</div>
+        <div style="display: flex; gap: 32px; align-items: center; justify-content: center; padding: 24px 0;">
+          <div style="width: 140px; height: 140px; border: 0.5px dashed var(--hairline-strong); border-radius: var(--radius-card); display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center;">
+            <span style="font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--text-muted);">not drawn —<br>see below</span>
+          </div>
+          <svg width="140" height="140" viewBox="0 0 120 120" fill="none" stroke="{{ ink }}" stroke-width="{{ strokeW }}" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="14" y="14" width="92" height="92" rx="2"></rect>
+            <rect x="20" y="20" width="80" height="80" rx="1"></rect>
+            <path d="M20 34 L100 34 M20 86 L100 86"></path>
+            <path d="M60 24 L64 28 L60 32 L56 28 Z"></path>
+            <path d="M60 88 L64 92 L60 96 L56 92 Z"></path>
+            <path d="M34 60 L30 60 M90 60 L86 60"></path>
+          </svg>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-secondary);">The act rather than a character. Holding, turning, marking a place — three or four variations of the same pair of hands, one per empty state. Nothing to anthropomorphise, so it can never turn into a mascot.</p>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">There is no sketch because I could not draw one worth judging. Three attempts read as a scroll, a book on a stand, and a spiral notebook. The crow is within what I can draw; hands are not. If you choose B you are choosing the idea, and the line art gets drawn by a person or sourced in Phase 5 — I would build the system around it either way.</p>
+      </div>
+    </div>
+
+    <div style="padding: 24px; background: var(--surface-raised); border: 0.5px solid var(--hairline); border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent);">Recommendation</div>
+      <p style="margin: 0; max-width: 72ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">The hands are the better idea and the crow is the only one I can deliver. The hands describe the act the app is about; the crow decorates the genre. So the choice is really between a good idea that needs someone else's hand and a serviceable one I can execute now. If you want the app finished entirely from this session, take the crow. If you are willing to commission or source six small drawings, take the hands and I will design every empty state around them. The frame ornament is the same either way and is settled.</p>
+    </div>
+  </section>
+
+  <footer style="border-top: 0.5px solid var(--hairline); padding-top: 32px; display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">gate</div>
+    <p style="margin: 0; max-width: 72ch; font-size: 15px; line-height: 22px; color: var(--text-secondary);">Two answers unblock Phase 1: the serif, and the figure. A third is optional — whether IBM Plex Sans is acceptable as the interface face in place of Inter.</p>
+  </footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;strokeWeight&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1.25,&quot;min&quot;:0.75,&quot;max&quot;:2,&quot;step&quot;:0.25,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Illustration&quot;,&quot;unit&quot;:&quot;px&quot;},&quot;ink&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;var(--accent)&quot;,&quot;options&quot;:[&quot;var(--accent)&quot;,&quot;var(--text-primary)&quot;,&quot;var(--cool)&quot;,&quot;var(--accent-bright)&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Illustration&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.snapRef = React.createRef();
+    this.springRef = React.createRef();
+    this.settleRef = React.createRef();
+  }
+
+  run(ref, dur, ease) {
+    const el = ref.current;
+    if (!el) return;
+    const track = el.parentElement;
+    const travel = track.clientWidth - el.offsetWidth;
+    el.style.transition = 'none';
+    el.style.transform = 'translateX(0px)';
+    void el.offsetWidth;
+    el.style.transition = 'transform ' + dur + ' ' + ease;
+    el.style.transform = 'translateX(' + travel + 'px)';
+    clearTimeout(this['t_' + dur]);
+    this['t_' + dur] = setTimeout(() => {
+      el.style.transition = 'transform 400ms linear';
+      el.style.transform = 'translateX(0px)';
+    }, 900);
+  }
+
+  renderVals() {
+    return {
+      ink: this.props.ink ?? 'var(--accent)',
+      strokeW: this.props.strokeWeight ?? 1.25,
+      snapRef: this.snapRef,
+      springRef: this.springRef,
+      settleRef: this.settleRef,
+      playSnap: () => this.run(this.snapRef, 'var(--dur-fast)', 'var(--ease-snap)'),
+      playSpring: () => this.run(this.springRef, 'var(--dur-base)', 'var(--ease-spring)'),
+      playSettle: () => this.run(this.settleRef, 'var(--dur-slow)', 'var(--ease-settle)')
+    };
+  }
+}
+</script>
+</body>
+</html>

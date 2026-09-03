@@ -1,0 +1,402 @@
+/* Ex Libris — tokens.css v1
+   The contract with Claude Code. Nothing in this project hardcodes a value.
+   If a value you need is missing, ask; do not invent one.
+   Phase 0 · 2026-08-31
+*/
+
+:root {
+  color-scheme: dark light;
+
+  /* ─────────────────────────────────────────────
+     SURFACES — four planes. Depth comes from these
+     plus hairlines. Not from shadows.
+     ───────────────────────────────────────────── */
+  /* Cool blue-grey, from the user's shades-of-gray ramp. The page is black-90
+     rather than black-100 — a true-black page is the default every app reaches
+     for, and the grey holds the amber accent better. Sunken drops to black-100,
+     raised and overlay climb the same ramp. Revised 2026-09-01, D-064. */
+  --surface-sunken:   #0A0E15;   /* black-100 — inputs, wells */
+  --surface-base:     #212631;   /* black-90 — page */
+  --surface-raised:   #2C3340;   /* between black-90 and black-80 — cards */
+  --surface-overlay:  #373F4E;   /* black-80 — sheets, menus */
+
+  /* TEXT — four tiers */
+  /* CONTRAST RULE — read this before using a tier.
+     Brief §9 sets an AA floor; brief §3.1 sets these four values. At small
+     sizes the two cannot both hold: on --surface-raised, muted measures
+     2.89:1 dark / 3.03:1 light and faint under 2:1. So the tiers are split by
+     ROLE rather than by taste, and the four-tier hierarchy is carried by size
+     and weight instead of by tone:
+
+       --text-primary    any size, any surface
+       --text-secondary  any size — the tier for ALL metadata under 18.66px
+                         (7.09:1 dark, 5.35:1 light)
+       --text-muted      text at 18.66px+ ONLY, and non-text UI such as
+                         inactive icons and chevrons (clears the 3:1 floor)
+       --text-faint      never text. Disabled states and dividers only.
+
+     Claude Code: if you find yourself putting 11px or 13px content on muted
+     or faint, use secondary. See DECISIONS D-016. */
+  --text-primary:     #FFFFFF;   /* white-100 */
+  --text-secondary:   #BFC6D4;   /* white-60 — 9.1:1 on the page */
+  --text-muted:       #8F98A8;
+  --text-faint:       #667085;   /* black-60 */
+
+  /* HAIRLINES — always 0.5px, never flat grey */
+  --hairline:         rgba(224, 228, 235, 0.12);
+  --hairline-strong:  rgba(224, 228, 235, 0.22);
+  --hairline-width:   0.5px;
+
+  /* ACCENT — four depths of coffee. Golden-amber crema.
+     Must never drift red. See DECISIONS.md D-006. */
+  /* Dark is monochrome: the accent is a lifted blue-grey off the same ramp, not
+     a second hue. It reads as "the live one" by lightness rather than by warmth.
+     Light keeps Whiskey Sour — the two themes no longer share an accent, which
+     is the point of them being genuinely two themes. Revised D-067. */
+  --accent-deep:      #2C3340;
+  --accent-muted:     #4E576A;   /* black-70 */
+  --accent:           #8FA3C4;
+  --accent-bright:    #B3C2DC;
+  --on-accent:        #0A0E15;   /* text on an accent fill — black-100 */
+  /* Accent AS TEXT. In light, --accent measures 4.21:1 on base and fails at
+     small sizes, so accent-coloured labels use this instead of --accent. */
+  --accent-text:      #8FA3C4;   /* 7.3:1 on the page */
+
+  /* COOL COUNTERWEIGHT — DELETED in the Phase 9 pass, 2 September. It existed
+     to cut a warm brown page. Dark is now cool throughout, where it sat a few
+     degrees from the accent and read as a second, meaningless accent; light
+     lost nothing by using --text-secondary instead. One accent, one hierarchy.
+     See DECISIONS D-070. Claude Code: --cool and --cool-deep are gone. Do not
+     reintroduce them. */
+
+  /* STATUS — NOT identical in both themes. The values below are the DARK set:
+     cool, because D-067 made the dark theme monochrome. Light overrides four of
+     the five in the [data-theme='light'] block near the foot of this file —
+     reading, caught-up, finished, and dropped/wishlist stay warm there.
+     Claude Code: read both blocks. Do not hoist these into one set. */
+  --status-reading:   #8FA3C4;
+  --status-caughtup:  #8FA3C4;   /* same hue as reading; differentiated by
+                                    a segmented track, not by colour */
+  --status-finished:  #7FA486;
+  --status-dropped:   #7E8798;
+  --status-wishlist:  #96A0B0;
+
+  /* DANGER — one warm red, for destructive text and borders only. Never a fill,
+     never on more than one control per screen. Sits at the accent's chroma so
+     it reads as part of the same palette; it is a signal, not a second accent.
+     Added 2026-09-01 for "empty the trash". See DECISIONS D-047. */
+  --danger:      #C4655A;
+  --danger-soft: color-mix(in oklab, var(--danger) 12%, transparent);
+  /* Warning tags sit on a --danger wash, so the label needs a lighter ink than
+     --danger itself to clear contrast against it. */
+  --danger-text: #E09A90;
+
+  /* GENRE SPECTRUM — genre chips only, nowhere else.
+     Index matches tag.colorIndex 0-11. The assignment is FIXED by
+     docs/taxonomy.md and must not be reordered — a work stores the index, so
+     re-indexing silently recolours every work in the library:
+
+       0  clay    Thriller
+       1  amber   Progression & Cultivation   ← the accent hue, deliberately
+       2  ochre   Action & Adventure
+       3  moss    Comedy & Slice of Life
+       4  jade    Fantasy
+       5  teal    Mystery & Crime
+       6  slate   Science Fiction
+       7  indigo  Non-fiction
+       8  plum    Horror
+       9  rose    Romance
+       10 umber   Historical
+       11 stone   Literary & Contemporary
+
+     Twelve genres, twelve colours: a thirteenth genre means a thirteenth
+     colour, which is why the set is closed. */
+  --genre-0:  #B5705A;  /* clay   */
+  --genre-1:  #C8873F;  /* amber  */
+  --genre-2:  #A8904A;  /* ochre  */
+  --genre-3:  #6B8F5E;  /* moss   */
+  --genre-4:  #4F8A73;  /* jade   */
+  --genre-5:  #4E7A82;  /* teal   */
+  --genre-6:  #5A7184;  /* slate  */
+  --genre-7:  #6A6B96;  /* indigo */
+  --genre-8:  #9C5A72;  /* plum   */
+  --genre-9:  #B0707A;  /* rose   */
+  --genre-10: #8A6A50;  /* umber  */
+  --genre-11: #7E7A72;  /* stone  */
+
+  /* Chip fill and border are derived, not separate hues:
+       fill   = colour at 14% over the current surface
+       border = colour at 34%
+       label  = colour mixed toward --genre-ink by --genre-ink-amt
+     The twelve hues were picked to sit in one band against a DARK page. As a
+     label on a light chip none of them clears 4.5:1 — measured 2.5–3.9:1. So
+     in light the label is darkened toward the ink; in dark the amount is 0%
+     and the hue is untouched. tag.colorIndex stays stable either way
+     (SCHEMA §7) — this is a render-time adjustment, not a palette change.
+
+       color: color-mix(in oklab, var(--genre-N), var(--genre-ink) var(--genre-ink-amt));
+
+     Claude Code: use color-mix(). Do not add twelve more tokens. */
+  --genre-fill-alpha:   0.14;
+  --genre-border-alpha: 0.34;
+  --genre-ink:          #0A0E15;
+  --genre-ink-amt:      0%;
+
+  /* COVER TREATMENT
+     Light mode needs an inset or covers float. Dark mode does not. */
+  --cover-inset: inset 0 0 0 0.5px rgba(0, 0, 0, 0);
+  --cover-radius: var(--radius-card);
+  --cover-fallback: #373F4E;     /* coverSource === 'none' */
+  /* How far the detail header is tinted toward coverDominantColor.
+       background: color-mix(in oklab, <hex> var(--cover-tint-amt), var(--surface-base));
+     Light gets far less: tinting darkens a light page, and mid-grey metadata
+     on a darkened page drops under AA. 22% dark measured fine; 22% light put
+     --text-secondary at 3.58:1. 10% holds even against a black cover. */
+  --cover-tint-amt: 22%;
+
+  /* ─────────────────────────────────────────────
+     TYPE
+     ───────────────────────────────────────────── */
+  /* Three faces, by size. Revised 2026-09-01 — see DECISIONS D-060.
+       Sansita              display, 22px and up. Titles, figures, the wordmark.
+       Montserrat Alternates the chrome: labels, buttons, tabs, metadata.
+       Taviraj              reading text — note bodies, blurbs, long paragraphs.
+     Sansita is static, so display weight is a WEIGHT, not a variation axis.
+     Claude Code: self-host all three. Sansita 400/700/800, Montserrat
+     Alternates 400/500/600, Taviraj 300/400/500. */
+  --font-display: 'Sansita', Georgia, serif;
+  --display-vf:     700;   /* display L/M — use as font-weight */
+  --display-vf-sm:  700;   /* display S */
+  --display-vf-xs:  400;   /* axis line, small display */
+  --font-ui: 'Montserrat Alternates', system-ui, sans-serif;
+  --font-body: 'Taviraj', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --size-display-l: 40px;  --lh-display-l: 44px;
+  --size-display-m: 30px;  --lh-display-m: 34px;
+  --size-display-s: 22px;  --lh-display-s: 28px;
+  --size-body-l:    17px;  --lh-body-l:    26px;
+  --size-body:      15px;  --lh-body:      22px;
+  --size-caption:   13px;  --lh-caption:   18px;
+  --size-label:     11px;  --lh-label:     14px;   /* smallest permitted */
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+
+  --tracking-display: -0.01em;
+  --tracking-body:     0;
+  --tracking-label:    0.01em;   /* NOT tracked-out all-caps. See D-007. */
+
+  /* ─────────────────────────────────────────────
+     SPACING — 4 · 8 · 12 · 16 · 24 · 32 · 40 · 64
+     Nothing off-grid, ever.
+     ───────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  40px;
+  --space-8:  64px;
+
+  /* RADIUS — different levels for different hierarchy */
+  --radius-chip:   4px;
+  --radius-button: 8px;
+  --radius-card:   12px;
+  --radius-sheet:  16px;
+  --radius-pill:   999px;
+
+  /* ─────────────────────────────────────────────
+     MOTION — see MOTION.md for choreography
+     ───────────────────────────────────────────── */
+  --dur-fast:  120ms;   /* taps, toggles, ticks */
+  --dur-base:  180ms;   /* sheets, expansion */
+  --dur-slow:  240ms;   /* screen transitions */
+
+  /* PREMIUM ANIMATION SYSTEM — added 2026-09-01 at the user's instruction.
+     These sit alongside the existing durations rather than replacing them:
+     --duration-* is the vocabulary for the new tactile layer (press, ripple,
+     drawer, overlay), --dur-* remains the vocabulary for everything already
+     choreographed in MOTION.md. Both are GPU-safe: transform and opacity only.
+     RULE: never animate height, width, border, margin, top or left. */
+  --ease-fluid-out:   cubic-bezier(0.1, 0.76, 0.55, 0.94);  /* Apple-style */
+  --ease-spring-back: cubic-bezier(0.34, 1.56, 0.64, 1);    /* overshoot */
+  --ease-standard:    cubic-bezier(0.4, 0.0, 0.2, 1);       /* Material */
+  --duration-micro:  120ms;   /* press, ripple start */
+  --duration-medium: 220ms;   /* colour, menus */
+  --duration-fluid:  320ms;   /* overlays */
+  --duration-drawer: 380ms;   /* the drawer alone — it crosses the whole screen */
+  --press-scale: 0.96;
+
+  /* Real spring curves encoded as linear(). Never ease-in-out. */
+  --ease-snap: linear(
+    0, 0.2178 2.1%, 0.5992 6.7%, 0.7683 9.4%, 0.8981 12.3%, 0.9469 13.9%,
+    0.9829 15.6%, 1.0038 17.5%, 1.0173 20%, 1.0176 23.5%, 1.0057 30.2%, 1);
+  --ease-spring: linear(
+    0, 0.0033 0.8%, 0.0665 2.6%, 0.2452 5.1%, 0.7442 11.1%, 0.9098 13.5%,
+    1.0224 16%, 1.0616 18.6%, 1.0621 20.2%, 1.0405 22.6%, 1.0009 26.6%,
+    0.9922 29%, 1.0011 33.9%, 1.0001 42.8%, 1);
+  --ease-settle: linear(
+    0, 0.009 1.4%, 0.0894 4.9%, 0.3103 10.5%, 0.6531 17.5%, 0.8477 22.4%,
+    0.9445 26.6%, 0.9849 30.8%, 1.0018 35.7%, 1.0056 42%, 1.0011 55.3%, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);   /* dismissals only */
+  /* The workhorse. Decelerating, no overshoot — for anything that opens,
+     slides or fades routinely: drawer, scrims, inline expansion, the splash.
+     Springs are reserved for the FAB and the sheets it becomes; overshoot on
+     ordinary motion reads as instability rather than personality. */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Haptics — Vibration API, Android only. One tick, nothing more. */
+  --haptic-tick: 12;   /* ms, unitless for navigator.vibrate() */
+
+  /* ─────────────────────────────────────────────
+     LAYOUT
+     ───────────────────────────────────────────── */
+  --touch-min: 44px;
+  --nav-height: 56px;
+  /* The bottom bar floats: inset from both edges, fully rounded, translucent.
+     --glass-fill must stay above 70% or text on it drops under AA when a cover
+     scrolls behind. */
+  --nav-inset: 12px;
+  --nav-lift: 10px;
+  /* 88%, not 78% — over the dense Everything list the bar was reading as part
+     of the list rather than above it. Glass still, but glass you can find. */
+  --glass-fill: color-mix(in oklab, var(--surface-overlay) 88%, transparent);
+  /* Home's constellation. Its own tier, well under --hairline: it is the only
+     decorative thing in the app and it must never compete with a hairline that
+     means something. Dark needs far less than light — a light line on a dark
+     ground carries much further. */
+  --art-line: rgba(224, 228, 235, 0.055);
+  --art-dot:  rgba(224, 228, 235, 0.085);
+  --glass-blur: blur(36px) saturate(1.8);
+  /* the two layers that make it read as glass rather than as tint */
+  --glass-sheen: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.04) 42%,
+      rgba(255, 255, 255, 0) 60%);
+  --glass-ring: inset 0 0.5px 0 rgba(255, 255, 255, 0.22),
+                inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
+  --shadow-nav: 0 8px 28px rgba(0, 0, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --fab-size: 56px;
+  --page-gutter: var(--space-4);
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --z-content: 0;
+  --z-nav: 40;
+  --z-fab: 50;
+  --z-sheet: 60;
+  --z-overlay: 70;
+
+  /* Shadows — permitted ONLY on the FAB and modal sheets. Nowhere else. */
+  --shadow-fab:   0 2px 8px rgba(0, 0, 0, 0.40), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-sheet: 0 -2px 24px rgba(0, 0, 0, 0.44);
+
+  /* ─────────────────────────────────────────────
+     ILLUSTRATION RAMP
+     Every supplied illustration is recoloured onto these ten and nothing
+     else, which is what makes thirteen drawings by different illustrators
+     read as one set. Each fill is written var(--il-x, <dark fallback>) so
+     the file still renders correctly when loaded through <img>, where
+     custom properties do not resolve. Inline the SVG to get theme response.
+     ───────────────────────────────────────────── */
+  --il-accent:     var(--accent);
+  --il-accent-deep: var(--accent-muted);
+  --il-ink:        var(--text-primary);
+  --il-ink-soft:   var(--text-secondary);
+  --il-paper:      var(--surface-raised);
+  --il-paper-soft: var(--surface-overlay);
+  --il-skin:       var(--accent-bright);
+  --il-skin-deep:  var(--accent-muted);
+  --il-wood:       var(--accent-deep);
+  --il-wood-soft:  var(--accent-muted);
+
+  /* Focus — visible, always, both themes */
+  --focus-ring: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent-bright);
+}
+
+/* ─────────────────────────────────────────────
+   LIGHT — a genuine theme, not a dark afterthought
+   ───────────────────────────────────────────── */
+[data-theme='light'] {
+  /* Cream, not white. An unwarmed white page under a warm serif reads as a
+     different product; and the modal plane goes DOWN in lightness here rather
+     than up, because a lighter-than-white sheet is invisible. Revised
+     2026-09-01 — see DECISIONS D-048. */
+  /* Champagne opened up into paper, with Burnt Coffee as the ink. The modal
+     plane still goes DOWN in lightness — a sheet lighter than the page is
+     invisible. */
+  --surface-sunken:   #EADCC5;
+  --surface-base:     #F7EDDC;
+  --surface-raised:   #FCF6EC;
+  --surface-overlay:  #F1E3CD;
+
+  --text-primary:     #34150F;   /* Burnt Coffee as ink */
+  --text-secondary:   #6E4632;
+  --text-muted:       #96705A;
+  --text-faint:       #B99B80;
+
+  --hairline:         rgba(52, 21, 15, 0.12);
+  --hairline-strong:  rgba(52, 21, 15, 0.22);
+
+  --accent-deep:      #EFDCC2;   /* pale wash — hover fill under accent text */
+  --accent-muted:     #A85A24;
+  --accent:           #D39858;   /* Whiskey Sour, both themes */
+  --accent-bright:    #85431E;   /* Honey Garlic — the hover/link darkening */
+  --on-accent:        #34150F;
+  --accent-text:      #85431E;   /* 6.2:1 on base */
+
+  /* Covers float on light surfaces without this. Dark mode does not need it. */
+  --cover-inset: inset 0 0 0 0.5px rgba(28, 24, 20, 0.14);
+  /* Status stays warm here. D-067 turned dark monochrome; light did not follow,
+     so the cool values in :root are dark-only and are restored below. Reading
+     follows light's own accent one step down, which clears the 3:1 non-text
+     floor on a 3px bar where #D39858 (2.2:1 on cream) does not. */
+  --status-reading:   #B77638;
+  --status-caughtup:  #B77638;
+  --status-finished:  #5E7F52;
+  --status-dropped:   #8A7F76;
+  --status-wishlist:  #7E6A52;
+
+  --cover-fallback: #E3D2B6;
+  --cover-tint-amt: 10%;
+  --genre-ink-amt: 46%;
+  --danger: #9E3E30;
+  --danger-text: #8A3427;
+
+  --glass-fill: color-mix(in oklab, var(--surface-raised) 84%, transparent);
+  --art-line: rgba(52, 21, 15, 0.085);
+  --art-dot:  rgba(52, 21, 15, 0.13);
+  --glass-blur: blur(36px) saturate(1.05);
+  --glass-sheen: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.18) 45%,
+      rgba(255, 255, 255, 0) 62%);
+  --glass-ring: inset 0 0.5px 0 rgba(255, 255, 255, 0.85),
+                inset 0 -0.5px 0 rgba(52, 21, 15, 0.06);
+  --shadow-nav: 0 6px 22px rgba(52, 21, 15, 0.14), 0 2px 6px rgba(52, 21, 15, 0.10);
+
+  --shadow-fab:   0 1px 3px rgba(52, 21, 15, 0.18), 0 6px 20px rgba(52, 21, 15, 0.15);
+  --shadow-sheet: 0 -2px 24px rgba(52, 21, 15, 0.18);
+  --focus-ring: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --ease-snap: linear;
+    --ease-spring: linear;
+    --ease-settle: linear;
+    --duration-micro: 0ms;
+    --duration-medium: 0ms;
+    --duration-fluid: 0ms;
+    --duration-drawer: 0ms;
+    --ease-fluid-out: linear;
+    --ease-spring-back: linear;
+    --press-scale: 1;
+  }
+}
