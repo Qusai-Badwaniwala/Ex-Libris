@@ -25,7 +25,7 @@ novels and manhwa in one library.
 
 ## Where the work stopped
 
-**Phase 0 is complete. Phase 1 is PART DONE and the gate is green.**
+**Phase 0 complete. Phase 1 part done. Phase 2 built and partly run. Gate green.**
 
 The app runs and is usable end to end for one job: you can open it for the first
 time, name the bookplate, add a work by hand, find it on its shelf, change
@@ -54,14 +54,25 @@ to Phase 4. A user-supplied cover and a fetched one share the same store,
 downscale and colour-extraction path, and building that path twice is how the
 two diverge.
 
+**Phase 2 — the corpus pipeline** lives in `pipeline/` and is run with
+`npm run pipeline`. Nine resumable, checkpointed stages. Zero new dependencies:
+Node 24 ships SQLite 3.50 with FTS5 and the exact tokenizer SCHEMA §10 names,
+and it strips TypeScript natively. AniList and MangaDex have been run for real;
+Open Library and Wikidata are written and verified but not run, because that is
+a 16.2 GB download and the phase gate says to report first. Read
+`docs/PIPELINE-NOTES.md` before touching any of it — especially the section on
+AniList returning the comic rather than the novel.
+
 Measured on 2026-09-03, not estimated:
 
 |                         |                                                                    |
 | ----------------------- | ------------------------------------------------------------------ |
-| unit tests              | 84 passing, 6 files                                                |
-| end-to-end tests        | 7 passing against a production build, as one journey               |
+| unit tests              | 112 passing, 8 files                                               |
+| end-to-end tests        | 11 passing against a production build, as one journey              |
 | structural checks       | 5 passing                                                          |
-| JS bundle               | 378 kB raw, **113.4 kB gzipped** (budget: 250 kB)                  |
+| JS bundle               | 396 kB raw, **120.3 kB gzipped** (budget: 250 kB)                  |
+| corpus, sample build    | 3,722 works, 4.6 MB — 1,275 bytes/work, ~608 MB projected at 500k  |
+| corpus typeahead        | 0.15–0.55 ms for a 3-character prefix (budget 50 ms)               |
 | service worker precache | 55 entries, 5.4 MB (mostly the 13 illustrations and 21 font files) |
 
 ---
@@ -76,7 +87,8 @@ npm run gate         # the full gate — must pass before anything is "done"
 ```
 
 Other scripts: `npm run build`, `npm run preview`, `npm run test:watch`,
-`npm run icons` (regenerates the three PNG app icons from `scripts/icon.svg`).
+`npm run icons` (regenerates the three PNG app icons from `scripts/icon.svg`),
+`npm run pipeline` (the corpus pipeline — read `docs/PIPELINE-NOTES.md` first).
 
 **The gate is one chain and it is not optional:**
 
@@ -113,7 +125,12 @@ First run of the e2e suite on a new machine needs `npx playwright install chromi
 design/            The handoff package from Claude Design, vendored verbatim.
                    NEVER EDITED. It is the contract, and check:tokens proves
                    the copies in src/ still match it.
-docs/              These files. ENGINE-BRIEF.md is the original brief.
+docs/              These files. ENGINE-BRIEF.md is the original brief;
+                   PIPELINE-NOTES.md is required reading before running the
+                   corpus pipeline.
+pipeline/          The build-time corpus pipeline. NOT part of the app bundle —
+                   nothing in src/ imports it, and the bundle hash is unchanged
+                   by its presence. Run with `npm run pipeline`.
 scripts/           check-tokens.mjs (structural gate), make-icons.mjs, icon.svg
 src/db/            schema.ts (the contract as types), db.ts (Dexie +
                    migrations), keys.ts (sort keys), dates.ts (local calendar)
@@ -151,20 +168,20 @@ tests/e2e/         playwright, against a production build on localhost:4173
 
 ## The next three concrete actions
 
-1. **The Wishlist screen and Settings.** Settings carries four audit items on
-   its own: the owner name has to become editable (B7), "Show content warning
-   tags" is filed under the wrong heading (C1), "Export a copy" has no handler
-   (C3), and there is no storage-usage row in an app that will hold a
-   several-hundred-megabyte index (C4). `storageUsage()` in
-   `src/storage/opfs.ts` already returns what that row needs.
-2. **Tag editing, and then tag housekeeping (B9).** The tag picker is a full
-   screen over 242 seeded tags in 7 groups — see design/COMPONENTS.md "Tag
-   picker" for its exact shape. `repo.tagByName` and `refreshTagCounts` are
-   already in place and tested.
-3. **Manual series and universe editing (B5).** `repo.setSeries`,
-   `seriesByName` and `universeByName` exist and are tested; what is missing is
-   the sheet and a way to reach a series page other than through a work that
-   already belongs to one.
+1. **Answer Q-023, the corpus size ceiling.** A real build measured 1,275 bytes
+   per work, projecting to ~608 MB at 500k — three to six times the brief's
+   guess. Three options are laid out in `OPEN-QUESTIONS.md`; nothing else in
+   Phase 2 should run until one is picked, because a full `acquire` is 16.2 GB
+   and hours.
+2. **Finish Phase 1's remaining screens.** Tag editing and housekeeping (B9),
+   manual series and universe editing (B5), the Everything screen with its genre
+   filter, and the four-step spotlight tour. `repo.setSeries`, `seriesByName`,
+   `tagByName` and `refreshTagCounts` all exist and are tested; what is missing
+   is the UI.
+3. **Phase 3 must show `format_hint` in the add flow.** Not a nicety — see
+   PIPELINE-NOTES. AniList returns a 96-chapter manhua for "Reverend Insanity"
+   where the novel is 2,334 chapters, so a match offered without its format
+   hands the reader a number wrong by 24x.
 
 ---
 

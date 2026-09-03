@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "check:tokens": "node scripts/check-tokens.mjs",
     "gate": "npm run format:check && npm run lint && npm run typecheck && npm run check:tokens && npm run test && npm run test:e2e && npm run build",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "pipeline": "node pipeline/run.ts"
   },
   "dependencies": {
     "@fontsource/montserrat-alternates": "^5.2.5",

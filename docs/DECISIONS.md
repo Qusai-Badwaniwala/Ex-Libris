@@ -230,3 +230,77 @@ never begins with an orphaned separator. The design established this for the
 axis line (D-010); it was not written down as a general rule, and the wishlist
 row got it wrong until a screenshot showed a hairline sitting alone at the start
 of a line.
+
+---
+
+## 2026-09-03 · Phase 2 — the corpus pipeline
+
+**E-032 · `node:sqlite`, not better-sqlite3 or sql.js.** Node 24 ships SQLite
+3.50 with FTS5, `unicode61 remove_diacritics 2` and prefix indexes — every
+option SCHEMA §10 names. Verified before the pipeline was written rather than
+after. The alternative was a native module needing a C++ toolchain on Windows.
+_Ceiling, marked in the file:_ it is flagged experimental, so the API could move
+under a Node upgrade. Contained: it is a build-time tool run by hand on one
+machine, and what it produces is a plain SQLite file the app reads through
+wa-sqlite. Nothing at runtime touches it.
+
+**E-033 · The pipeline imports the app's `sortTitleOf` rather than its own.**
+`title_normalized` is what the FTS5 index holds and what the app builds its side
+of the comparison with. Two implementations would drift and search would quietly
+stop finding things — the exact failure the one-source-of-truth rule exists to
+prevent.
+
+**E-034 · JSONL between stages, never JSON.** A 600,000-row array must be
+complete before it parses, so a crash costs the whole stage. A line is a row and
+a torn final line costs one row.
+
+**E-035 · `acquire` is excluded from `all`.** It downloads 16.2 GB. A command
+called "all" should not start that without being asked, and the editions dump
+(11.7 GB) is skipped even then unless `--force` is passed, because nothing in
+the current filter predicate reads it.
+
+**E-036 · `format_hint` records what an AniList row IS, not what was searched
+for.** The most consequential decision of the phase, and it came from reading
+one sample rather than from reasoning. AniList's `type: MANGA` covers comics and
+light novels, and for Chinese and Korean web fiction it very often holds ONLY
+the comic adaptation, under the novel's name, with the comic's chapter count.
+Verified live: Reverend Insanity returns a 96-chapter CANCELLED manhua where the
+novel is 2,334 chapters; Lord of the Mysteries returns a 65-chapter manhua where
+the novel is 1,432. Shadow Slave and Kill the Sun return nothing at all.
+So a MANGA row is labelled `manhwa` and the add flow must show that label. A
+mislabelled record is worse than a missing one: the reader would get a chapter
+count wrong by a factor of twenty-four and no signal that anything was off.
+
+**E-037 · Cross-source merging is a second pass on title, with two rules learned
+from the data.** Matching on title AND author left 256 duplicate title groups —
+6.5% of a 4,000-row sample — because AniList reads a "Story" staff credit and
+MangaDex an author relationship, and the two romanise names differently. The
+second pass matches on normalised title and then applies:
+
+1. **Never merge two records from the same source.** AniList already dedupes
+   itself, so two of its rows sharing a title are two works — the sample
+   contains Toradora!, Shield Hero, Konosuba and Eminence in Shadow, each
+   appearing twice because AniList holds the light novel AND its manga.
+2. **Country must agree where both know it.** It is the one field separating
+   same-titled works from different traditions — the Korean "Wind Breaker" from
+   the Japanese one.
+   A group holding two rows from one source is left alone entirely rather than
+   guessed at. Result: 240 further merges, 16 groups correctly left apart, and
+   every one of those 16 checked by hand.
+   _Why conservative:_ merging two different works is invisible and permanent;
+   failing to merge two of the same shows up as a duplicate in search, which the
+   reader can see and report. The visible failure is the better one.
+
+**E-038 · `total_entries` and universes stay NULL and empty until Wikidata
+runs.** What the corpus knows about a series is not what exists, and only
+Wikidata states that several series share a continuity. A count derived from a
+relation cluster would be a wrong denominator under a completion ring, and an
+invented universe is a confident wrong grouping — both are exactly what the
+series cascade is written to avoid.
+
+**E-039 · `synonyms` added to `corpus_work` and to the FTS index.** SCHEMA §10
+lists title, title_normalized and authors. Alternate and native titles are how a
+reader actually finds a translated work — "Na Honjaman Level Up" for Solo
+Leveling — and without them a search for the name someone knows it by returns
+nothing. Corpus-internal: the table is read-only, never backed up, and
+`CorpusMatch` (SCHEMA §9.1) is unchanged, so nothing design-visible moves.

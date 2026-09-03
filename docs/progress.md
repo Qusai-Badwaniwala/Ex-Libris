@@ -239,3 +239,76 @@ a lost phone and a lost library.
 **The API key is never written to a backup** (SCHEMA §11), and that assertion
 was watched to fail before it was trusted: a backup is a file the reader may put
 in a cloud drive, and a credential inside it travels wherever the file goes.
+
+---
+
+## Phase 2 · The corpus pipeline — 2026-09-03
+
+### Built
+
+Nine stages under `pipeline/`, run by `npm run pipeline`. Every one is resumable
+and idempotent: a checkpoint per stage, JSONL between stages, and a rerun of a
+finished stage is a no-op. Sources: Open Library (dumps), Wikidata (paged
+SPARQL), AniList (paged GraphQL), MangaDex (paged REST). Then merge, derive,
+build to SQLite with FTS5, and emit a manifest with a SHA-256.
+
+Zero new dependencies. Node 24 ships SQLite 3.50 with FTS5 and the exact
+tokenizer SCHEMA §10 names, and it strips TypeScript natively, so neither a
+native SQLite module nor a TS loader was needed. Both were verified before the
+pipeline was written rather than assumed.
+
+### Run for real
+
+AniList 40 pages and MangaDex 20 pages, merged and built: 4,000 source rows →
+3,722 works → `corpus.sqlite` at 4.6 MB, with 72 series covering 177 works. The
+Open Library and Wikidata stages are written and their sizes verified against
+the live servers, but not run — that is a 16.2 GB download and hours, and the
+brief says to report before building further.
+
+### The two numbers that decide the shape of it
+
+- **1,275 bytes per work**, projecting to about **608 MB at 500k works** —
+  three to six times the brief's 100–200 MB guess. The sample is all comics with
+  long synonym lists, so treat it as an upper bound until stage 2 runs.
+- **Typeahead 0.15–0.55 ms** for a three-character prefix, against a 50 ms
+  budget. Measured on the built file with node:sqlite; Phase 3 has to re-measure
+  through wa-sqlite over OPFS, which is a different engine on different storage.
+
+### What reading one sample changed
+
+AniList holds the **comic**, not the novel, for Chinese and Korean web fiction.
+Reverend Insanity comes back as a 96-chapter CANCELLED manhua where the novel is
+2,334 chapters; Lord of the Mysteries as a 65-chapter manhua where the novel is
+1,432. Shadow Slave and Kill the Sun are absent entirely. Nothing about this was
+guessable from the API documentation, and a pipeline written without checking
+would have shipped a chapter count wrong by a factor of twenty-four with no
+signal that anything was off.
+
+### What broke, and how it was found
+
+- **Cross-source merging was far too strict.** Querying the built corpus found
+  256 duplicate title groups, 6.5% of it — AniList and MangaDex romanise author
+  names differently, so a title+author key almost never agreed across them. A
+  second pass on title alone fixed 240 of them; the 16 left were each checked by
+  hand and are all genuinely different works.
+- **A test passed for the wrong reason.** "Never merge two records from the same
+  source" used records with differing countries, so deleting the rule left the
+  test green — the country check was catching it. Rewritten with same-source,
+  same-country, same-format records so only the rule under test can reject them.
+  Found by mutation, not by reading.
+- **Node's ESM needs real file extensions** even when stripping types, so every
+  import inside `pipeline/` ends in `.ts`. The first run failed outright.
+- **The pipeline was not being typechecked at all.** `tsconfig.json` included
+  `src`, `tests` and `scripts` but not `pipeline`, so `tsc --noEmit` passed over
+  it silently. Two real type errors were waiting behind that.
+
+### Tried and abandoned
+
+- **Bulk web-novel sources.** No permissively licensed dataset exists.
+  `shaido987/novel-dataset` has 24,639 NovelUpdates novels and no LICENSE file;
+  NovelUpdates and Royal Road both return 403 to an automated request for
+  `robots.txt` alone. Full write-up, with the alternatives, in
+  `PIPELINE-NOTES.md`.
+- **Deriving `total_entries` from relation clusters.** What the corpus knows is
+  not what exists, and a wrong denominator under a completion ring is the one
+  thing SCHEMA forbids outright.

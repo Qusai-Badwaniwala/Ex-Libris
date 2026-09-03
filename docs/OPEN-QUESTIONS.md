@@ -77,3 +77,35 @@ merge and delete; a similarity-suggestion screen is a separate question and is
 not proposed.
 
 ---
+
+---
+
+**Q-023 · The corpus size ceiling needs re-deciding against a measurement.**
+`NON-BLOCKING — needed before the full pipeline run.` A real build measured
+**1,275 bytes per work**, which projects to about **608 MB at 500,000 works** —
+three to six times the 100–200 MB the brief guessed, and the number you
+confirmed before I had one. The sample was all comics, which carry up to twelve
+alternate titles each, so Open Library rows will be leaner and this is an upper
+bound.
+
+You said size does not matter and to build the best PWA, so the honest options
+are:
+
+1. **Take the 600 MB.** A one-time download on wi-fi, then never again except a
+   monthly delta. Storage on a Poco X4 GT is not the constraint; the download is.
+2. **Trim to ~300k works** by tightening the Open Library filter, landing around
+   350 MB, at the cost of coverage in the long tail of published books — which
+   is the part of the catalogue you are least likely to search.
+3. **Ship comics and light novels first** (AniList + MangaDex, tens of MB) and
+   make the Open Library half a separate optional download. The corpus screen
+   already has a skip path, so it has somewhere to live.
+
+I lean toward 3: it gets the part of the catalogue that matches your library
+onto the phone in seconds, and leaves the 600 MB as a choice rather than a wait.
+
+**Q-024 · Should I ask shaido987 for a licence?** `NON-BLOCKING.` The one
+dataset that would solve pure web novels — 24,639 NovelUpdates titles, already
+committed as CSV and JSON — has no LICENSE file, which means all rights
+reserved. Opening an issue asking the author to add one costs nothing and might
+simply work. That is an outward-facing action in your name, so it needs your
+word before I would do it.

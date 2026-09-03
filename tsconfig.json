@@ -17,8 +17,12 @@
     "skipLibCheck": true,
     "noEmit": true,
     "resolveJsonModule": true,
+    // The pipeline is run directly by Node (which strips types but demands
+    // real file extensions), so its imports carry .ts. Requires noEmit, which
+    // is set above.
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   },
-  "include": ["src", "tests", "scripts", "vite.config.ts"]
+  "include": ["src", "tests", "scripts", "pipeline", "vite.config.ts"]
 }
