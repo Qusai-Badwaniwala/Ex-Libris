@@ -40,6 +40,12 @@
   [data-hover='ink']:hover {
     color: var(--text-primary);
   }
+  /* The wishlist × goes danger on hover, and only on hover: it is grade 1 of
+     the three destructive grades, and a permanently red × on every row would
+     read as an error rather than as a remove (D-080). */
+  [data-hover='danger-ink']:hover {
+    color: var(--danger);
+  }
 }
 
 [data-active='accent']:active {

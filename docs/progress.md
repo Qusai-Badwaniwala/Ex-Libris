@@ -186,3 +186,56 @@ housekeeping, manual series editing, and per-axis entry. All are Phase 1 and all
 are listed in HANDOFF.md. The axis line is absent from detail until Phase 6
 rather than stubbed: a row of type that says "tap to change it" and does not is
 the switch-with-nothing-behind-it the design itself refuses.
+
+### Phase 1, second pass — Wishlist, Settings, About, and Q-022
+
+**Built.** The Wishlist with Surprise me, Settings as a ruled ledger, About as
+the bookplate kept. Three of the four nav tabs are now real screens; only Stats
+still shows the honest placeholder.
+
+**Q-022 settled, option 2.** Reaching the last chapter released so far of an
+ongoing serial now ASKS, once, at exactly that moment: the session sheet does
+not close, it becomes the offer. Declining leaves the work as Reading and the
+question is not asked again. `status` still describes the reader and is never
+derived — the app offers, it does not decide.
+
+**Audit items that landed:** B7 the owner's name is editable, C1 content
+warnings moved out of the "Help from a model" heading and under Tags, C3 Export
+a copy has a real handler, C4 a storage row with real numbers. Two more found
+while building and fixed the same day: the Wishlist's Start button had no
+handler in the design and its rows were not tappable, so an entry could be
+removed but never opened or started.
+
+**Export.** SCHEMA §11's finished shape is a .zip with covers and a manifest,
+and that is Phase 8. What ships now is data.json alone, which today is the WHOLE
+library — there is no cover pipeline until Phase 4, so nothing is left out. It
+is in Phase 1 rather than Phase 8 because it is the only thing standing between
+a lost phone and a lost library.
+
+### What broke, and how it was found
+
+- **The Surprise card was not in the history stack.** Built as local React
+  state, which quietly exempted it from the one rule the router exists to
+  enforce: every modal surface owns a history entry. The back gesture could not
+  dismiss it and neither could Escape, so its scrim trapped the reader on the
+  screen. Found by a screenshot run that timed out clicking a tab underneath it.
+- **`nav.swap()` on an empty overlay stack created an unclosable overlay.**
+  `[].slice(0, -1)` is still `[]`, so the sheet appeared with no history entry
+  behind it — the exact defect the router exists to prevent, reintroduced by a
+  helper written to prevent it. It now delegates to `open()`.
+- **The first unit test for that guard was dead on arrival.** This suite
+  dispatches `popstate` by hand, so "back closes it" passes whether or not an
+  entry was ever pushed. The assertion has to be on `history.length`, which is
+  the thing that actually differs.
+- **A meta separator orphaned onto wrapped lines.** The rule was rendered
+  BEFORE each part after the first, so a wrapped line began with a hairline and
+  no word. The design had already solved this for the axis line (D-010, "the
+  rule trails its word rather than leading the next one") and the same shape
+  applies to every hairline-divided meta string.
+- **The add sheet ignored the screen you opened it from.** Adding from the
+  Wishlist defaulted to Reading, and adding from the Books shelf defaulted to
+  Novels counted in chapters. The screen you were on says what you meant.
+
+**The API key is never written to a backup** (SCHEMA §11), and that assertion
+was watched to fail before it was trusted: a backup is a file the reader may put
+in a cloud drive, and a credential inside it travels wherever the file goes.

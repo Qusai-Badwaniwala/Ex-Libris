@@ -9,6 +9,9 @@ import { Home } from './screens/Home';
 import { Format } from './screens/Format';
 import { Detail } from './screens/Detail';
 import { Trash } from './screens/Trash';
+import { Wishlist } from './screens/Wishlist';
+import { Settings } from './screens/Settings';
+import { About } from './screens/About';
 import { Bookplate, Welcome } from './screens/Onboarding';
 import { ByHandSheet, EditWork, GenreEditor, SessionSheet, StatusPicker } from './sheets';
 import { Splash } from './splash';
@@ -105,6 +108,11 @@ export function App() {
         <ByHandSheet
           onClose={() => nav.close()}
           onAdded={(id) => nav.closeAndPush({ screen: 'detail', id })}
+          // The screen you were on says what you meant. Adding from the
+          // Wishlist means adding to the wishlist; adding from the Manhwa shelf
+          // means adding a manhwa.
+          defaultStatus={route.screen === 'wishlist' ? 'wishlist' : 'reading'}
+          defaultFormat={route.screen === 'format' && route.format ? route.format : 'novel'}
         />
       ) : null}
       {overlay?.kind === 'editWork' && overlay.id ? (
@@ -139,7 +147,7 @@ function renderScreen(
     case 'trash':
       return <Trash />;
     case 'wishlist':
-      return <NotBuilt screen="Wishlist" phase="1" />;
+      return <Wishlist />;
     case 'search':
       return <NotBuilt screen="Search" phase="3" />;
     case 'everything':
@@ -151,11 +159,11 @@ function renderScreen(
     case 'notes':
       return <NotBuilt screen="Notes" phase="7" />;
     case 'settings':
-      return <NotBuilt screen="Settings" phase="1" />;
+      return <Settings />;
     case 'backup':
       return <NotBuilt screen="Backup and restore" phase="8" />;
     case 'about':
-      return <NotBuilt screen="About" phase="1" />;
+      return <About />;
     default:
       return <NotBuilt screen={screen} phase="1" />;
   }

@@ -63,6 +63,10 @@ export function useWork(id: string | undefined): WorkWithAuthor | undefined | nu
   }, [id]);
 }
 
+export function useWishlist(): WorkWithAuthor[] | undefined {
+  return useLiveQuery(async () => attach(await repo.listWishlist(), await db.author.toArray()), []);
+}
+
 export function useTrash(): WorkWithAuthor[] | undefined {
   return useLiveQuery(async () => attach(await repo.listTrash(), await db.author.toArray()), []);
 }

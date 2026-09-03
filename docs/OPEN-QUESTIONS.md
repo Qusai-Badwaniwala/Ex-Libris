@@ -77,21 +77,3 @@ merge and delete; a similarity-suggestion screen is a separate question and is
 not proposed.
 
 ---
-
-**Q-022 · Two true statements the reader has to reconcile.** `NON-BLOCKING.`
-A work whose position reaches its published count renders its progress as
-"Chapter 2,334 published" with a full segmented track — the design's own rule
-(D-009 for the segmented track, D-105 for the wording) — while the status pill
-still shows what is stored, usually Reading. Both are accurate. Together they
-read as a contradiction: the bar says caught up, the pill says reading.
-
-Three ways out, none of them taken yet because this is a design decision:
-
-1. Leave it. The pill is about the reader, the bar is about the work, and the
-   schema is emphatic that those are orthogonal.
-2. Offer it. When a session reaches the published edge, ask once whether to mark
-   the work Caught up — the same suggest-never-apply shape as series detection.
-3. Derive it. Move the work to `caught_up` automatically at the edge, which the
-   schema forbids: `status` describes the reader and is never derived.
-
-Option 2 is the one that fits the rest of the app. It needs the owner's word.

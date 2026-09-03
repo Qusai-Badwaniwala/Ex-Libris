@@ -345,6 +345,17 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
 export function SessionSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const row = useWork(id);
   const [to, setTo] = useState<number | null>(null);
+  /**
+   * Q-022. Reaching the last chapter released so far is the moment the progress
+   * row starts saying "published" while the status pill still says Reading —
+   * two true statements the reader has to reconcile. So the sheet asks, once,
+   * at exactly that moment, instead of closing.
+   *
+   * It is an offer and never an action: `status` describes the reader and is
+   * never derived from the work. Declining closes the sheet and the question is
+   * not asked again for that session — never a nag, never twice.
+   */
+  const [offerCaughtUp, setOfferCaughtUp] = useState(false);
 
   if (!row) return null;
   const { work } = row;
@@ -369,6 +380,56 @@ export function SessionSheet({ id, onClose }: { id: string; onClose: () => void 
       : work.publicationStatus === 'ongoing'
         ? `You were on ${unit} ${n(from)} — ${n(work.progressTotal)} published`
         : `You were on ${unit} ${n(from)} of ${n(work.progressTotal)}`;
+
+  if (offerCaughtUp) {
+    return (
+      <Sheet onClose={onClose} title="You are at the last chapter published">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={displayS}>That is everything published</div>
+          <div style={{ ...caption, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
+            {n(at)} {unit}s, and no more written yet. Caught up says you are waiting for chapters
+            rather than part-way through. Nothing else about the work changes.
+          </div>
+        </div>
+        <button
+          data-ripple
+          data-active="accent"
+          onClick={() => {
+            void repo.setStatus(id, 'caught_up').then(onClose);
+          }}
+          style={{
+            ...resetButton,
+            width: '100%',
+            height: 48,
+            lineHeight: '48px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-button)',
+            background: 'var(--accent)',
+            color: 'var(--on-accent)',
+            fontSize: 'var(--size-body)',
+            fontWeight: 500,
+          }}
+        >
+          Mark it caught up
+        </button>
+        <button
+          onClick={onClose}
+          style={{
+            ...resetButton,
+            width: '100%',
+            height: 44,
+            lineHeight: '44px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-button)',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--size-body)',
+          }}
+        >
+          Leave it as Reading
+        </button>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet onClose={onClose} title="Where did you get to?">
@@ -451,9 +512,10 @@ export function SessionSheet({ id, onClose }: { id: string; onClose: () => void 
         data-active="accent"
         disabled={delta === 0}
         onClick={() => {
-          void repo.logSession(id, at).then(({ finished }) => {
+          void repo.logSession(id, at).then(({ finished, atPublishedEdge }) => {
             if (finished) tick();
-            onClose();
+            if (atPublishedEdge) setOfferCaughtUp(true);
+            else onClose();
           });
         }}
         style={{
@@ -633,15 +695,25 @@ export function GenreEditor({ id, onClose }: { id: string; onClose: () => void }
 export function ByHandSheet({
   onClose,
   onAdded,
+  defaultStatus = 'reading',
+  defaultFormat = 'novel',
 }: {
   onClose: () => void;
   onAdded: (id: string) => void;
+  /**
+   * The screen you were on says what you meant. Adding from the Wishlist means
+   * adding to the wishlist, and defaulting to Reading there makes the reader
+   * change it every single time.
+   */
+  defaultStatus?: ReadingStatus;
+  /** Same on a format shelf: adding from Manhwa means adding a manhwa. */
+  defaultFormat?: Format;
 }) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [format, setFormat] = useState<Format>('novel');
-  const [unit, setUnit] = useState<ProgressUnit>('chapter');
-  const [status, setStatus] = useState<ReadingStatus>('reading');
+  const [format, setFormat] = useState<Format>(defaultFormat);
+  const [unit, setUnit] = useState<ProgressUnit>(defaultFormat === 'book' ? 'page' : 'chapter');
+  const [status, setStatus] = useState<ReadingStatus>(defaultStatus);
   const ok = title.trim().length > 0;
 
   return (

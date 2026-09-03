@@ -385,16 +385,31 @@ export function setDropReason(id: string, reason: string): Promise<Work> {
  * A session that does not move forward records nothing at all. Use
  * setProgressCurrent to correct a position.
  */
-export async function logSession(
-  id: string,
-  to: number,
-): Promise<{ work: Work; finished: boolean }> {
+export interface SessionResult {
+  work: Work;
+  /** The session reached the end of a work that has finished publishing. */
+  finished: boolean;
+  /**
+   * The session reached the last chapter released so far of a work that is
+   * still being published, and the reader is still marked as Reading.
+   *
+   * This is an OFFER, never an action. `status` describes the reader and is
+   * never derived from the work (SCHEMA §1), so the app may not move someone to
+   * Caught up on their behalf — but leaving the progress row reading
+   * "published" while the pill says Reading makes the reader reconcile two true
+   * statements. Asking once, at the moment it becomes true, is the way out.
+   * Q-022, settled with the owner on 2026-09-03.
+   */
+  atPublishedEdge: boolean;
+}
+
+export async function logSession(id: string, to: number): Promise<SessionResult> {
   const w = await db.work.get(id);
   if (!w) throw new Error(`No work ${id}.`);
 
   const from = w.progressCurrent;
   const target = Math.floor(to);
-  if (target <= from) return { work: w, finished: false };
+  if (target <= from) return { work: w, finished: false, atPublishedEdge: false };
 
   const session: ReadingSession = {
     id: newId(),
@@ -413,9 +428,20 @@ export async function logSession(
   const reachedEnd =
     w.progressTotal !== undefined && target >= w.progressTotal && w.publicationStatus !== 'ongoing';
 
+  // The offer only makes sense while the reader is still marked Reading. A
+  // work already Caught up needs nothing said, and one that is Dropped is not
+  // waiting for chapters.
+  const atPublishedEdge =
+    w.publicationStatus === 'ongoing' &&
+    w.progressTotal !== undefined &&
+    target >= w.progressTotal &&
+    w.status === 'reading';
+
   const work = await patch(id, { progressCurrent: target });
-  if (reachedEnd) return { work: await setStatus(id, 'finished'), finished: true };
-  return { work, finished: false };
+  if (reachedEnd) {
+    return { work: await setStatus(id, 'finished'), finished: true, atPublishedEdge: false };
+  }
+  return { work, finished: false, atPublishedEdge };
 }
 
 export async function chaptersRead(): Promise<number> {

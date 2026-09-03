@@ -130,3 +130,29 @@ describe('replacing a sheet without racing history', () => {
     expect(nav.state.screens.at(-1)?.screen).toBe('home');
   });
 });
+
+describe('swap with nothing to replace', () => {
+  it('takes a history entry, so the sheet is still dismissible', () => {
+    // Without the guard, [].slice(0, -1) is still [] — so the overlay appears
+    // with NO history entry behind it: visible, and impossible to close with
+    // the back gesture. Found because the Surprise card would not close.
+    //
+    // The assertion has to be on the entry itself. Asserting that back closes
+    // it does NOT work here: this suite dispatches popstate by hand, so it
+    // fires whether or not an entry was ever pushed, and the test passes either
+    // way. That is exactly how the first version of this test was dead on
+    // arrival.
+    const before = history.length;
+    nav.swap({ kind: 'surprise', id: 'w1' });
+    expect(nav.state.overlays.map((o) => o.kind)).toEqual(['surprise']);
+    expect(history.length).toBe(before + 1);
+  });
+
+  it('still reuses the entry when there IS something to replace', () => {
+    nav.open({ kind: 'fabMenu' });
+    const after = history.length;
+    nav.swap({ kind: 'byHand' });
+    expect(nav.state.overlays.map((o) => o.kind)).toEqual(['byHand']);
+    expect(history.length).toBe(after);
+  });
+});

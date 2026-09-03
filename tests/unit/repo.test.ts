@@ -197,6 +197,36 @@ describe('logging a session', () => {
     expect(work.dateFinished).toBeTruthy();
   });
 
+  it('offers caught up when an ongoing serial reaches its published count', async () => {
+    // Q-022. The progress row starts saying "published" at this moment while
+    // the status pill still says Reading. The app asks rather than deriving:
+    // status describes the reader and is never computed from the work.
+    const w = await novel({ publicationStatus: 'ongoing', progressTotal: 1140 });
+    const { atPublishedEdge, work } = await repo.logSession(w.id, 1140);
+    expect(atPublishedEdge).toBe(true);
+    // Offered, not applied.
+    expect(work.status).toBe('reading');
+  });
+
+  it('does not offer caught up short of the published count', async () => {
+    const w = await novel({ publicationStatus: 'ongoing', progressTotal: 1140 });
+    expect((await repo.logSession(w.id, 1139)).atPublishedEdge).toBe(false);
+  });
+
+  it('does not offer caught up for a work that has finished publishing', async () => {
+    // There is nothing to be caught up WITH. That path finishes instead.
+    const w = await novel({ publicationStatus: 'complete', progressTotal: 642 });
+    const r = await repo.logSession(w.id, 642);
+    expect(r.atPublishedEdge).toBe(false);
+    expect(r.finished).toBe(true);
+  });
+
+  it('does not offer caught up to a reader who already is', async () => {
+    const w = await novel({ publicationStatus: 'ongoing', progressTotal: 1140 });
+    await repo.setStatus(w.id, 'caught_up');
+    expect((await repo.logSession(w.id, 1140)).atPublishedEdge).toBe(false);
+  });
+
   it('does NOT finish an ongoing serial that reaches its published count', async () => {
     // D-105: for an ongoing work the total is what has been released. Marking
     // it finished would be the app asserting an ending the author has not

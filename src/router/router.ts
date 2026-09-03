@@ -151,6 +151,15 @@ export const nav = {
    * than to the menu.
    */
   swap(overlay: Overlay) {
+    // Nothing to replace means this is an open, and it must take a history
+    // entry like any other. Without this guard `[].slice(0, -1)` is still `[]`,
+    // so the overlay appears with NO entry behind it — visible, and impossible
+    // to dismiss with the back gesture. That is the exact defect this whole
+    // module exists to prevent, reintroduced by a helper meant to prevent it.
+    if (state.overlays.length === 0) {
+      this.open(overlay);
+      return;
+    }
     emit({ ...state, overlays: [...state.overlays.slice(0, -1), overlay] });
   },
 

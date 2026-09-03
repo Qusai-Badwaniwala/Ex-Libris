@@ -23,6 +23,12 @@ async function freshStart(page: Page) {
   await page.reload();
 }
 
+/** The four bottom tabs. Scoped to the nav landmark because a status pill on
+ *  the screen behind can carry the same word — "Wishlist" is both. */
+function tab(page: Page, name: string) {
+  return page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name });
+}
+
 async function openLibrary(page: Page, name = 'Qusai') {
   await page.getByRole('button', { name: 'Open the library' }).click();
   await page.getByLabel('Your name').fill(name);
@@ -147,7 +153,7 @@ test('removing a work sends it to the trash, and it comes back whole', async ({ 
   await page.getByRole('button', { name: 'Restore' }).click();
   await expect(page.getByText('Trash is empty')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Library' }).click();
+  await tab(page, 'Library').click();
   await page.getByRole('button', { name: /^Novels/ }).click();
   await expect(page.getByText('Kill the Sun')).toBeVisible();
 });
@@ -182,4 +188,69 @@ test('the whole app loads with a clean console', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click();
 
   expect(problems).toEqual([]);
+});
+
+test('the surprise card is dismissible by the back gesture, like every sheet', async ({ page }) => {
+  // Built first as local state, which quietly exempted it from the one rule the
+  // router exists to enforce. A scrim the hardware back button cannot dismiss
+  // traps the reader on the screen.
+  await openLibrary(page);
+  await page.getByRole('button', { name: 'Add to the library' }).click();
+  await page.getByRole('button', { name: 'Add by hand' }).click();
+  await page.getByLabel('Title').fill('Lord of the Mysteries');
+  await page.getByRole('radio', { name: 'Wishlist' }).click();
+  await page.getByRole('button', { name: 'Put it on the shelf' }).click();
+
+  await tab(page, 'Wishlist').click();
+  await expect(page.getByText('1 waiting')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Surprise me' }).click();
+  await expect(page.getByRole('button', { name: 'Start reading it' })).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole('button', { name: 'Start reading it' })).toHaveCount(0);
+  // And the wishlist underneath is still there, not navigated away from.
+  await expect(page.getByText('1 waiting')).toBeVisible();
+});
+
+test('Surprise me is inert with an empty wishlist rather than dealing nothing', async ({
+  page,
+}) => {
+  await openLibrary(page);
+  await tab(page, 'Wishlist').click();
+  // The design uses the phrase twice on this screen: the counter reads
+  // "nothing waiting" (D-090 — a zero rendered as a numeral looks like a bug)
+  // and the empty state's headline is "Nothing waiting". Both are its copy, so
+  // the locator has to be exact rather than the copy changed.
+  await expect(page.getByText('Nothing waiting', { exact: true })).toBeVisible();
+  await expect(page.getByText('nothing waiting', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Surprise me' })).toBeDisabled();
+});
+
+test('adding from the Wishlist adds to the wishlist', async ({ page }) => {
+  // The screen you were on says what you meant. Defaulting to Reading here
+  // makes the reader change it every single time.
+  await openLibrary(page);
+  await tab(page, 'Wishlist').click();
+  await page.getByRole('button', { name: 'Add to the library' }).click();
+  await page.getByRole('button', { name: 'Add by hand' }).click();
+  await expect(page.getByRole('radio', { name: 'Wishlist' })).toBeChecked();
+
+  await page.getByLabel('Title').fill('Kill the Sun');
+  await page.getByRole('button', { name: 'Put it on the shelf' }).click();
+  await expect(page.getByRole('button', { name: /Wishlist/ }).first()).toBeVisible();
+
+  await tab(page, 'Wishlist').click();
+  await expect(page.getByText('Kill the Sun')).toBeVisible();
+});
+
+test('adding from a shelf adds to that shelf, with its unit', async ({ page }) => {
+  await openLibrary(page);
+  await page.getByRole('button', { name: /^Books/ }).click();
+  await page.getByRole('button', { name: 'Add to the library' }).click();
+  await page.getByRole('button', { name: 'Add by hand' }).click();
+  await expect(page.getByRole('radio', { name: 'Books' })).toBeChecked();
+  // A book is counted in pages. Carrying the chapter default onto the Books
+  // shelf is the same quiet mismatch as changing the unit on a shelf move.
+  await expect(page.getByRole('radio', { name: 'Pages' })).toBeChecked();
 });

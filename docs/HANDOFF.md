@@ -38,13 +38,16 @@ status picker, the edit sheet, the reading-session sheet, the genre editor, the
 add-by-hand sheet, the drawer, the bottom nav, the FAB and its two doors, and
 Trash with restore, per-item purge and empty.
 
-**Still to build in Phase 1:** Wishlist (with Surprise me), Settings (which
-carries audit items B7, C1, C3, C4), About, the Everything screen with its genre
-filter, the four-step spotlight tour after the bookplate, tag editing and tag
-housekeeping (B9), manual series and universe editing (B5), and per-axis entry
-(B4). The nav bar's other three tabs currently land on a mono-voiced
-"not built yet · phase N" panel rather than on a plausible-looking empty state,
-so the app never claims to do something it cannot.
+Also built: the Wishlist with Surprise me, Settings as a ruled ledger (owner
+name, theme, default views, export, storage, content warnings), and About. Three
+of the four nav tabs are real screens now; only Stats shows the placeholder.
+
+**Still to build in Phase 1:** the Everything screen with its genre filter, the
+four-step spotlight tour after the bookplate, tag editing and tag housekeeping
+(B9), and manual series and universe editing (B5). Per-axis entry (B4) belongs
+with the axes in Phase 6. The unbuilt screens land on a mono-voiced "not built
+yet · phase N" panel rather than a plausible-looking empty state, so the app
+never claims to do something it cannot.
 
 **Deferred with a reason, not silently:** B1, the manual cover override, moves
 to Phase 4. A user-supplied cover and a fetched one share the same store,

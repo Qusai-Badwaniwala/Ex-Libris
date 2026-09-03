@@ -198,3 +198,35 @@ up with two slightly different answers. Every line carries `tokens-allow`, and
 being forced to write that word is the point: adding a literal is a deliberate
 act. Past a dozen entries, that is the signal to ask for a tokens.css revision
 rather than keep appending.
+
+**E-028 · Reaching the published edge ASKS, once.** [owner's call, closing
+Q-022] A session that reaches the last chapter released so far of an ongoing
+serial does not close the sheet — it becomes an offer to mark the work Caught
+up, with "Leave it as Reading" beside it. Declining closes the sheet and the
+question is not asked again.
+Chosen over leaving the contradiction (the progress row saying "published"
+while the pill says Reading) and over deriving the status, which SCHEMA §1
+forbids outright: `status` describes the reader. The offer shape is the app's
+existing one — the same suggest-never-apply the series suggestion uses.
+_Why in the sheet rather than on detail:_ the moment it becomes true is the
+moment the session is saved, and asking there needs no stored "already
+declined" flag. Asking later would.
+
+**E-029 · Export ships in Phase 1, as data.json alone.** SCHEMA §11's finished
+export is a .zip with user covers and a manifest; that is Phase 8. But the
+design's Settings has an "Export a copy" row with no handler, and that is the
+wrong row to leave inert — it is the only protection against losing the device.
+Today data.json IS the whole library, because there is no cover pipeline until
+Phase 4, so nothing is silently omitted.
+
+**E-030 · The add sheet takes its defaults from the screen it was opened
+from.** Adding from the Wishlist means adding to the wishlist; adding from the
+Books shelf means adding a book, counted in pages. Defaulting to Reading and
+Novels everywhere made the reader correct the same two controls every time.
+
+**E-031 · Every hairline-divided meta string trails its rule.** The rule goes
+AFTER each part except the last, inside the same nowrap span, so a wrapped line
+never begins with an orphaned separator. The design established this for the
+axis line (D-010); it was not written down as a general rule, and the wishlist
+row got it wrong until a screenshot showed a hairline sitting alone at the start
+of a line.
