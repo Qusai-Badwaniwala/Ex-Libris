@@ -135,17 +135,24 @@ function stripComments(text) {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
+// The allow marker IS a comment, so it has to be looked for in the RAW line.
+// Testing it against the stripped line meant every deliberate exemption was
+// flagged anyway — the marker had been removed before it could be read. Found
+// the first time an exemption was actually needed, which is the only time this
+// ordering could have shown itself.
 for (const file of scanned) {
-  const code = stripComments(read(file));
-  code.split('\n').forEach((line, i) => {
-    if (ALLOW.test(line)) return;
-    for (const m of line.matchAll(HEX)) {
-      fail(`${file}:${i + 1} hardcodes the colour ${m[0]}. Use a token from tokens.css.`);
-    }
-    for (const m of line.matchAll(DURATION)) {
-      fail(`${file}:${i + 1} hardcodes the duration ${m[0]}. Use --dur-* or --duration-*.`);
-    }
-  });
+  const raw = read(file).split('\n');
+  stripComments(read(file))
+    .split('\n')
+    .forEach((line, i) => {
+      if (ALLOW.test(raw[i] ?? '')) return;
+      for (const m of line.matchAll(HEX)) {
+        fail(`${file}:${i + 1} hardcodes the colour ${m[0]}. Use a token from tokens.css.`);
+      }
+      for (const m of line.matchAll(DURATION)) {
+        fail(`${file}:${i + 1} hardcodes the duration ${m[0]}. Use --dur-* or --duration-*.`);
+      }
+    });
 }
 
 notes.push(`scanned ${scanned.length} source files for hardcoded colours and durations`);
@@ -168,10 +175,11 @@ const ISO_SLICE = /\.slice\(\s*0\s*,\s*(?:4|7|10)\s*\)/;
 
 for (const file of scanned) {
   if (file === 'src/db/dates.ts') continue;
+  const rawIso = read(file).split('\n');
   stripComments(read(file))
     .split('\n')
     .forEach((line, i) => {
-      if (ALLOW.test(line)) return;
+      if (ALLOW.test(rawIso[i] ?? '')) return;
       if (ISO_SLICE.test(line)) {
         fail(
           `${file}:${i + 1} slices a date string to get a day or a year. That reads the ` +

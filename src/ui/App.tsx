@@ -1,127 +1,35 @@
-import { useCallback, useEffect, useState } from 'react';
-import { db, loadSettings, saveSettings, DB_VERSION } from '../db/db';
-import type { Settings, ThemeChoice } from '../db/schema';
-import { SCHEMA_VERSION } from '../db/schema';
-import { GENRES, ALL_TAGS } from '../data/taxonomy';
-import { localDay } from '../db/dates';
-import { opfsAvailable, writeFile, readFile, deleteFile, storageUsage } from '../storage/opfs';
-import { requestPersistence, type PersistState } from '../storage/persist';
+import { useEffect, useState, type ReactNode } from 'react';
+import { nav, useNav, type Screen } from '../router/router';
+import { purgeExpired } from '../db/repo';
+import { requestPersistence } from '../storage/persist';
 import { applyTheme, watchSystemTheme } from './theme';
-import { nav, useNav } from '../router/router';
-
-const APP_VERSION = '0.1.0';
+import { APP_VERSION, useSettings } from './store';
+import { Drawer, Fab, FabMenu, NavBar } from './chrome';
+import { Home } from './screens/Home';
+import { Format } from './screens/Format';
+import { Detail } from './screens/Detail';
+import { Trash } from './screens/Trash';
+import { Bookplate, Welcome } from './screens/Onboarding';
+import { ByHandSheet, EditWork, GenreEditor, SessionSheet, StatusPicker } from './sheets';
+import { Splash } from './splash';
+import { displayS, label, resetButton } from './styles';
+import type { Format as FormatKey, ThemeChoice } from '../db/schema';
 
 /**
- * PHASE 0 · FOUNDATIONS
+ * The shell.
  *
- * This is not an app screen and is not styled like one. It is written in the
- * mono developer voice the design package uses for its own scaffolding (the
- * jump bar, the state pills), so it can never be mistaken for shipped UI. It
- * exists to make Phase 0 provable by hand rather than by assertion: open it and
- * every foundation reports its real state.
- *
- * The whole of it is deleted in Phase 1, when the real Home screen lands.
+ * One screen plus a stack of modal sheets, which is exactly the model the
+ * design package uses — see design/HANDOFF.md. The difference is that here each
+ * layer owns a history entry, so the Android back gesture closes the topmost
+ * sheet before it touches the screen underneath. Nothing about the design
+ * changes; the hardware gesture just has something correct to do.
  */
-
-interface Diagnostics {
-  dbOpen: boolean;
-  dbVersion: number;
-  opfs: boolean;
-  opfsRoundTrip: 'pass' | 'fail' | 'unavailable';
-  persist: PersistState;
-  usedBytes: number;
-  quotaBytes: number;
-  persisted: boolean;
-  error?: string;
-}
-
-const mono: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 'var(--size-label)',
-  lineHeight: 'var(--lh-label)',
-  color: 'var(--text-secondary)',
-};
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 'var(--space-3)',
-        padding: 'var(--space-2) 0',
-        borderTop: 'var(--hairline-width) solid var(--hairline)',
-      }}
-    >
-      <span style={{ ...mono, flex: 1 }}>{label}</span>
-      <span
-        style={{
-          ...mono,
-          color: 'var(--text-primary)',
-          fontVariantNumeric: 'tabular-nums',
-          textAlign: 'right',
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export function App() {
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [diag, setDiag] = useState<Diagnostics | null>(null);
-  const navState = useNav();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const result: Diagnostics = {
-        dbOpen: false,
-        dbVersion: DB_VERSION,
-        opfs: false,
-        opfsRoundTrip: 'unavailable',
-        persist: 'unsupported',
-        usedBytes: 0,
-        quotaBytes: 0,
-        persisted: false,
-      };
-
-      try {
-        await db.open();
-        result.dbOpen = true;
-        const s = await loadSettings(APP_VERSION);
-        if (!cancelled) setSettings(s);
-
-        result.opfs = await opfsAvailable();
-        if (result.opfs) {
-          // A real round trip, not a capability sniff. "OPFS is available" and
-          // "OPFS can hold a file" are different claims and only the second one
-          // matters to covers and backups.
-          const probe = 'diagnostics/phase-0.txt';
-          await writeFile(probe, 'ex libris');
-          const back = await readFile(probe);
-          result.opfsRoundTrip = (await back?.text()) === 'ex libris' ? 'pass' : 'fail';
-          await deleteFile(probe);
-        }
-
-        result.persist = await requestPersistence();
-        const usage = await storageUsage();
-        result.usedBytes = usage.usedBytes;
-        result.quotaBytes = usage.quotaBytes;
-        result.persisted = usage.persisted;
-      } catch (e) {
-        result.error = e instanceof Error ? e.message : String(e);
-      }
-
-      if (!cancelled) setDiag(result);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { settings, update } = useSettings();
+  const { screens, overlays } = useNav();
+  const route = screens[screens.length - 1]!;
+  const overlay = overlays[overlays.length - 1] ?? null;
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
@@ -129,178 +37,190 @@ export function App() {
     return watchSystemTheme(settings.theme, () => {});
   }, [settings]);
 
-  const setTheme = useCallback(async (theme: ThemeChoice) => {
-    applyTheme(theme);
-    await saveSettings({ theme });
-    setSettings((prev) => (prev ? { ...prev, theme } : prev));
+  useEffect(() => {
+    // Persistence is asked for once, at first open. A refusal is not an error —
+    // Chrome grants it silently once the app is installed to the home screen
+    // and usually refuses before that.
+    void requestPersistence();
+    // Thirty-day retention can only be enforced when the app is opened; there
+    // is no server and no background job. See OPEN-QUESTIONS Q-021.
+    void purgeExpired();
   }, []);
 
-  const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
+  const theme: 'light' | 'dark' =
+    settings?.theme === 'light'
+      ? 'light'
+      : settings?.theme === 'dark'
+        ? 'dark'
+        : document.documentElement.getAttribute('data-theme') === 'light'
+          ? 'light'
+          : 'dark';
+
+  const setTheme = (t: ThemeChoice) => {
+    applyTheme(t);
+    void update({ theme: t });
+  };
+
+  if (!booted || !settings) {
+    return <Splash onDone={() => setBooted(true)} />;
+  }
+
+  // First run, in order: welcome, then the bookplate. Both supply their own
+  // furniture, so neither gets the nav bar or the FAB (D-077).
+  if (!settings.welcomeSeenAt) {
+    return (
+      <Frame>
+        <Welcome onNext={() => void update({ welcomeSeenAt: new Date().toISOString() })} />
+      </Frame>
+    );
+  }
+  if (!settings.ownerName) {
+    return (
+      <Frame>
+        <Bookplate onDone={(name) => void update({ ownerName: name })} />
+      </Frame>
+    );
+  }
 
   return (
+    <Frame>
+      {renderScreen(route.screen, route, theme, setTheme)}
+
+      <NavBar screen={route.screen} />
+      <Fab screen={route.screen} onOpen={() => nav.open({ kind: 'fabMenu' })} />
+
+      {overlay?.kind === 'drawer' ? (
+        <Drawer onClose={() => nav.close()} ownerName={settings.ownerName} />
+      ) : null}
+      {overlay?.kind === 'fabMenu' ? (
+        <FabMenu
+          onClose={() => nav.close()}
+          onCatalogue={() => nav.close()}
+          // One layer, one history entry: the menu and the sheet it becomes
+          // are the same step. Closing then opening is a race that loses.
+          onByHand={() => nav.swap({ kind: 'byHand' })}
+        />
+      ) : null}
+      {overlay?.kind === 'byHand' ? (
+        <ByHandSheet
+          onClose={() => nav.close()}
+          onAdded={(id) => nav.closeAndPush({ screen: 'detail', id })}
+        />
+      ) : null}
+      {overlay?.kind === 'editWork' && overlay.id ? (
+        <EditWork id={overlay.id} onClose={() => nav.close()} />
+      ) : null}
+      {overlay?.kind === 'statusPicker' && overlay.id ? (
+        <StatusPicker id={overlay.id} onClose={() => nav.close()} />
+      ) : null}
+      {overlay?.kind === 'session' && overlay.id ? (
+        <SessionSheet id={overlay.id} onClose={() => nav.close()} />
+      ) : null}
+      {overlay?.kind === 'genreEditor' && overlay.id ? (
+        <GenreEditor id={overlay.id} onClose={() => nav.close()} />
+      ) : null}
+    </Frame>
+  );
+}
+
+function renderScreen(
+  screen: Screen,
+  route: { id?: string; format?: FormatKey },
+  theme: 'light' | 'dark',
+  setTheme: (t: ThemeChoice) => void,
+) {
+  switch (screen) {
+    case 'home':
+      return <Home theme={theme} onTheme={setTheme} />;
+    case 'format':
+      return <Format format={route.format ?? 'novel'} />;
+    case 'detail':
+      return route.id ? <Detail id={route.id} /> : <NotBuilt screen="Detail" phase="1" />;
+    case 'trash':
+      return <Trash />;
+    case 'wishlist':
+      return <NotBuilt screen="Wishlist" phase="1" />;
+    case 'search':
+      return <NotBuilt screen="Search" phase="3" />;
+    case 'everything':
+      return <NotBuilt screen="Everything" phase="1" />;
+    case 'spine':
+      return <NotBuilt screen="Spine view" phase="9" />;
+    case 'stats':
+      return <NotBuilt screen="Stats" phase="9" />;
+    case 'notes':
+      return <NotBuilt screen="Notes" phase="7" />;
+    case 'settings':
+      return <NotBuilt screen="Settings" phase="1" />;
+    case 'backup':
+      return <NotBuilt screen="Backup and restore" phase="8" />;
+    case 'about':
+      return <NotBuilt screen="About" phase="1" />;
+    default:
+      return <NotBuilt screen={screen} phase="1" />;
+  }
+}
+
+/**
+ * The full-bleed positioning context every screen sits inside, matching the
+ * prototype's phone frame. Fluid rather than 390×720: that size was a prototype
+ * constraint (design START-HERE §7 — taller and the host scaled the page down),
+ * not a design decision, and the app has to fit whatever phone it is opened on.
+ */
+function Frame({ children }: { children: ReactNode }) {
+  return (
     <div
-      className="exl-scroll"
       style={{
-        minHeight: '100dvh',
+        position: 'fixed',
+        inset: 0,
         background: 'var(--surface-base)',
         color: 'var(--text-primary)',
-        padding: `calc(var(--safe-top) + var(--space-6)) var(--page-gutter) calc(var(--safe-bottom) + var(--space-8))`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-5)',
-        maxWidth: '520px',
-        margin: '0 auto',
+        overflow: 'hidden',
       }}
     >
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 'var(--display-vf)',
-            fontSize: 'var(--size-display-l)',
-            lineHeight: 'var(--lh-display-l)',
-            letterSpacing: 'var(--tracking-display)',
-          }}
-        >
-          Ex Libris
-        </div>
-        <div style={mono}>phase 0 · foundations · not an app screen</div>
-      </header>
+      {children}
+    </div>
+  );
+}
 
-      <section>
-        <div style={{ ...mono, paddingBottom: 'var(--space-2)' }}>store</div>
-        <Row label="indexeddb open" value={diag ? (diag.dbOpen ? 'yes' : 'no') : '…'} />
-        <Row label="db version" value={String(DB_VERSION)} />
-        <Row label="schema version" value={String(SCHEMA_VERSION)} />
-        <Row label="opfs available" value={diag ? (diag.opfs ? 'yes' : 'no') : '…'} />
-        <Row label="opfs round trip" value={diag ? diag.opfsRoundTrip : '…'} />
-        <Row label="storage persisted" value={diag ? diag.persist : '…'} />
-        <Row label="used" value={diag ? mb(diag.usedBytes) : '…'} />
-        <Row label="quota" value={diag ? mb(diag.quotaBytes) : '…'} />
-        {diag?.error ? <Row label="error" value={diag.error} /> : null}
-      </section>
-
-      <section>
-        <div style={{ ...mono, paddingBottom: 'var(--space-2)' }}>contract</div>
-        <Row label="genres" value={String(GENRES.length)} />
-        <Row label="seeded tags" value={String(ALL_TAGS.length)} />
-        <Row label="owner name" value={settings?.ownerName ?? 'not set'} />
-        <Row
-          label="first tracked"
-          value={settings?.firstTrackedAt ? localDay(settings.firstTrackedAt) : '—'}
-        />
-        <Row
-          label="content warnings"
-          value={settings ? (settings.contentWarningsOn ? 'on' : 'off') : '…'}
-        />
-      </section>
-
-      <section>
-        <div style={{ ...mono, paddingBottom: 'var(--space-2)' }}>
-          theme · every value below comes from tokens.css
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', paddingBottom: 'var(--space-3)' }}>
-          {(['dark', 'light', 'system'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => void setTheme(t)}
-              style={{
-                all: 'unset',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-                ...mono,
-                padding: 'var(--space-1) var(--space-2)',
-                borderRadius: 'var(--radius-chip)',
-                border: `var(--hairline-width) solid ${
-                  settings?.theme === t ? 'var(--accent)' : 'var(--hairline)'
-                }`,
-                color: settings?.theme === t ? 'var(--accent-text)' : 'var(--text-secondary)',
-              }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-          {GENRES.map((g) => (
-            <span
-              key={g.colorIndex}
-              title={`${g.colorIndex} · ${g.name}`}
-              style={{
-                width: 'var(--space-5)',
-                height: 'var(--space-5)',
-                borderRadius: 'var(--radius-chip)',
-                background: `var(--genre-${g.colorIndex})`,
-              }}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div style={{ ...mono, paddingBottom: 'var(--space-2)' }}>
-          navigation · the android back gesture should undo each push
-        </div>
-        <Row label="screen stack" value={navState.screens.map((s) => s.screen).join(' › ')} />
-        <Row
-          label="overlay stack"
-          value={
-            navState.overlays.length ? navState.overlays.map((o) => o.kind).join(' › ') : 'none'
-          }
-        />
-        <div style={{ display: 'flex', gap: 'var(--space-2)', paddingTop: 'var(--space-3)' }}>
-          <button
-            onClick={() => nav.push({ screen: 'detail', id: 'probe' })}
-            style={{
-              all: 'unset',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              ...mono,
-              padding: 'var(--space-1) var(--space-2)',
-              borderRadius: 'var(--radius-chip)',
-              border: 'var(--hairline-width) solid var(--hairline)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            push screen
-          </button>
-          <button
-            onClick={() => nav.open({ kind: 'drawer' })}
-            style={{
-              all: 'unset',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              ...mono,
-              padding: 'var(--space-1) var(--space-2)',
-              borderRadius: 'var(--radius-chip)',
-              border: 'var(--hairline-width) solid var(--hairline)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            open sheet
-          </button>
-          <button
-            onClick={() => nav.back()}
-            style={{
-              all: 'unset',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              ...mono,
-              padding: 'var(--space-1) var(--space-2)',
-              borderRadius: 'var(--radius-chip)',
-              border: 'var(--hairline-width) solid var(--accent)',
-              color: 'var(--accent-text)',
-            }}
-          >
-            back
-          </button>
-        </div>
-      </section>
-
-      <footer style={{ ...mono, paddingTop: 'var(--space-4)' }}>
-        Nothing here ships. Phase 1 replaces this with the real Home screen, ported from
-        design/Ex&nbsp;Libris.dc.html.
-      </footer>
+/**
+ * A screen that has a route but no implementation yet.
+ *
+ * Written in the mono developer voice the design package uses for its own
+ * scaffolding, and it names the phase. The alternative — a plausible-looking
+ * empty state — would be indistinguishable from a screen whose data failed to
+ * load, and the app would be quietly lying about what it can do.
+ */
+function NotBuilt({ screen, phase }: { screen: string; phase: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-6)',
+        textAlign: 'center',
+      }}
+    >
+      <div style={displayS}>{screen}</div>
+      <div style={{ ...label, fontFamily: 'var(--font-mono)' }}>
+        not built yet · phase {phase} · v{APP_VERSION}
+      </div>
+      <button
+        onClick={() => nav.reset({ screen: 'home' })}
+        style={{
+          ...resetButton,
+          marginTop: 'var(--space-3)',
+          fontSize: 'var(--size-caption)',
+          color: 'var(--accent-text)',
+        }}
+      >
+        Back to the library
+      </button>
     </div>
   );
 }

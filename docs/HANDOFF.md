@@ -25,25 +25,40 @@ novels and manhwa in one library.
 
 ## Where the work stopped
 
-**Phase 0 (Foundations) is complete and the gate is green.** Nothing from
-Phase 1 has started.
+**Phase 0 is complete. Phase 1 is PART DONE and the gate is green.**
 
-What runs today: `npm run dev` opens a diagnostics panel in the mono developer
-voice — not an app screen, and deliberately impossible to mistake for one. It
-reports the real state of every foundation: IndexedDB, an OPFS write/read/delete
-round trip, `storage.persist()`, storage usage, the loaded contract (12 genres,
-242 tags), the live theme, and the navigation stack. `src/ui/App.tsx` is deleted
-in Phase 1 and replaced by the real Home screen.
+The app runs and is usable end to end for one job: you can open it for the first
+time, name the bookplate, add a work by hand, find it on its shelf, change
+everything about it, log reading against it, delete it and get it back.
+
+**Built in Phase 1 so far:** the splash, the welcome screen, the bookplate, Home
+(Continue strip, Shelves, Everything row, the three figures, the theme
+switches), the format screen with sort and status filter, book detail, the
+status picker, the edit sheet, the reading-session sheet, the genre editor, the
+add-by-hand sheet, the drawer, the bottom nav, the FAB and its two doors, and
+Trash with restore, per-item purge and empty.
+
+**Still to build in Phase 1:** Wishlist (with Surprise me), Settings (which
+carries audit items B7, C1, C3, C4), About, the Everything screen with its genre
+filter, the four-step spotlight tour after the bookplate, tag editing and tag
+housekeeping (B9), manual series and universe editing (B5), and per-axis entry
+(B4). The nav bar's other three tabs currently land on a mono-voiced
+"not built yet · phase N" panel rather than on a plausible-looking empty state,
+so the app never claims to do something it cannot.
+
+**Deferred with a reason, not silently:** B1, the manual cover override, moves
+to Phase 4. A user-supplied cover and a fetched one share the same store,
+downscale and colour-extraction path, and building that path twice is how the
+two diverge.
 
 Measured on 2026-09-03, not estimated:
 
 |                         |                                                                    |
 | ----------------------- | ------------------------------------------------------------------ |
-| unit tests              | 44 passing, 5 files                                                |
-| end-to-end tests        | 6 passing against a production build                               |
+| unit tests              | 84 passing, 6 files                                                |
+| end-to-end tests        | 7 passing against a production build, as one journey               |
 | structural checks       | 5 passing                                                          |
-| JS bundle               | 309 kB raw, **97.5 kB gzipped** (budget: 250 kB)                   |
-| CSS bundle              | 21.3 kB raw, 4.1 kB gzipped                                        |
+| JS bundle               | 378 kB raw, **113.4 kB gzipped** (budget: 250 kB)                  |
 | service worker precache | 55 entries, 5.4 MB (mostly the 13 illustrations and 21 font files) |
 
 ---
@@ -133,25 +148,27 @@ tests/e2e/         playwright, against a production build on localhost:4173
 
 ## The next three concrete actions
 
-1. **Phase 1 · Core library.** Port Home, the format screen, detail, the
-   by-hand add sheet and Trash from `design/Ex Libris.dc.html`, faithfully. The
-   prototype has no CSS classes — every style is an inline `var(--token)` object
-   — so porting is mechanical. The only translation needed is `style-hover`,
-   `style-focus` and `style-active`, which are prototype-specific attributes
-   with no inline-style equivalent; they become real CSS rules.
-2. **Build the audit list into Phase 1** (see `DECISIONS.md` E-009). A1–A6,
-   B1, B4–B7, B9 and all of C. The largest of these is an "Edit this work" sheet
-   covering status, format, title, author, progress total and unit, and cover —
-   none of which the design package has a control for, and without which the app
-   cannot be used.
-3. **Read `design/Ex Libris.dc.html` end to end before porting.** It has been
-   read structurally and by screen, not line by line.
+1. **The Wishlist screen and Settings.** Settings carries four audit items on
+   its own: the owner name has to become editable (B7), "Show content warning
+   tags" is filed under the wrong heading (C1), "Export a copy" has no handler
+   (C3), and there is no storage-usage row in an app that will hold a
+   several-hundred-megabyte index (C4). `storageUsage()` in
+   `src/storage/opfs.ts` already returns what that row needs.
+2. **Tag editing, and then tag housekeeping (B9).** The tag picker is a full
+   screen over 242 seeded tags in 7 groups — see design/COMPONENTS.md "Tag
+   picker" for its exact shape. `repo.tagByName` and `refreshTagCounts` are
+   already in place and tested.
+3. **Manual series and universe editing (B5).** `repo.setSeries`,
+   `seriesByName` and `universeByName` exist and are tested; what is missing is
+   the sheet and a way to reach a series page other than through a work that
+   already belongs to one.
 
 ---
 
 ## Anything broken or half-finished
 
-Nothing is broken. Two things are deliberately dormant and documented:
+Nothing is broken. Beyond the Phase 1 list above, two things are deliberately
+dormant and documented:
 
 - `work.rating` exists in the type and no screen sets it. The six axes do the
   job; the field stays so a restored backup from any build is not lossy.
@@ -160,4 +177,11 @@ Nothing is broken. Two things are deliberately dormant and documented:
 
 The app icon in `public/icons/` is assembled from the bookplate frame in the
 design package because Claude Design never produced one. It is conservative and
-correct, and it is the one piece of Phase 0 that wants the owner's eye (Q-018).
+correct, and it wants the owner's eye (Q-018).
+
+**One design behaviour to raise with the owner, not a bug:** a work whose
+position reaches its published count renders its progress as "Chapter 2,334
+published" with a full segmented track — the design's own rule (D-009, D-105) —
+while the status pill still reads whatever is stored, usually Reading. Both
+statements are true and the screen makes the reader reconcile them. Recorded as
+Q-022 rather than changed, because it is a design decision and not mine.

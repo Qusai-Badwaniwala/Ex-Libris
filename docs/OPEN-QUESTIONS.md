@@ -54,16 +54,6 @@ month. Options: drop the runtime cache entirely and rely on OPFS plus a retry,
 or keep it and accept the duplication. Leaning toward dropping it once the OPFS
 path is proven in Phase 4.
 
-**Q-021 · Should the trash purge on a schedule or on sight?**
-`NON-BLOCKING — needed by Phase 1.` `SCHEMA.md` says a soft-deleted record is
-hard-purged after thirty days. There is no server and no background job, so the
-purge can only run when the app is opened. If the app is not opened for two
-months, records sit in the trash past their thirty days and then vanish all at
-once on the next launch. That is the honest behaviour and probably fine, but it
-means the trash screen's "27 days left" is really "27 days, or until you next
-open this after they expire". Proposing: purge on open, and word the trash
-screen so it does not promise a countdown it cannot run.
-
 ---
 
 ## FOR A LATER PHASE, RECORDED SO THEY ARE NOT LOST
@@ -85,3 +75,23 @@ exact collisions cannot happen at all; the interesting case is near-misses that
 do not collide — "Dark fantasy" and "Grimdark". Build B9 in Phase 1 as rename,
 merge and delete; a similarity-suggestion screen is a separate question and is
 not proposed.
+
+---
+
+**Q-022 · Two true statements the reader has to reconcile.** `NON-BLOCKING.`
+A work whose position reaches its published count renders its progress as
+"Chapter 2,334 published" with a full segmented track — the design's own rule
+(D-009 for the segmented track, D-105 for the wording) — while the status pill
+still shows what is stored, usually Reading. Both are accurate. Together they
+read as a contradiction: the bar says caught up, the pill says reading.
+
+Three ways out, none of them taken yet because this is a design decision:
+
+1. Leave it. The pill is about the reader, the bar is about the work, and the
+   schema is emphatic that those are orthogonal.
+2. Offer it. When a session reaches the published edge, ask once whether to mark
+   the work Caught up — the same suggest-never-apply shape as series detection.
+3. Derive it. Move the work to `caught_up` automatically at the edge, which the
+   schema forbids: `status` describes the reader and is never derived.
+
+Option 2 is the one that fits the rest of the app. It needs the owner's word.

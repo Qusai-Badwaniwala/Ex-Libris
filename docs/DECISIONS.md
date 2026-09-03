@@ -138,3 +138,63 @@ pills), so a Phase 0 screen written in it cannot be mistaken for shipped UI. It
 reports real state — an actual OPFS write/read/delete round trip, not a
 capability sniff — so Phase 0 can be checked by hand rather than asserted. It is
 deleted in Phase 1.
+
+---
+
+## 2026-09-03 · Phase 1
+
+**E-020 · `setFormat` leaves `progressUnit` alone.** SCHEMA §1 says format is
+decided by how a work is read and is never auto-corrected. Deriving the unit
+from it would turn a page count into a chapter count on a shelf move: the number
+on screen changes meaning without changing value, and nothing tells the reader.
+The unit is a separate control on the same sheet, and the sheet says so.
+_Rejected:_ following the format's default unit, which is what the creation path
+does — correct at creation, wrong forever after.
+
+**E-021 · Correcting a position and logging a session are different writes.**
+`setProgressCurrent` may go backwards and records nothing; `logSession` may only
+go forwards and records a `readingSession`. Without the split, fixing a mis-tap
+would inflate "chapters read" permanently, because the figure is a sum over
+sessions and a correction is not reading.
+
+**E-022 · `nav.swap()` and `nav.closeAndPush()`.** Closing a sheet and opening
+another is a race that loses: `close()` rewinds history and popstate arrives on
+its own schedule, so a queued `open()` can land before the pop that then cancels
+it. The FAB's "Add by hand" door opened nothing whenever the tap was faster than
+a person's. Both new methods reuse the existing history entry rather than
+adding one — the menu and the sheet it becomes are one step, and back from
+either returns to the screen underneath.
+_Rejected:_ a `setTimeout` past the pop, which is the same race with a longer
+fuse.
+
+**E-023 · Unbuilt screens are labelled in the mono developer voice.** The four
+bottom-nav tabs all route somewhere, and three of them have no implementation
+yet. A plausible-looking empty state there is indistinguishable from a screen
+whose data failed to load, so each says "not built yet · phase N" in the same
+voice the design package uses for its own scaffolding.
+
+**E-024 · The axis line is absent from detail until Phase 6, not stubbed.** The
+design shows it on every detail screen. Rendering it with no way to rate is the
+switch-with-nothing-behind-it the design itself refuses (Q-014), so it is left
+out entirely and named in HANDOFF.md.
+
+**E-025 · B1, the manual cover override, moves to Phase 4.** A user-supplied
+cover and a fetched one share one path — store into OPFS, downscale, extract the
+dominant colour, compute the contrast flag. Building that path in Phase 1 for
+one caller and again in Phase 4 for the other is how the two diverge. Stated
+rather than quietly dropped.
+
+**E-026 · The trash screen does not promise a countdown it cannot run.** There
+is no server and no background job, so thirty-day retention is enforced when the
+app is opened. Leave it shut for two months and everything expires at once on
+the next launch. The copy says "cleared the next time you open the app after
+that" instead of implying a running clock. Closes Q-021.
+
+**E-027 · `src/ui/design-literals.ts` holds the values the design uses that
+tokens.css does not define** — the two scrims, the gold-leaf gradient, three
+sets of stagger delays, and one unmount timeout. `tokens.css` is byte-frozen so
+they cannot go there, and scattering them through components is how a value ends
+up with two slightly different answers. Every line carries `tokens-allow`, and
+being forced to write that word is the point: adding a literal is a deliberate
+act. Past a dozen entries, that is the signal to ask for a tokens.css revision
+rather than keep appending.

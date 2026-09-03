@@ -93,3 +93,40 @@ describe('opening a screen', () => {
     expect(nav.state.overlays).toHaveLength(0);
   });
 });
+
+describe('replacing a sheet without racing history', () => {
+  it('swaps one sheet for another and keeps a single history entry', () => {
+    // The FAB menu becoming the add sheet. Spelled as close-then-open it is a
+    // race that loses: close() rewinds history and popstate arrives on its own
+    // schedule, so the queued open can land BEFORE the pop that then cancels
+    // it. Nothing appears on screen.
+    nav.open({ kind: 'fabMenu' });
+    nav.swap({ kind: 'byHand' });
+    expect(nav.state.overlays.map((o) => o.kind)).toEqual(['byHand']);
+
+    // One layer, one entry: back returns to the screen, not to the menu.
+    pressBack();
+    expect(nav.state.overlays).toHaveLength(0);
+    expect(nav.state.screens.at(-1)?.screen).toBe('home');
+  });
+
+  it('turns a sheet into a screen in one step', () => {
+    nav.open({ kind: 'byHand' });
+    nav.closeAndPush({ screen: 'detail', id: 'new' });
+    expect(nav.state.overlays).toHaveLength(0);
+    expect(nav.state.screens.at(-1)).toEqual({ screen: 'detail', id: 'new' });
+
+    // And back from the new work returns to where you were, rather than
+    // reopening the sheet that created it.
+    pressBack();
+    expect(nav.state.screens.at(-1)?.screen).toBe('home');
+    expect(nav.state.overlays).toHaveLength(0);
+  });
+
+  it('falls back to a plain push when nothing is open', () => {
+    nav.closeAndPush({ screen: 'detail', id: 'x' });
+    expect(nav.state.screens.at(-1)?.screen).toBe('detail');
+    pressBack();
+    expect(nav.state.screens.at(-1)?.screen).toBe('home');
+  });
+});

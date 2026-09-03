@@ -137,6 +137,37 @@ export const nav = {
     emit({ ...state, overlays: [...state.overlays, overlay] });
   },
 
+  /**
+   * Replaces the topmost sheet with another, reusing its history entry.
+   *
+   * This exists because the obvious spelling — close, then open — is a race
+   * that loses. `close()` rewinds history, and popstate arrives on its own
+   * schedule; a queued `open()` can land BEFORE that popstate, which then pops
+   * the sheet that was just opened and leaves nothing on screen. It happened on
+   * the FAB's two doors every time the tap was faster than a person's.
+   *
+   * One layer, one entry: the FAB menu and the sheet it becomes are the same
+   * step, and back from either should return to the screen underneath rather
+   * than to the menu.
+   */
+  swap(overlay: Overlay) {
+    emit({ ...state, overlays: [...state.overlays.slice(0, -1), overlay] });
+  },
+
+  /**
+   * Dismisses the topmost sheet and drills into a screen in one move, reusing
+   * the sheet's history entry. Same race, same fix: "added it, now show me it"
+   * is one step, and back from the work should return to where you were, not
+   * reopen the sheet that created it.
+   */
+  closeAndPush(route: Route) {
+    if (state.overlays.length === 0) {
+      this.push(route);
+      return;
+    }
+    emit({ screens: [...state.screens, route], overlays: state.overlays.slice(0, -1) });
+  },
+
   /** Programmatic dismissal — the button, not the gesture. */
   close() {
     if (state.overlays.length === 0) return;

@@ -17,6 +17,7 @@ import '@fontsource/taviraj/500.css';
 
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/app.css';
 
 import { App } from './ui/App';
 import { installHistory } from './router/router';

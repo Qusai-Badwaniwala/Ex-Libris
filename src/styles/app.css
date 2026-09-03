@@ -1,0 +1,66 @@
+/* Pseudo-state rules.
+ *
+ * The design prototype had no CSS classes at all — the medium forbade them
+ * (design D-001), so every style in it is an inline `var(--token)` string. Those
+ * port across one-to-one as React style objects. The one thing that cannot is
+ * its `style-hover` / `style-focus` / `style-active` attributes, because inline
+ * styles have no pseudo-states.
+ *
+ * So each distinct value from the prototype becomes one data attribute here.
+ * Nothing is invented and nothing is consolidated: the list below is exactly
+ * the set of hover and active treatments the prototype uses, one rule each, and
+ * the value is copied from the element it came from.
+ *
+ * Hover is gated on a device that actually has a pointer. On a phone,
+ * :hover sticks after a tap and leaves a row looking selected. */
+
+@media (hover: hover) and (pointer: fine) {
+  [data-hover='raised']:hover {
+    background: var(--surface-raised);
+  }
+  [data-hover='hairline']:hover {
+    border-color: var(--hairline-strong);
+  }
+  [data-hover='accent-border']:hover {
+    border-color: var(--accent);
+  }
+  [data-hover='accent-deep']:hover {
+    background: var(--accent-deep);
+  }
+  [data-hover='danger']:hover {
+    background: var(--danger-soft);
+  }
+  [data-hover='dim']:hover {
+    opacity: 0.8;
+  }
+  [data-hover='restore']:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+  }
+  [data-hover='ink']:hover {
+    color: var(--text-primary);
+  }
+}
+
+[data-active='accent']:active {
+  background: var(--accent-muted);
+}
+
+/* The prototype's underlined bookplate field: the rule goes accent on focus. */
+[data-focus='accent']:focus {
+  border-bottom-color: var(--accent);
+}
+
+/* Screen reader only. Used for the live region that announces a status change,
+ * because the change is otherwise carried by a colour and a word that moves. */
+.exl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
