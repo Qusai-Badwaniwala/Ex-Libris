@@ -4,8 +4,8 @@
 
 **Repository:** `H:\Ex libris Project\Website`
 
-**Active checkpoint:** Phase 10 accepted; release commit pushed; GitHub Pages
-needs the owner's one-time repository setting
+**Active checkpoint:** Phase 10 accepted; the production PWA is published on
+GitHub Pages
 
 Read `OPEN-QUESTIONS.md`, `EXECUTION-PLAN.md`, and `DESIGN-STATE.md` before
 changing anything. The immutable Claude package under `design/`, frozen
@@ -13,15 +13,15 @@ changing anything. The immutable Claude package under `design/`, frozen
 
 ## Roadmap checkpoint
 
-| Phase                    | State                   | Durable truth                                                                                                                    |
-| ------------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 0–4                      | Complete for sequencing | Phase 3's physical Android worker/OPFS latency gate remains deferred as Q-028, not passed.                                       |
-| 5 · Series and universes | Accepted                | Confirmation-only relationships, named orders, starting point, feedback, gate, and exact-title Wishlist preflight passed.        |
-| 6 · Axes and matching    | Accepted                | Seven-step editing, Finished-only ending, finish paths, Detail profile, explainable six-axis matching, gate, and review passed.  |
-| 7 · Notes                | Accepted                | Multi-work links, tags, pinning, cross-search, Detail notes, reversible deletion, themed illustrations, gate, and review passed. |
-| 8 · Data safety          | Accepted                | Automatic snapshots, complete ZIP export/restore, paste/CSV import, share target, gate, and review passed.                       |
-| 9 · Stats and spine view | Accepted                | Truthful Stats, adaptive/fixed widths, row virtualization, 500-work performance, gate, and visual review passed.                 |
-| **10 · Final polish**    | **Accepted**            | Original 207/46 gate plus the owner-approved icon/install/publication extension and definitive 207/47 gate passed.               |
+| Phase                    | State                   | Durable truth                                                                                                                            |
+| ------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–4                      | Complete for sequencing | Phase 3's physical Android worker/OPFS latency gate remains deferred as Q-028, not passed.                                               |
+| 5 · Series and universes | Accepted                | Confirmation-only relationships, named orders, starting point, feedback, gate, and exact-title Wishlist preflight passed.                |
+| 6 · Axes and matching    | Accepted                | Seven-step editing, Finished-only ending, finish paths, Detail profile, explainable six-axis matching, gate, and review passed.          |
+| 7 · Notes                | Accepted                | Multi-work links, tags, pinning, cross-search, Detail notes, reversible deletion, themed illustrations, gate, and review passed.         |
+| 8 · Data safety          | Accepted                | Automatic snapshots, complete ZIP export/restore, paste/CSV import, share target, gate, and review passed.                               |
+| 9 · Stats and spine view | Accepted                | Truthful Stats, adaptive/fixed widths, row virtualization, 500-work performance, gate, and visual review passed.                         |
+| **10 · Final polish**    | **Accepted and live**   | Original 207/46 gate plus the owner-approved icon/install/publication extension, definitive 207/47 gate, and public verification passed. |
 
 There is no Phase 11. The current work is a bounded public-release extension,
 not a new product phase.
@@ -49,6 +49,9 @@ not a new product phase.
 - `README.md` is a concise first-person project introduction, install note,
   privacy/backups warning, local setup, and acknowledgements. It does not claim
   the software was authored by an automated system.
+- The owner enabled GitHub Pages, trigger commit `f64901a` was pushed, and
+  workflow run `34747574260` deployed the production app successfully at
+  `https://qusai-badwaniwala.github.io/Ex-Libris/`.
 
 No dependency, Dexie migration, corpus row/source/licence change, immutable
 design edit, speculative feature, or unrelated refactor was added.
@@ -85,9 +88,17 @@ design edit, speculative feature, or unrelated refactor was added.
   `https://github.com/Qusai-Badwaniwala/Ex-Libris` repository. Its author and
   committer use GitHub's verified-format no-reply address; the first rejected
   attempt published nothing and the private email is absent from Git history.
-- GitHub Actions run `34745951062` built through the corpus reconstruction, then
-  failed only at `Configure GitHub Pages` because Pages is not enabled for this
-  new repository. The deploy job was skipped; no public app URL is live yet.
+- GitHub Actions run `34747574260` completed checkout, dependency installation,
+  exact catalogue reconstruction, build, artifact upload, and Pages deployment.
+- Live network verification returned the app, manifest, regular icon, service
+  worker, and catalogue manifest successfully. The manifest uses start URL and
+  scope `/Ex-Libris/`; the public catalogue declares 273,784,832 bytes and the
+  expected SHA-256. A byte-range request returned HTTP 206 and the SQLite header.
+  The service worker does not precache catalogue bytes. The `/share` deep link
+  serves the app shell through GitHub Pages' custom-404 fallback and is handled
+  as navigation once the installed service worker controls the app.
+- The public URL was opened at Pixel 7 dimensions and reached the real first-run
+  Welcome screen with the privacy promise and working `Open the library` action.
 
 ## Still open
 
@@ -98,29 +109,25 @@ design edit, speculative feature, or unrelated refactor was added.
 
 ## Next three actions
 
-1. Owner opens the repository's **Settings → Pages**, changes **Build and
-   deployment → Source** to **GitHub Actions**, and reports that it is done. This
-   is the only current external blocker; the unauthenticated in-app browser
-   cannot change repository settings.
-2. Trigger and watch a fresh Pages workflow, then verify the public URL,
-   manifest, icons, service worker, app start, share fallback, and production
-   catalogue manifest from the network.
-3. Record the successful workflow and public URL here and in `progress.md`,
-   commit and push that final durable release record, and give the owner the
-   detailed first-time phone guide. Do not start an undocumented product phase.
+1. Owner opens the live URL on the phone, completes onboarding, and installs it
+   from the final Settings spotlight or the browser's Add to Home Screen menu.
+2. After adding real library data, owner exports a ZIP to storage outside the
+   browser; automatic snapshots remain on-device and are not protection against
+   a lost phone or cleared site data.
+3. Resume Q-028 only when the owner wants the deferred physical mid-range
+   Android catalogue-latency measurement. Do not invent Phase 11.
 
 ## Environment and repository hazards
 
 - Commit `b41ac67` contains the complete Phase 2–10 implementation as one
   audited public release unit. Do not reset, clean, discard, or rewrite its
   history.
-- The release commit is pushed; Pages is not deployed because the repository
-  setting above is still off. Do not claim that the app URL is live until a
-  fresh workflow succeeds and the network checks pass.
+- The release is live at `https://qusai-badwaniwala.github.io/Ex-Libris/`.
+  Future pushes to `master` without `[skip ci]` can publish a new Pages build;
+  run the full gate before changing the shipped application.
 - Run Git, npm, and tests from `H:\Ex libris Project\Website`.
 - Ports 5173 and 4173 are stopped. Never build while either serves this
-  repository; host the exact gate build on 4173 after Git work if local review
-  is still useful.
+  repository; the public Pages deployment now hosts the verified release.
 - `public/corpus/` and `pipeline/.cache/` are deliberately ignored. Only the
   production checksummed parts in `deployment/corpus/` belong in Git.
 - Existing Vite warnings about the main chunk size and mixed static/dynamic

@@ -209,14 +209,14 @@ reduced-motion, service-worker, and both-theme behavior. Re-run performance
 budgets and physical-device checks. Host the release candidate and complete the
 final handoff.
 
-Current status: **accepted; public phone-release preparation authorized**.
-Settings and About are complete, the final interaction/accessibility audit
-passed, and Q-008 has explicit transactional rename/merge/delete maintenance
-without similarity suggestions. The owner supplied the final app icon and
-requested a working Settings installation state plus a final onboarding step
-before public GitHub Pages publication. This is a bounded release extension to
-Phase 10, not Phase 11. Q-028 remains a deferred, explicitly unpassed
-physical-device check; emulation does not satisfy it.
+Current status: **accepted and publicly released**. Settings and About are
+complete, the final interaction/accessibility audit passed, and Q-008 has
+explicit transactional rename/merge/delete maintenance without similarity
+suggestions. The owner-supplied app icon, working Settings installation state,
+and final onboarding step shipped through GitHub Pages on 2026-09-13 at
+`https://qusai-badwaniwala.github.io/Ex-Libris/`. This was a bounded release
+extension to Phase 10, not Phase 11. Q-028 remains a deferred, explicitly
+unpassed physical-device check; emulation does not satisfy it.
 
 ## Hosting, pairing, and completion rules
 

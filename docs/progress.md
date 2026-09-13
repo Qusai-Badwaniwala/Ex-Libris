@@ -1345,3 +1345,26 @@ prepare phone release`) on `master` and pushed it to the owner's public
   is not signed in, so it could not make that account-level change. The public
   app URL is not reported as live until a fresh workflow and network checks
   succeed.
+
+## 2026-09-13 — Public phone release deployed and verified
+
+- The owner enabled GitHub Pages with GitHub Actions as the source. Empty trigger
+  commit `f64901a` started workflow run `34747574260`; checkout, dependency
+  installation, checksum-locked catalogue reconstruction, production build,
+  artifact upload, and Pages deployment all succeeded.
+- The live PWA is `https://qusai-badwaniwala.github.io/Ex-Libris/`. It opened at
+  Pixel 7 dimensions and reached the real first-run Welcome screen with its
+  privacy promise and working `Open the library` action.
+- Direct network checks returned the app, manifest, icon, service worker, and
+  catalogue manifest successfully. The manifest's start URL and scope are both
+  `/Ex-Libris/`; the icon returned 59,232 bytes. The catalogue manifest declares
+  273,784,832 bytes and SHA-256
+  `1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7`.
+  A byte-range request returned HTTP 206 and the `SQLite format 3` header.
+- The public service worker excludes the catalogue from precache. GitHub Pages
+  returns the custom app shell for `/share` with HTTP 404 before service-worker
+  control; the installed app's navigation fallback then handles the share-target
+  route. No user library data is sent to GitHub.
+- Phase 10 remains the final planned phase. Q-028 is still deferred and
+  explicitly unpassed; this desktop and Pixel-emulated verification is not a
+  physical Android latency measurement.
