@@ -24,6 +24,19 @@ import { installHistory } from './router/router';
 
 installHistory();
 
+// The engineering fixture is forbidden in a normal build, but Playwright must
+// prove the real HTTP range -> OPFS -> wa-sqlite worker path. This bridge exists
+// only in Vite's explicit test mode and is constant-folded out of production.
+if (import.meta.env.MODE === 'test') {
+  void import('./catalogue/test-bridge');
+  void import('./relationships/test-bridge');
+  void import('./axes/test-bridge');
+  void import('./notes/test-bridge');
+  void import('./data-safety/test-bridge');
+  void import('./stats/test-bridge');
+  void import('./phase10/test-bridge');
+}
+
 const el = document.getElementById('root');
 if (!el) throw new Error('#root is missing from index.html');
 

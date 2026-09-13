@@ -1,9 +1,12 @@
+import { existsSync } from 'node:fs';
 import {
   JsonlWriter,
   cachePath,
   fetchRetry,
   n,
+  prepareJsonlResume,
   readCheckpoint,
+  readJsonl,
   sleep,
   writeCheckpoint,
 } from '../lib.ts';
@@ -30,20 +33,19 @@ const PAGE = 2000;
 /**
  * P179 is "part of the series", P1545 the ordinal within it.
  *
- * Scoped to written works — literary work, book, novel, light novel, manhwa,
- * manga, web serial — rather than everything with a P179, which would also
- * bring back television seasons, video games and comic strips.
+ * Production merge currently joins only through P648 Open Library work ids.
+ * Requiring that identifier here avoids asking the shared query service to
+ * enumerate a much larger set of unjoinable television, game and comic-strip
+ * series rows. `normalizeOpenLibraryId` remains the final type boundary.
  */
 const QUERY = (limit: number, offset: number) => `
 SELECT ?work ?workLabel ?series ?seriesLabel ?ordinal ?olid WHERE {
-  ?work wdt:P179 ?series .
-  ?work wdt:P31/wdt:P279* ?kind .
-  VALUES ?kind { wd:Q7725634 wd:Q571 wd:Q8261 wd:Q747381 wd:Q21198342 wd:Q1004 wd:Q725377 }
+  ?work wdt:P179 ?series ;
+        wdt:P648 ?olid .
   OPTIONAL { ?work p:P179 [ ps:P179 ?series ; pq:P1545 ?ordinal ] }
-  OPTIONAL { ?work wdt:P648 ?olid }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
-ORDER BY ?work
+ORDER BY ?work ?series
 LIMIT ${limit} OFFSET ${offset}`;
 
 export interface WikidataMembership {
@@ -61,19 +63,30 @@ export async function runWikidata(maxPages = 30): Promise<StageReport> {
   const stage = 'wikidata';
   const notes: string[] = [];
   const cp = readCheckpoint(stage);
+  const output = cachePath(stage, 'series.jsonl');
 
-  if (cp.done) {
+  if (cp.done && existsSync(output)) {
     return { stage, ok: true, counts: cp.counts ?? {}, notes: ['already complete'], seconds: 0 };
   }
 
-  const startPage = typeof cp.cursor === 'number' ? cp.cursor + 1 : 0;
-  const out = new JsonlWriter(cachePath(stage, 'series.jsonl'), startPage > 0);
+  const resume = prepareJsonlResume(output, cp.cursor);
+  const startPage = resume.append ? resume.position + 1 : 0;
+  const existingRows: WikidataMembership[] = [];
+  if (startPage > 0) {
+    for await (const row of readJsonl<WikidataMembership>(output)) {
+      existingRows.push(row);
+    }
+  }
+  const out = new JsonlWriter(output, resume.append);
   if (startPage > 0) notes.push(`resumed at page ${startPage}`);
 
   let page = startPage;
-  let withOrdinal = 0;
-  let withOlid = 0;
-  const seriesSeen = new Set<string>();
+  let lastCompleted = startPage - 1;
+  let exhausted = false;
+  let stoppedStatus: number | null = null;
+  let withOrdinal = existingRows.filter((row) => row.ordinal !== null).length;
+  let withOlid = existingRows.filter((row) => row.olid !== null).length;
+  const seriesSeen = new Set(existingRows.map((row) => row.series));
 
   try {
     for (; page < maxPages; page++) {
@@ -87,6 +100,7 @@ export async function runWikidata(maxPages = 30): Promise<StageReport> {
         // A timeout here is normal at depth and is not a failure of the run:
         // what has already been written is still usable.
         notes.push(`stopped at page ${page}: HTTP ${res.status} (query service timeout is common)`);
+        stoppedStatus = res.status;
         break;
       }
 
@@ -96,6 +110,7 @@ export async function runWikidata(maxPages = 30): Promise<StageReport> {
       const rows = json.results?.bindings ?? [];
       if (rows.length === 0) {
         notes.push(`source exhausted at page ${page}`);
+        exhausted = true;
         break;
       }
 
@@ -120,11 +135,13 @@ export async function runWikidata(maxPages = 30): Promise<StageReport> {
         } satisfies WikidataMembership);
       }
 
+      await out.flush();
       writeCheckpoint(stage, {
         done: false,
-        cursor: page,
-        counts: { pages: page + 1, memberships: out.written },
+        cursor: { position: page, outputBytes: out.writtenBytes },
+        counts: { pages: page + 1, memberships: existingRows.length + out.written },
       });
+      lastCompleted = page;
       // The query service is a shared free resource with no key. One request
       // per second is well inside what it asks for.
       await sleep(1200);
@@ -134,22 +151,36 @@ export async function runWikidata(maxPages = 30): Promise<StageReport> {
   }
 
   const counts = {
-    pages: page - startPage,
-    memberships: out.written,
+    pages: lastCompleted + 1,
+    memberships: existingRows.length + out.written,
     series: seriesSeen.size,
     withOrdinal,
     withOpenLibraryId: withOlid,
   };
-  writeCheckpoint(stage, { done: page >= maxPages, cursor: page, counts });
+  writeCheckpoint(stage, {
+    done: exhausted,
+    cursor: { position: lastCompleted, outputBytes: out.writtenBytes },
+    counts,
+  });
 
-  const joinRate = out.written === 0 ? 0 : (withOlid / out.written) * 100;
-  notes.push(`${n(out.written)} memberships across ${n(seriesSeen.size)} series`);
+  notes.push(`${n(counts.memberships)} memberships across ${n(seriesSeen.size)} series`);
   notes.push(`${n(withOrdinal)} carry an explicit ordinal (P1545)`);
   notes.push(
-    `Open Library join rate: ${joinRate.toFixed(1)}% — this is the number that predicts whether series detection feels good`,
+    `${n(withOlid)} carry a P648 Open Library identifier; retained-work join rate is reported by merge`,
   );
+  if (!exhausted && page >= maxPages) {
+    notes.push(
+      `page budget ${n(maxPages)} reached before exhaustion; rerun with a larger --pages value before production merge`,
+    );
+  }
 
-  return { stage, ok: true, counts, notes, seconds: (Date.now() - started) / 1000 };
+  if (stoppedStatus !== null) {
+    notes.push(
+      `source extraction remains incomplete after HTTP ${stoppedStatus}; rerun resumes safely`,
+    );
+  }
+
+  return { stage, ok: exhausted, counts, notes, seconds: (Date.now() - started) / 1000 };
 }
 
 const qid = (uri: string) => uri.replace('http://www.wikidata.org/entity/', '');

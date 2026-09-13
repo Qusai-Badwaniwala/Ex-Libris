@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { displayL } from './styles';
 import { prefersReducedMotion } from './theme';
+import { ILLUSTRATION_NAMES, illustrationPath } from './illustration';
 
 /**
  * The boot splash. The only place in the app where the reader waits on purpose.
  *
- * Its job is not decoration: written text paints in one frame and thirteen SVGs
- * do not, so without it the first screen is seen half-illustrated (D-050). The
- * bar advances one thirteenth per illustration that lands, and a failed fetch
+ * Its job is not decoration: written text paints in one frame and SVG artwork
+ * does not, so without it the first screen is seen half-illustrated (D-050).
+ * Both theme drawings load before the gate opens, and a failed fetch
  * still advances it — boot must never hang on an asset.
  *
  * Minimum 520ms so it reads as a beat rather than a flicker, then a 240ms fade.
@@ -15,21 +16,10 @@ import { prefersReducedMotion } from './theme';
  * of it.
  */
 
-const FILES = [
-  'magic-tree-cuate',
-  'dragon-rafiki',
-  'library-pana',
-  'cherry-tree-pana',
-  'knowledge-rafiki',
-  'cherry-tree-amico',
-  'cherry-blossom-cuate',
-  'research-paper-amico',
-  'studying-bro',
-  'library-rafiki',
-  'bibliophile-rafiki',
-  'bibliophile-bro',
-  'bibliophile-pana',
-];
+const FILES = ILLUSTRATION_NAMES.flatMap((name) => [
+  illustrationPath(name, 'light'),
+  illustrationPath(name, 'dark'),
+]);
 
 /** MOTION.md §"Boot". Not a token: it is a floor on a wait, not a duration of
  *  a transition, and no other surface has one. */
@@ -60,7 +50,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
               bump();
               resolve();
             };
-            img.src = `/illustrations/${f}.svg`;
+            img.src = f;
           }),
       ),
     ).then(() => {

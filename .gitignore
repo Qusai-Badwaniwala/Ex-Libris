@@ -6,5 +6,6 @@ coverage/
 .env.local
 test-results/
 playwright-report/
+.impeccable/
 pipeline/.cache/
 public/corpus/

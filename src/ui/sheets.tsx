@@ -12,6 +12,7 @@ import {
 import * as repo from '../db/repo';
 import { useWork } from './store';
 import { tick } from './haptics';
+import type { CorpusMatch } from '../catalogue/types';
 import type {
   Format,
   GenreIndex,
@@ -19,6 +20,9 @@ import type {
   PublicationStatus,
   ReadingStatus,
 } from '../db/schema';
+import { catalogueCoverUrl } from '../metadata/cover-urls';
+import { coverService } from '../covers';
+import { withInteractionFeedback } from './interaction-feedback';
 
 /* ── A1 · the status picker ─────────────────────────────────────────────── */
 
@@ -32,7 +36,15 @@ import type {
  * only when the work is still being published (SCHEMA §1), and the sheet says
  * why rather than silently offering four options instead of five.
  */
-export function StatusPicker({ id, onClose }: { id: string; onClose: () => void }) {
+export function StatusPicker({
+  id,
+  onClose,
+  onFinished,
+}: {
+  id: string;
+  onClose: () => void;
+  onFinished: () => void;
+}) {
   const row = useWork(id);
   if (!row) return null;
   const { work } = row;
@@ -58,12 +70,17 @@ export function StatusPicker({ id, onClose }: { id: string; onClose: () => void 
               data-hover="raised"
               aria-pressed={on}
               onClick={() => {
-                void repo.setStatus(id, s).then(() => {
+                void withInteractionFeedback('Updating the reading status…', () =>
+                  repo.setStatus(id, s),
+                ).then(() => {
                   // MOTION.md: a tick on marking something finished, on the
                   // state change and not on the tap. Nowhere else here — a tick
                   // that fires often stops meaning anything.
-                  if (s === 'finished') tick();
-                  onClose();
+                  const becameFinished = s === 'finished' && work.status !== 'finished';
+                  if (becameFinished) {
+                    tick();
+                    onFinished();
+                  } else onClose();
                 });
               }}
               style={{
@@ -145,11 +162,13 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
     total: string;
     publication: PublicationStatus;
   } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   if (!row) return null;
   const { work } = row;
 
-  const d = draft ?? {
+  const initialDraft = {
     title: work.title,
     author: row.authorName ?? '',
     format: work.format,
@@ -158,31 +177,46 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
     total: work.progressTotal === undefined ? '' : String(work.progressTotal),
     publication: work.publicationStatus,
   };
-  const set = (patch: Partial<typeof d>) => setDraft({ ...d, ...patch });
+  const d = draft ?? initialDraft;
+  // Two fast field events can arrive before React paints between them. Merge
+  // against the latest queued draft so the second field cannot restore the
+  // first field's old value (the real Pixel journey caught this with position
+  // and total filled back-to-back).
+  const set = (patch: Partial<typeof d>) =>
+    setDraft((current) => ({ ...(current ?? initialDraft), ...patch }));
 
   const digits = (s: string) => s.replace(/[^\d]/g, '');
-  const titleOk = d.title.trim().length > 0;
+  const titleOk = d.title.trim().length > 0 && !saving;
 
   const save = async () => {
     // Each of these is a separate write because each one has a rule attached —
     // retitling rebuilds the sort key, changing the shelf must NOT touch the
     // unit. Batching them into one update would put those rules at the call
     // site, which is where they get forgotten.
-    if (d.title.trim() !== work.title) await repo.setTitle(id, d.title);
-    if (d.author.trim() !== (row.authorName ?? '')) await repo.setAuthor(id, d.author);
-    if (d.format !== work.format) await repo.setFormat(id, d.format);
-    if (d.unit !== work.progressUnit) await repo.setProgressUnit(id, d.unit);
-    if (d.publication !== work.publicationStatus)
-      await repo.setPublicationStatus(id, d.publication);
+    setSaving(true);
+    setError('');
+    try {
+      await withInteractionFeedback('Saving the work…', async () => {
+        if (d.title.trim() !== work.title) await repo.setTitle(id, d.title);
+        if (d.author.trim() !== (row.authorName ?? '')) await repo.setAuthor(id, d.author);
+        if (d.format !== work.format) await repo.setFormat(id, d.format);
+        if (d.unit !== work.progressUnit) await repo.setProgressUnit(id, d.unit);
+        if (d.publication !== work.publicationStatus)
+          await repo.setPublicationStatus(id, d.publication);
 
-    const current = Number(digits(d.current) || '0');
-    if (current !== work.progressCurrent) await repo.setProgressCurrent(id, current);
+        const current = Number(digits(d.current) || '0');
+        if (current !== work.progressCurrent) await repo.setProgressCurrent(id, current);
 
-    const totalText = digits(d.total);
-    const total = totalText === '' ? undefined : Number(totalText);
-    if (total !== work.progressTotal) await repo.setProgressTotal(id, total);
-
-    onClose();
+        const totalText = digits(d.total);
+        const total = totalText === '' ? undefined : Number(totalText);
+        if (total !== work.progressTotal) await repo.setProgressTotal(id, total);
+      });
+      onClose();
+    } catch {
+      setError('The changes could not be saved. Your edits are still here; try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -291,6 +325,11 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
         ) : null}
       </div>
 
+      {error ? (
+        <div role="alert" style={{ ...caption, color: 'var(--danger-text)' }}>
+          {error}
+        </div>
+      ) : null}
       <div style={{ display: 'flex', gap: 'var(--space-2)', paddingTop: 'var(--space-1)' }}>
         <button
           onClick={onClose}
@@ -328,7 +367,7 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
             fontWeight: 500,
           }}
         >
-          Save
+          {saving ? 'Saving…' : 'Save'}
         </button>
       </div>
     </Sheet>
@@ -342,7 +381,15 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
  * (D-086). It floors at the current position, so a session can never record
  * going backwards; correcting a position is the edit sheet's job.
  */
-export function SessionSheet({ id, onClose }: { id: string; onClose: () => void }) {
+export function SessionSheet({
+  id,
+  onClose,
+  onFinished,
+}: {
+  id: string;
+  onClose: () => void;
+  onFinished: () => void;
+}) {
   const row = useWork(id);
   const [to, setTo] = useState<number | null>(null);
   /**
@@ -395,7 +442,9 @@ export function SessionSheet({ id, onClose }: { id: string; onClose: () => void 
           data-ripple
           data-active="accent"
           onClick={() => {
-            void repo.setStatus(id, 'caught_up').then(onClose);
+            void withInteractionFeedback('Updating the reading status…', () =>
+              repo.setStatus(id, 'caught_up'),
+            ).then(onClose);
           }}
           style={{
             ...resetButton,
@@ -512,9 +561,13 @@ export function SessionSheet({ id, onClose }: { id: string; onClose: () => void 
         data-active="accent"
         disabled={delta === 0}
         onClick={() => {
-          void repo.logSession(id, at).then(({ finished, atPublishedEdge }) => {
-            if (finished) tick();
-            if (atPublishedEdge) setOfferCaughtUp(true);
+          void withInteractionFeedback('Registering the reading session…', () =>
+            repo.logSession(id, at),
+          ).then(({ finished, atPublishedEdge }) => {
+            if (finished) {
+              tick();
+              onFinished();
+            } else if (atPublishedEdge) setOfferCaughtUp(true);
             else onClose();
           });
         }}
@@ -667,7 +720,9 @@ export function GenreEditor({ id, onClose }: { id: string; onClose: () => void }
       <button
         data-active="accent"
         onClick={() => {
-          void repo.setGenres(id, sel).then(onClose);
+          void withInteractionFeedback('Saving the genres…', () => repo.setGenres(id, sel)).then(
+            onClose,
+          );
         }}
         style={{
           ...resetButton,
@@ -697,6 +752,8 @@ export function ByHandSheet({
   onAdded,
   defaultStatus = 'reading',
   defaultFormat = 'novel',
+  candidate,
+  initialTitle = '',
 }: {
   onClose: () => void;
   onAdded: (id: string) => void;
@@ -708,20 +765,42 @@ export function ByHandSheet({
   defaultStatus?: ReadingStatus;
   /** Same on a format shelf: adding from Manhwa means adding a manhwa. */
   defaultFormat?: Format;
+  candidate?: CorpusMatch;
+  initialTitle?: string;
 }) {
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [format, setFormat] = useState<Format>(defaultFormat);
-  const [unit, setUnit] = useState<ProgressUnit>(defaultFormat === 'book' ? 'page' : 'chapter');
-  const [status, setStatus] = useState<ReadingStatus>(defaultStatus);
-  const ok = title.trim().length > 0;
+  const initialFormat = candidate?.formatHint ?? defaultFormat;
+  const [title, setTitle] = useState(candidate?.title ?? initialTitle);
+  const [author, setAuthor] = useState(candidate?.authors.join(', ') ?? '');
+  const [format, setFormat] = useState<Format>(initialFormat);
+  const [unit, setUnit] = useState<ProgressUnit>(initialFormat === 'book' ? 'page' : 'chapter');
+  const [status, setStatus] = useState<ReadingStatus | ''>(candidate ? '' : defaultStatus);
+  const [total, setTotal] = useState(candidate?.chapterCount?.toString() ?? '');
+  const [publication, setPublication] = useState<PublicationStatus>(
+    candidate?.publicationStatus ?? 'unknown',
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const validTotal =
+    total.trim() === '' ||
+    (/^\d+$/.test(total) && Number.isSafeInteger(Number(total)) && Number(total) > 0);
+  const ok = title.trim().length > 0 && !!status && validTotal && !saving;
+  const candidateCoverUrl = candidate ? catalogueCoverUrl(candidate) : undefined;
+  const openLibraryWork = candidate?.corpusId.startsWith('openlibrary:')
+    ? candidate.corpusId.slice('openlibrary:'.length)
+    : undefined;
 
   return (
-    <Sheet onClose={onClose} title="Add by hand">
+    <Sheet
+      onClose={onClose}
+      title={candidate ? 'Add to library' : 'Add by hand'}
+      transitionName="add-surface"
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={displayS}>Add by hand</div>
+        <div style={displayS}>{candidate ? 'Add to library' : 'Add by hand'}</div>
         <div style={{ ...caption, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
-          For what the catalogue has never heard of. A title is enough; the rest can wait.
+          {candidate
+            ? 'Check the details and choose where it goes. You can correct anything before adding it.'
+            : 'For what the catalogue has never heard of. A title is enough; the rest can wait.'}
         </div>
       </div>
 
@@ -739,6 +818,38 @@ export function ByHandSheet({
         placeholder="Leave empty if you do not know"
       />
 
+      {candidate?.seriesName || candidate?.universeName ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 5,
+            padding: 'var(--space-3) var(--space-4)',
+            border: 'var(--hairline-width) solid var(--hairline)',
+            borderRadius: 'var(--radius-card)',
+            background: 'var(--surface-raised)',
+          }}
+        >
+          <span style={label}>Catalogue relationship</span>
+          {candidate.seriesName ? (
+            <span style={caption}>
+              {candidate.seriesName}
+              {candidate.seriesPosition !== undefined
+                ? ` · entry ${candidate.seriesPosition}`
+                : ' · entry number unknown'}
+            </span>
+          ) : null}
+          {candidate.universeName ? (
+            <span style={{ ...caption, color: 'var(--text-secondary)' }}>
+              Inside {candidate.universeName}
+            </span>
+          ) : null}
+          <span style={{ ...caption, color: 'var(--text-secondary)' }}>
+            After saving, you can confirm or reject this grouping.
+          </span>
+        </div>
+      ) : null}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         <span style={label}>Shelf</span>
         <Segmented ariaLabel="Shelf" options={SHELVES} value={format} onChange={setFormat} />
@@ -748,6 +859,45 @@ export function ByHandSheet({
         <span style={label}>Counted in</span>
         <Segmented ariaLabel="Counted in" options={UNITS} value={unit} onChange={setUnit} />
       </div>
+
+      {candidate && (
+        <>
+          <Field
+            label="Published count"
+            value={total}
+            onChange={setTotal}
+            inputMode="numeric"
+            note={
+              validTotal
+                ? 'Leave empty when unknown. Counts belong to this format, not another adaptation.'
+                : 'Use a positive whole number, or leave it empty.'
+            }
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label htmlFor="catalogue-publication" style={label}>
+              Publication
+            </label>
+            <select
+              id="catalogue-publication"
+              value={publication}
+              onChange={(event) => setPublication(event.target.value as PublicationStatus)}
+              style={{
+                minHeight: 44,
+                color: 'var(--text-primary)',
+                background: 'var(--surface-sunken)',
+                border: 'var(--hairline-width) solid var(--hairline-strong)',
+                font: 'inherit',
+              }}
+            >
+              {(Object.keys(PUBLICATION_LABEL) as PublicationStatus[]).map((value) => (
+                <option key={value} value={value}>
+                  {PUBLICATION_LABEL[value]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         <span style={label}>Where it goes</span>
@@ -762,6 +912,15 @@ export function ByHandSheet({
           onChange={setStatus}
         />
       </div>
+
+      {candidate && !status && (
+        <p style={label}>Choose Wishlist, Reading or Finished before adding.</p>
+      )}
+      {error && (
+        <p role="alert" style={{ ...caption, color: 'var(--danger-text)' }}>
+          {error}
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', paddingTop: 'var(--space-1)' }}>
         <button
@@ -786,16 +945,43 @@ export function ByHandSheet({
           data-active="accent"
           disabled={!ok}
           onClick={() => {
-            void repo
-              .createWork({
+            if (!ok || !status) return;
+            setSaving(true);
+            setError('');
+            void withInteractionFeedback('Putting the work on the shelf…', () =>
+              repo.createWork({
                 title,
                 authorName: author,
                 format,
                 status,
                 progressUnit: unit,
-                publicationStatus: 'unknown',
+                publicationStatus: publication,
+                progressTotal: total ? Number(total) : undefined,
+                corpusId: candidate?.corpusId,
+                externalIds: {
+                  ...(candidate?.mangadexId ? { mangadex: candidate.mangadexId } : {}),
+                  ...(openLibraryWork ? { openLibraryWork } : {}),
+                },
+                coverRemoteUrl: candidateCoverUrl,
+              }),
+            )
+              .then((w) => {
+                if (candidateCoverUrl) {
+                  // The work is already durable. Cover acquisition continues
+                  // independently, and a failed fetch remains retryable from
+                  // the detail screen without undoing the library addition.
+                  void withInteractionFeedback('Fetching the catalogue cover…', () =>
+                    coverService.fetchApiCover(w.id, candidateCoverUrl),
+                  ).catch(() => undefined);
+                }
+                onAdded(w.id);
               })
-              .then((w) => onAdded(w.id));
+              .catch(() =>
+                setError(
+                  'The work could not be saved. Your entered details are still here; try again.',
+                ),
+              )
+              .finally(() => setSaving(false));
           }}
           style={{
             ...resetButton,

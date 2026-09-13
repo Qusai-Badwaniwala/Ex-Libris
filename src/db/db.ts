@@ -4,6 +4,8 @@ import type {
   Author,
   Note,
   NoteLink,
+  ReadingOrder,
+  ReadingOrderEntry,
   ReadingSession,
   Series,
   Settings,
@@ -55,6 +57,13 @@ export const MIGRATIONS: Migration[] = [
       settings: 'id',
     },
   },
+  {
+    version: 2,
+    stores: {
+      readingOrder: 'id, [contextType+contextId], contextId, source',
+      readingOrderEntry: 'id, orderId, [orderId+position], workId, seriesId, corpusId',
+    },
+  },
 ];
 
 export class ExLibrisDB extends Dexie {
@@ -65,6 +74,8 @@ export class ExLibrisDB extends Dexie {
   author!: Table<Author, string>;
   note!: Table<Note, string>;
   noteLink!: Table<NoteLink, [string, string]>;
+  readingOrder!: Table<ReadingOrder, string>;
+  readingOrderEntry!: Table<ReadingOrderEntry, string>;
   tag!: Table<Tag, string>;
   readingSession!: Table<ReadingSession, string>;
   settings!: Table<Settings, string>;
@@ -107,17 +118,23 @@ export function defaultSettings(appVersion: string): Settings {
  * record is deleted.
  */
 export async function loadSettings(appVersion: string): Promise<Settings> {
-  const existing = await db.settings.get('singleton');
-  if (existing) {
-    if (existing.appVersion !== appVersion) {
-      await db.settings.update('singleton', { appVersion });
-      return { ...existing, appVersion };
+  // StrictMode deliberately starts effects twice in development, and two app
+  // roots can also open the same installed PWA close together. The read and
+  // first insert must therefore be one serialized transaction; two separate
+  // get/add calls race into a ConstraintError on the singleton key.
+  return db.transaction('rw', db.settings, async () => {
+    const existing = await db.settings.get('singleton');
+    if (existing) {
+      if (existing.appVersion !== appVersion) {
+        await db.settings.update('singleton', { appVersion });
+        return { ...existing, appVersion };
+      }
+      return existing;
     }
-    return existing;
-  }
-  const fresh: Settings = { ...defaultSettings(appVersion), firstTrackedAt: nowIso() };
-  await db.settings.add(fresh);
-  return fresh;
+    const fresh: Settings = { ...defaultSettings(appVersion), firstTrackedAt: nowIso() };
+    await db.settings.add(fresh);
+    return fresh;
+  });
 }
 
 export async function saveSettings(patch: Partial<Settings>): Promise<void> {

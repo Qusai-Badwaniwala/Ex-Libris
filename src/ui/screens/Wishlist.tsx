@@ -11,6 +11,7 @@ import { prefersReducedMotion } from '../theme';
 import { SCRIM } from '../design-literals';
 import { localDay } from '../../db/dates';
 import type { WorkWithAuthor } from '../store';
+import { withInteractionFeedback } from '../interaction-feedback';
 
 /**
  * The wishlist. Ported from design/Ex Libris.dc.html.
@@ -129,7 +130,7 @@ export function Wishlist() {
 
       {rows === undefined ? null : items.length === 0 ? (
         <EmptyState
-          art="/illustrations/cherry-blossom-cuate.svg"
+          art="cherry-blossom-cuate"
           artWidth="78%"
           head="Nothing waiting"
           body="Put things here when you hear about them. Surprise me picks one once there is something to pick."
@@ -161,6 +162,7 @@ export function Wishlist() {
             >
               <Cover
                 color={work.coverDominantColor ?? 'var(--cover-fallback)'}
+                path={work.coverPath}
                 width={36}
                 height={54}
               />
@@ -190,7 +192,11 @@ export function Wishlist() {
             </button>
             <button
               data-hover="ink"
-              onClick={() => void repo.setStatus(work.id, 'reading')}
+              onClick={() =>
+                void withInteractionFeedback('Moving the work to Reading…', () =>
+                  repo.setStatus(work.id, 'reading'),
+                )
+              }
               style={{
                 ...resetButton,
                 height: 32,
@@ -211,7 +217,9 @@ export function Wishlist() {
               onClick={() => {
                 // Never in the library, so nothing is destroyed and nothing
                 // goes to the trash. This is the only × in the app.
-                void repo.purgeWork(work.id);
+                void withInteractionFeedback('Removing the wishlist entry…', () =>
+                  repo.purgeWork(work.id),
+                );
               }}
               style={{
                 ...resetButton,
@@ -327,6 +335,8 @@ function SurpriseCard({
       <button
         onClick={onClose}
         aria-label="Close"
+        data-dismiss-scrim
+        data-no-press
         style={{
           ...resetButton,
           position: 'absolute',
@@ -355,7 +365,12 @@ function SurpriseCard({
           textAlign: 'center',
         }}
       >
-        <Cover color={work.coverDominantColor ?? 'var(--cover-fallback)'} width={96} height={144} />
+        <Cover
+          color={work.coverDominantColor ?? 'var(--cover-fallback)'}
+          path={work.coverPath}
+          width={96}
+          height={144}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={displayS}>{work.title}</div>
           {authorName ? (
@@ -376,9 +391,9 @@ function SurpriseCard({
           <button
             data-active="accent"
             onClick={() => {
-              void repo
-                .setStatus(work.id, 'reading')
-                .then(() => nav.closeAndPush({ screen: 'detail', id: work.id }));
+              void withInteractionFeedback('Moving the work to Reading…', () =>
+                repo.setStatus(work.id, 'reading'),
+              ).then(() => nav.closeAndPush({ screen: 'detail', id: work.id }));
             }}
             style={{
               ...resetButton,

@@ -16,6 +16,13 @@ export function normalizeTitle(title: string): string {
   return sortTitleOf(title);
 }
 
+/** P648 can hold several Open Library entity kinds; only work ids join corpus rows. */
+export function normalizeOpenLibraryId(value: string | null): string | null {
+  if (!value) return null;
+  const id = value.trim().split('/').filter(Boolean).at(-1) ?? '';
+  return /^OL\d+W$/i.test(id) ? id.toUpperCase() : null;
+}
+
 /**
  * A key for matching the same work across sources. Deliberately lossier than
  * `title_normalized`: punctuation and spacing differ constantly between Open

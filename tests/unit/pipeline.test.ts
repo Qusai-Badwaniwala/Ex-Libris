@@ -1,4 +1,9 @@
+// @vitest-environment node
+
 import { describe, it, expect } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   anilistFormat,
   anilistStatus,
@@ -10,6 +15,13 @@ import {
   mergeWork,
   normalizeTitle,
 } from '../../pipeline/normalize.ts';
+import { mergeInputPaths, normalizeOpenLibraryId } from '../../pipeline/merge.ts';
+import {
+  isFictionSubject,
+  qualifiesForOpenLibraryCore,
+  resolveOpenLibraryAuthorNames,
+} from '../../pipeline/sources/openlibrary.ts';
+import { prepareJsonlResume } from '../../pipeline/lib.ts';
 import type { CorpusWork } from '../../pipeline/types.ts';
 
 const work = (over: Partial<CorpusWork> = {}): CorpusWork => ({
@@ -51,6 +63,94 @@ describe('normalisation is shared with the app', () => {
     expect(matchKey('Wind Breaker', 'Jo Yongseok')).not.toBe(
       matchKey('Wind Breaker', 'Satoru Nii'),
     );
+  });
+});
+
+describe('production corpus boundaries', () => {
+  it('never includes restricted API caches unless the fixture merge is explicit', () => {
+    const production = mergeInputPaths(false).join('/').replaceAll('\\', '/');
+    const fixture = mergeInputPaths(true).join('/').replaceAll('\\', '/');
+    expect(production).toContain('/openlibrary/works.jsonl');
+    expect(production).not.toContain('/anilist/');
+    expect(production).not.toContain('/mangadex/');
+    expect(fixture).toContain('/anilist/');
+    expect(fixture).toContain('/mangadex/');
+    expect(fixture).not.toContain('/openlibrary/');
+  });
+
+  it('truncates uncommitted JSONL before resuming a source transform', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ex-libris-jsonl-resume-'));
+    const output = join(dir, 'works.jsonl');
+    const committed = '{"id":"one"}\n';
+    try {
+      // Simulates a crash after a second row reached disk but before the
+      // checkpoint paired with it was published. Replaying from the older
+      // cursor must not leave that row to be appended twice.
+      writeFileSync(output, `${committed}{"id":"uncommitted"}\n`);
+      expect(
+        prepareJsonlResume(output, {
+          position: 250_000,
+          outputBytes: Buffer.byteLength(committed),
+        }),
+      ).toEqual({ append: true, position: 250_000 });
+      expect(readFileSync(output, 'utf8')).toBe(committed);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('restarts rather than skipping input when checkpointed JSONL is short', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ex-libris-jsonl-short-'));
+    const output = join(dir, 'works.jsonl');
+    try {
+      writeFileSync(output, '{"id":"torn');
+      expect(
+        prepareJsonlResume(output, {
+          position: 250_000,
+          outputBytes: 1_024,
+        }),
+      ).toEqual({ append: false, position: -1 });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('normalises only Open Library work ids for the Wikidata join', () => {
+    expect(normalizeOpenLibraryId('/works/OL123W')).toBe('OL123W');
+    expect(normalizeOpenLibraryId('https://openlibrary.org/works/ol456w')).toBe('OL456W');
+    expect(normalizeOpenLibraryId('OL789M')).toBeNull();
+    expect(normalizeOpenLibraryId(null)).toBeNull();
+  });
+
+  it('resolves staged Open Library author keys without inventing missing names', () => {
+    const staged = work({
+      source: 'openlibrary',
+      external_ids: JSON.stringify({ authorKeys: ['/authors/OL1A', '/authors/OL2A'] }),
+    });
+    expect(
+      resolveOpenLibraryAuthorNames(
+        staged,
+        new Map([
+          ['/authors/OL1A', 'Ursula K. Le Guin'],
+          ['/authors/OL2A', 'Illustrator Name'],
+        ]),
+      ),
+    ).toEqual({ authors: 'Ursula K. Le Guin, Illustrator Name', partial: false });
+    expect(
+      resolveOpenLibraryAuthorNames(staged, new Map([['/authors/OL1A', 'Ursula K. Le Guin']])),
+    ).toEqual({ authors: 'Ursula K. Le Guin', partial: true });
+    expect(resolveOpenLibraryAuthorNames(staged, new Map())).toBeNull();
+  });
+
+  it('keeps a measured fiction core plus explicit Wikidata series members', () => {
+    expect(isFictionSubject('Science fiction')).toBe(true);
+    expect(isFictionSubject('Juvenile Fiction')).toBe(true);
+    expect(isFictionSubject('Non-fiction')).toBe(false);
+    expect(qualifiesForOpenLibraryCore(['Fiction', 'Fantasy', 'Adventure', 'Magic'], false)).toBe(
+      true,
+    );
+    expect(qualifiesForOpenLibraryCore(['Fiction', 'Fantasy', 'Adventure'], false)).toBe(false);
+    expect(qualifiesForOpenLibraryCore(['History'], true)).toBe(true);
   });
 });
 

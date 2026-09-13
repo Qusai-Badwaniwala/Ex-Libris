@@ -304,3 +304,554 @@ reader actually finds a translated work — "Na Honjaman Level Up" for Solo
 Leveling — and without them a search for the name someone knows it by returns
 nothing. Corpus-internal: the table is read-only, never backed up, and
 `CorpusMatch` (SCHEMA §9.1) is unchanged, so nothing design-visible moves.
+
+---
+
+## 2026-09-04 · Codex transition and Phase 3 direction
+
+**E-040 · The catalogue ships as a small core plus an optional Open Library
+module.** [owner's call, closing Q-023] The owner chose the third option: put
+the comics/light-novel catalogue on the device first, and make the much larger
+Open Library portion a separate explicit download. The 608 MB projection came
+from an all-comics sample and remains an upper-bound estimate until the full
+source mix is measured. The app shell, core catalogue, optional catalogue, and
+cover cache must report their sizes separately rather than pretending there is
+one fixed final-build number.
+
+**E-041 · Do not contact the unlicensed web-novel dataset owner, and do not use
+the dataset without a compatible licence.** [owner answered Q-024; licensing
+constraint closes it] No GitHub issue or other outward contact will be made.
+The absence of a LICENSE file means the data cannot be ingested or redistributed
+by this project. Manual entry and paste-list import remain the safe fallback for
+pure web novels until a legitimately licensed metadata source is found.
+
+**E-042 · Every frontend phase is checked against the approved design and then
+hosted locally for owner review.** "Same but better" means preserving the
+accepted visual language, copy, hierarchy, and interaction behavior while
+making implementation-level improvements. A phase report must say what was
+compared and must not claim visual parity without a real browser check. After
+the gate, expose the completed build on localhost for the owner's review.
+
+**E-043 · Phases may be paired only when both are genuinely small.** Each still
+keeps its own acceptance checkpoint and documentation. Phase 3 is not small: it
+adds a WASM database runtime, worker boundary, resumable OPFS installation,
+search UI, and a real-device latency gate, so it runs alone.
+
+**E-044 · The Claude Design frontend is frozen unless the owner approves a
+specific upgrade first.** [owner's explicit clarification] Faithfully porting
+an already approved state is implementation, not redesign. Any change to the
+visible composition, typography, colour, copy, motion, hierarchy, navigation,
+or interaction language must be proposed concretely and approved before it is
+made. "Same but better" is a quality target, not standing permission to change
+the design.
+
+**E-045 · The Phase 2 AniList sample is an engineering fixture, not shippable
+catalogue data.** A source re-audit before Phase 3 found that AniList's current
+terms prohibit hoarding or mass collection and restrict competing list/tracker
+services. This supersedes the source-composition part of E-040, not its modular
+size decision. Offline catalogue builds must use data with express bulk-reuse
+permission. Open Library bulk metadata and Wikidata CC0 are the safe leads;
+MangaDex remains a possible credited on-demand integration, not a bulk snapshot,
+until its redistribution permission is clear.
+
+**E-046 · Phase 3 uses the recommended mixed licensed catalogue.** [owner's
+call, closing Q-025] The offline corpus is built from a deliberately small,
+filtered Open Library/Wikidata core, with broad Open Library data as a separate
+optional download. MangaDex is a credited, user-initiated live lookup that
+caches only the work the reader chooses. AniList is excluded from production;
+pure web novels remain manual/paste entry until a legitimate metadata source
+exists.
+
+**E-047 · Every product surface has to earn its place.** [owner's explicit
+rule] A feature, screen, control, or state ships only when it serves an obvious,
+useful reader task and appears where the reader would reasonably expect it.
+Every visible control must perform the action its label promises. Speculative
+features, ornamental or empty screens, duplicate routes or search fields for the
+same task, and inert controls do not ship. Expected recovery, empty, loading,
+offline, and error states are part of a feature rather than optional polish. At
+phase boundaries Codex may propose a useful improvement with a before/after
+comparison, but E-044 still requires approval before any visible change.
+
+**E-048 · The attached data-source guide is research input, not product
+authority.** [owner's explicit clarification] Keep source and licensing facts
+that survive verification against current official material. Treat its feature,
+architecture, and design suggestions lightly: compare any promising suggestion
+with the approved Ex Libris design and obtain permission before adopting it.
+Nothing in the guide supersedes the on-device, offline-first, no-account product
+contract.
+
+**E-049 · Runtime uses the pinned JourneyApps wa-sqlite FTS5 build.** Upstream
+wa-sqlite intentionally omits FTS5 from its default WebAssembly artifacts. The
+MIT-licensed PowerSync/JourneyApps fork compiles `SQLITE_ENABLE_FTS5`; version
+0.4.2 is pinned because it retains the small upstream API and OPFS VFS shape and
+has no post-install network script. This is still wa-sqlite, not an in-memory
+`sql.js` substitution, and the corpus continues to be paged from OPFS.
+
+**E-050 · Catalogue integrity is proven before and during delivery, without
+making the runtime database writable.** The build runs FTS5-aware
+`PRAGMA quick_check(1)` before emitting a manifest. The manifest contains a
+whole-file SHA-256 plus a contiguous 4 MiB chunk map. Installation verifies
+every chunk before it advances its resume marker, then checks final byte size,
+row count, and a real FTS5 query before switching the one-row active-version
+pointer. FTS5 implements its own quick-check path as a special write, so running
+that command against the immutable runtime handle fails even for a healthy
+database; it belongs in the writable build stage, not behind a relaxed runtime
+open mode.
+
+**E-051 · Pixel emulation is a regression test, not the Phase 3 performance
+gate.** The real worker/OPFS test currently measures roughly 46-55 ms for the
+first cold three-character query and 1-4 ms for subsequent queries against the
+3,722-work engineering fixture on this desktop. The test alarms above 100 ms
+for the cold path and requires every warmed run under 50 ms. Only a physical
+mid-range Android measurement can close the brief's strict under-50-ms gate;
+viewport and user-agent emulation do not emulate phone storage or CPU.
+
+## 2026-09-05 · Owner's Phase 3 continuation approvals
+
+**E-052 · Q-026's five-part bundle is approved, with "search online" wording.**
+Catalogue Add opens the existing editable add sheet with known metadata and an
+explicit reader-selected status. Show linked MangaDex credit and truthful source
+scope. The catalogue explanation reads "Search the downloaded index, or search
+online. Anything you add stays in your library." The skip line reads "Skip it —
+you can add by hand or search online." The real Everything empty-library and
+Any-filter empty states are approved. This is not permission to redesign.
+
+**E-053 · Q-027's Inventaire download and evaluation are approved.** Download
+one current own-entity dump, inspect actual records and quantify usable coverage
+before recommending its role in the core. The old 16.2 GB acquisition is still
+not authorized. Preserve source provenance and keep images outside bulk data.
+
+**E-054 · Connection changes receive quiet, accurate in-app feedback.** The
+owner requested connection feedback. Use the existing toast language to report
+initial offline state, loss of connection and reconnection; do not announce
+"offline" when online. Browser connectivity is not proof an API is reachable.
+This permits in-app status feedback, not push notifications or background calls.
+
+**E-055 · Guide ideas are accepted for their relevant later phases.** Multiple
+named reading orders and a mid-series/starting-point warning belong to Phase 5.
+Edition-specific page counts may be adopted in Phase 4 if the real metadata
+supports them usefully. Exact visible departures still need a concrete design
+comparison. These approvals do not authorize starting Phase 4 during Phase 3.
+
+**E-056 · Inventaire stays research-only; keep Open Library + Wikidata.** After
+the real Inventaire audit, the owner explicitly declined a proposed Inventaire
+
+- Wikidata core and selected the previously approved Open Library + Wikidata
+  core. Do not ingest Inventaire into the shipped catalogue. The approved
+  Inventaire download is retained locally as audit evidence; this is not
+  permission for the separate Open Library source acquisition.
+
+**E-057 · Production and engineering-fixture corpus builds use mechanically
+separate merge paths.** The default and `all` pipeline paths accept resolved
+Open Library rows plus a complete Wikidata stage and ignore any AniList or
+MangaDex cache already on disk. Rebuilding the local 3,722-work runtime fixture
+requires the explicitly named `fixture-merge` stage; its manifest remains
+marked `engineering-fixture`, so a normal Vite build removes it. Open Library
+author keys are resolved against the authors dump before production merge, and
+only unambiguous Wikidata P179 memberships are attached through P648 work IDs.
+This makes source permission a property of the command path rather than a
+remembered warning.
+
+**E-058 · A waiting service-worker release activates on app relaunch, not in
+the middle of a session.** Keep prompt-style Workbox registration. The next
+worker may install while the current app remains open, but it takes control
+after the reader closes and reopens the PWA. A production-browser regression
+test proves that the upgrade preserves IndexedDB user data and the OPFS
+catalogue and that the replacement shell works offline. No reload prompt or
+new visible design is added in Phase 3.
+
+**E-059 · The bounded 4.84 GB Open Library transfer is approved.** The owner
+explicitly approved downloading the dated 2026-08-31 Open Library works dump
+(4,058,336,593 bytes) and authors dump (779,810,028 bytes) for the licensed
+Open Library + Wikidata production core. Editions remain excluded. The owner
+then assigned a separate two-concept design task and instructed that it be
+completed first, so the approved transfer has not started yet.
+
+**E-060 · Phase 4 owns the next approved design corrections.** Do not implement
+them during Phase 3 or the isolated concept exercise. When Phase 4 starts:
+restore the missing spotlight onboarding after Welcome and Bookplate; give
+Books, Novels, and Manhwa persistent book/spine markers even when a shelf is
+empty; and replace the current bottom navigation with a surprising, premium,
+smooth treatment. These are upgrades inside Claude Design's established system,
+not permission to discard its screens or visual identity. Necessary additions
+are allowed when they serve an expected reader task, but they must remain
+intentional, uncomplicated, and visibly part of the same product.
+
+## 2026-09-06 · Unified design and execution approval
+
+**E-061 · The approved visual evolution keeps Claude Design as the product
+identity and uses the two concepts only in bounded roles.** Claude continues to
+own onboarding, the constellation, dark palette, drawer, FAB and sheets,
+Wishlist/Surprise me, Trash, illustrations, personal reading moments and motion.
+Registered Index supplies the operational hierarchy, restrained colour, rules,
+metadata and catalogue grammar. Night Route contributes only functional
+progress paths, shelf markers and state transitions; it does not add a third
+palette or type system. Light remains warm cream, dark remains Claude's
+blue-grey, and the final type roles remain Sansita display, Montserrat
+Alternates interface and Taviraj reading copy. Phase 4 begins with a separately
+hosted four-screen approval prototype before these changes enter production.
+
+**E-062 · All thirteen approved illustrations and their placement rules are
+preserved.** The files, harmonisation and established Bookplate/About, empty,
+finish, Stats and blank-editor assignments in `design/ILLUSTRATION-NOTES.md`
+remain authoritative. One illustration appears per screen; populated product
+screens and navigation chrome do not acquire decorative art. The finish moment
+and empty note body remain the only approved behind-content exceptions.
+
+**E-063 · Active builds stay reviewable, while phase gates remain truthful.** A
+Vite development build is exposed on port 5173 during frontend implementation;
+the Phase 4 approval prototype uses 4184; a completed production checkpoint uses 4173. A dev/preview server is stopped before the repository build or gate, then
+the verified result is hosted again. Phase 3 and Phase 4 run alone. Later phases
+may be paired only when both are genuinely small, are announced first, and keep
+separate gates and documentation checkpoints. Work stops after one phase or an
+announced pair for owner review.
+
+**E-064 · Large production JSONL transforms checkpoint source position and
+exact output bytes together.** A review before streaming the Open Library dump
+found that the works stage advertised resumability but truncated its partial
+output on restart. The corrected boundary flushes output before checkpointing,
+truncates any uncommitted tail on resume, and restarts instead of skipping input
+if the file is shorter than the checkpoint promise. Wikidata uses the same
+paired boundary. A regression test was observed failing with tail truncation
+removed and passing after the correction was restored.
+
+**E-065 · The first production catalogue is the measured 438,584-work bounded
+Open Library/Wikidata core.** [supersedes E-040's size projection and E-059's
+pending state] A title/author/cover-only pass kept 9,302,140 rows and produced
+5.43 GB of JSONL, so it was rejected without building or shipping it. The core
+requires title, author and a positive cover, then keeps either at least four
+subjects including standalone `fiction` but not `non-fiction`, or an explicit
+Wikidata P179 membership joinable through P648. The completed result is
+273,784,832 bytes (261.1 MiB), contains 438,584 resolved and conservatively
+merged works, and carries 2,185 series with 7,222 linked works. Open Library's
+work dump supplied no usable language field, so this boundary does not claim
+English-only coverage. Broad Open Library remains an optional later module;
+manual entry remains the honest web-novel fallback.
+
+**E-066 · Production and Playwright catalogue artifacts are physically
+separate.** `public/corpus` holds only the licensed production artifact.
+`fixture-merge fixture-build` reads only the AniList/MangaDex engineering
+inputs and writes the 3,722-work fixture to
+`pipeline/.cache/fixture-corpus`. A test-mode Vite build validates its
+`engineering-fixture` marker before copying it into test `dist`; a normal build
+retains the production-marked public corpus. A measured fixture rebuild left
+the production SQLite SHA-256 unchanged. This supersedes E-057's earlier layout
+without changing its source-permission boundary.
+
+**E-067 · Exact normalized titles outrank broader prefix matches through one
+shared query definition.** The production quality probe exposed raw BM25
+placing “Dunedin” above Frank Herbert's “Dune”. The worker now ranks an exact
+normalized title first, then a title prefix, then weighted BM25, popularity and
+title. The worker and post-build inspection tool import the same SQL and
+binding builder so their result order cannot drift silently. The hosted
+production build visibly returns Frank Herbert's **Dune** first.
+
+**E-068 · The physical Android catalogue benchmark is deferred, not waived or
+passed.** The owner explicitly said phone testing is not needed right now and
+authorized progression to the next planned phase. Phase 4 may therefore begin,
+but Q-028 remains an unpassed release-quality check. Desktop Pixel emulation,
+desktop OPFS measurements and a missing device must never be rewritten as a
+physical-phone result.
+
+**E-069 · The Phase 4 Registered Folio prototype is approved with five exact
+production corrections.** The owner approved the unified Claude/Registered
+Index direction and authorized production implementation. The drawer keeps its
+Claude structure but opens and closes more deliberately and drops separator
+rules between destinations. The floating Add control returns to Claude's
+two-action icon bloom instead of opening a card, and becomes the established
+pencil action on Notes. Home's Continue record keeps its cover-led hierarchy
+but uses a neutral surface rather than a cover-derived background; the whole
+record opens its detail, and the constellation spans the complete visible Home
+canvas. These changes are the approved Phase 4 design boundary, not permission
+for a broader redesign. The separate prototype is now a frozen reference;
+further review happens in the production PWA.
+
+**E-070 · Series and universe discovery remains a Phase 5 suggest-and-confirm
+workflow.** Catalogue and manual-add flows may show a work's detected ordinal,
+series, series position within a universe, and choices to add the whole series
+or universe once Phase 5 is built. Detection must not silently reorganize the
+reader's library: incomplete, conflicting, or ambiguous relationships are
+presented for confirmation, and standalone works remain standalone. Phase 4
+does not pull this relationship engine forward.
+
+## 2026-09-07 · Phase 4 production checkpoint
+
+**E-071 · OPFS is the only durable runtime cover cache.** User and API images
+occupy separate unique paths under `covers/user/<work>/` and
+`covers/api/<work>/`. A candidate is decoded, downscaled to at most about 600 px
+wide without upscaling, and committed to OPFS before Dexie points to it. A user
+cover wins over a late API response. `coverSource` describes a locally committed
+file, so a remote URL alone remains `none`; failure preserves the last good
+cover and exposes retry. The former 30-day Workbox image cache is removed to
+avoid keeping the same image twice. This resolves Q-020.
+
+**E-072 · Phase 4 restores useful baseline Notes and spine surfaces without
+claiming their later phases.** Notes now supports truthful plain-text create and
+edit through Claude's pencil/card interaction; Phase 7 still owns links,
+pinning, tags, attachments, cross-search, and full deletion behavior. Spine
+view now renders the established fixed logarithmic widths and real work
+navigation; Phase 9 still owns adaptive thresholds, virtualization, and the
+60 fps gate. A visible Phase 4 control may not lead to a dead placeholder, but
+that does not authorize pulling the complete later phase forward.
+
+**E-073 · First-run settings creation is a serialized transaction.** React
+StrictMode reproduced simultaneous first-load effects: two independent
+get/add sequences raced on the `singleton` key and could leave a genuinely new
+launch blank. `loadSettings` now reads, creates, and updates inside one Dexie
+read-write transaction. The regression test was observed failing with the
+transaction removed and passing after restoration.
+
+**E-074 · Phase 4 is implemented and stops for production review.** The five
+corrections approved in E-069 are present in the real PWA together with the
+spotlight tour, permanent shelf markers, editorial Everything/detail hierarchy,
+working custom covers, the Open Library per-record metadata client, and the
+four-zone dock. The complete gate passes with 153 unit tests and 26 production
+Pixel 7 journeys. This records an implementation checkpoint, not permission to
+begin Phase 5; the owner must review the hosted production build first.
+
+## 2026-09-07 · Post-review corrections and Phase 5 start
+
+**E-075 · Phase 5 is authorized and active.** The owner reviewed the approved
+Phase 4 direction, asked for the remaining illustration/interaction corrections,
+and explicitly said to continue the next phase. This supersedes E-074's hold.
+Phase 5 still runs alone and must stop before Phase 6 for a gate, hosted build,
+documentation update, and owner review.
+
+**E-076 · Illustration colour treatment is theme-specific while source art stays
+immutable.** [Supersedes the single rendered palette portion of E-062 and design
+D-020.] The owner observed that the dragon belonged in dark mode while the
+orange Wishlist blossom belonged in light mode and asked for every illustration
+to be art-directed for both themes without flattening its detail. The 13 source
+SVGs remain byte-identical; a deterministic OKLCH build step emits warm-paper
+and blue-grey-night variants while preserving per-colour lightness and
+distinctions. `magic-tree-cuate` stays unchanged in both sets. Placement and
+one-illustration-per-screen rules remain unchanged.
+
+**E-077 · Perceptible work gets named delayed feedback; instant state changes do
+not flash loaders.** Every tap receives immediate physical/transition feedback.
+Only a real asynchronous operation still pending after 180 ms shows the compact
+Ex Libris registering-book status mark with accurate text. The mark is not a
+spinner, fake percentage, skeleton, or artificial delay; reduced motion leaves
+it still. The originating action retains responsibility for success, failure,
+and rollback.
+
+**E-078 · Relationship resolution is evidence-first and write-free until a
+separate confirmation.** Exact `corpusId` relationship evidence wins. Without
+it, only explicit ordinal title patterns may propose a series; matching an
+existing local series requires a unique high similarity. Corpus, pattern, and
+low-confidence library evidence are labelled distinctly. Series and universe
+are separate offers and separate transactions. A standalone or ambiguous work
+is never silently grouped.
+
+**E-079 · Confirmed catalogue series preserve ghosts and bulk-add only to
+Wishlist.** Confirmation stores a named Publication order with real local rows
+and dashed catalogue ghosts. A known series total powers `finished / known
+total`; no total means no ring. If the reader explicitly chooses the whole-series
+action, verified missing entries with known formats are added transactionally to
+Wishlist, deduplicated by `corpusId`. Unknown-format entries require individual
+shelf confirmation. The production catalogue contains zero verified universes,
+so Add whole universe is intentionally absent until complete membership evidence
+exists.
+
+**E-080 · Remaining work optimizes for correct completion, not maximum
+process.** Use the minimum cohesive change, current architecture, relevant-file
+inspection, batched work, proportional testing, and a single agent by default.
+Do not widen scope, add speculative abstractions, repeatedly rediscover the repo,
+or polish beyond the phase definition of done. Delegate only independent work
+that materially improves time or correctness. Stop when the phase is integrated,
+adequately verified, documented, and free of known blockers.
+
+## 2026-09-08 · Phase 5 implementation checkpoint
+
+**E-081 · Reading orders remain named, plural, non-canonical records.** A series
+or universe may keep several independently named sequences. The editor may
+create, rename, explain, reorder, remove/re-add entries, and delete an order, but
+selecting or saving one never silently makes it the default. Saving an existing
+order commits its metadata and complete sequence in one transaction. A universe
+starting point remains a separate optional note that can be saved or cleared
+without mutating any named order.
+
+**E-082 · Phase 5 perceptible operations use the shared delayed feedback
+boundary.** Exact catalogue relationship lookup and every current Phase 5 write
+that may remain pending—confirmation, missing-entry Wishlist addition, manual
+relationship save, order create/save/delete, starting-point save, ghost open,
+and Detail remove/restore—uses the 180 ms registering-book acknowledgement from
+E-077. Immediate field entry, selection, and purely synchronous navigation keep
+press/transition feedback and do not flash a loader.
+
+**E-083 · Browser E2E runs serially when enforcing real worker/OPFS latency.**
+The unchanged catalogue latency journey passed alone but failed twice while four
+emulated phones competed for the same desktop CPU, including a 196.6 ms cold
+measurement. The gate now uses one Playwright worker so its strict cold and warm
+thresholds measure the app rather than deliberate host contention. No assertion,
+timeout, catalogue implementation, or physical-phone Q-028 requirement was
+relaxed.
+
+**E-084 · Phase 5 implementation is complete and stops for owner review.** The
+series/universe resolution cascade, explicit confirmation, ghosts, Wishlist bulk
+addition, truthful rings, series/universe pages, manual relationship editor,
+post-add offers, multiple named-order editor, separate universe starting point,
+and interaction-feedback audit are present. Pixel 7 light/dark review and the
+full 170-unit / 30-E2E gate passed; the exact production build is hosted on 4173.
+This is an implementation checkpoint, not authorization to begin Phase 6.
+
+**E-085 · Bulk Wishlist addition discloses every exact title before writing.**
+The owner approved the post-checkpoint proposal. After series confirmation, the
+suggestion card lists each missing catalogue title and any stated series position
+in a bounded scroll region immediately above the bulk action. The transaction,
+format gate, deduplication, and rollback semantics from E-079 are unchanged; the
+reader now sees the complete consequence rather than only a count.
+
+**E-086 · Phase 5 is accepted and Phase 6 is authorized.** The owner accepted
+the disclosure proposal and explicitly instructed work to continue with the next
+phase. Phase 6 still runs alone and stops before Phase 7. Q-017 is now blocking
+because omitting translation and showing it for every work produce different
+axis walkthroughs; the former per-work gate is not the owner's stated intent.
+
+**E-087 · Translation always appears, but matching remains six-axis.** [Settles
+Q-017 and supersedes design COMPONENTS' per-work `isTranslated` gate.] The owner
+chose the always-visible option because almost everything they read is
+translated and Rough-to-Fluent remains meaningful. Translation is therefore the
+seventh optional editing step for every work. The recommendation distance and
+minimum-overlap rules continue to use protagonist, power system, world, pacing,
+prose, and ending only; `work.isTranslated` remains compatibility data and does
+not control the interface.
+
+**E-088 · Phase 6 matching is sparse, local, weighted, and word-explained.** A
+candidate is another non-Wishlist, non-deleted work in the reader's library. At
+least three of the six matching axes must be rated on both works; missing values
+are ignored. Protagonist, power system, and world carry weight 3; ending carries
+2; pacing and prose carry 1. Normalized distance ranks candidates, but a result
+must share at least one exact stop and the interface displays up to three exact
+matching words rather than the score. Translation is excluded under E-087.
+
+**E-089 · Phase 6 implementation stops at the owner checkpoint.** The existing
+axisRating store now has validated transactional writes; Ending and Unfinished
+are Finished-only and mutually exclusive; correcting Finished clears those two
+facts. Both finish entry paths open the frozen FinishMoment, each Detail profile
+word opens its named axis, and slow saves use E-077's delayed feedback boundary.
+Explicit Pixel 7 light/dark review and the full 178-unit / 33-E2E gate passed;
+the exact build is hosted on 4173. Phase 7 is not authorized by this checkpoint.
+
+**E-090 · A note attachment is a link to a work, not a binary file.** Phase 7
+implements the frozen editor's “Attach to a work” control through the existing
+`noteLink` table. The current schema and product brief define no binary note
+attachment entity, so files and media are outside this phase rather than being
+silently invented.
+
+**E-091 · Notes, links, tags, and their counts share one transactional
+boundary.** Creating or editing a note validates every attached work, resolves
+and deduplicates tag names, replaces links, and refreshes affected usage counts
+in one transaction. A tag's usage count includes active works and active notes.
+Notes use the established soft-delete, restore, expiry, and permanent-purge
+semantics. Soft-deleting a work preserves its note links so restore is lossless;
+permanently deleting it removes only those links, never the note.
+
+**E-092 · Phase 7 is complete and stops at the owner checkpoint.** The frozen
+notes feed and editor now support pinned-first ordering, work attachments, the
+nested tag picker, cross-search, linked notes on Detail, and complete Trash
+behavior. Pixel 7 light/dark review and the full 181-unit / 36-E2E gate passed;
+the exact gate build is hosted on 4173. Phase 8 has not begun.
+
+**E-093 · A complete backup is one verified ZIP with portable data and only
+irreplaceable cover bytes.** Automatic and manual snapshots share the same
+transactionally read `data.json` and manifest. Every user-supplied cover is
+included; replaceable API-cover bytes are removed with their local pointer, and
+`aiApiKey` is excluded. Catalogue-install flags, backup timestamps, and the API
+key remain local to the restoring device because the archive does not carry the
+corresponding OPFS catalogue or secret.
+
+**E-094 · Restore and import show their consequence before one transactional
+write.** Restore validates ZIP structure, checksums, counts, relationships, and
+complete user covers before offering Merge (default) or Replace. Replace makes
+a local safety snapshot when any user table contains data, not only when works
+exist. Paste and CSV imports remain editable/skippable until confirmation;
+catalogue replacement requires an exact normalized title. A CSV-only “Caught
+up” value becomes visible Reading because publication state is unavailable and
+the app may not silently assert an ongoing/hiatus relationship.
+
+**E-095 · The share target enters the existing acquisition path through
+Wishlist.** A shared title, text, or URL opens the catalogue with the shared
+words intact over Wishlist. If no catalogue record is available, Add by hand
+keeps those words and defaults the new work to Wishlist. This is one existing
+search/add experience, not a duplicate share-only screen.
+
+**E-096 · Phase 8 implementation stops at the owner checkpoint.** Automatic
+48-hour OPFS snapshots with ten-file rotation, complete ZIP export/restore,
+legacy JSON normalization, paste/CSV import, share-target cold start, and
+cover-safe rollback are integrated. Pixel 7 light/dark review and the full
+189-unit / 40-E2E gate passed; the exact build is hosted on 4173. Phase 9 has not
+begun and is not authorized by this checkpoint.
+
+**E-097 · Phase 8 is accepted and Phase 9 is authorized.** After confirming the
+apparently missing Notes controls were only a stale already-open bundle, the
+owner accepted the data-safety checkpoint for sequencing and explicitly asked
+to continue with the next phase. Phase 9 runs alone and stops before Phase 10.
+
+**E-098 · Adaptive spine widths use per-unit quintiles only with enough real
+lengths.** [Settles Q-019 and visibly evolves D-027/D-034.] The owner approved
+the proposal by instructing work to continue. Chapter and page distributions
+are independent. At least forty known lengths in a unit produces four strict
+20/40/60/80-percentile boundaries and live Width Key labels; smaller samples
+retain the fixed logarithmic ladder. A library signature caches the exact
+derived profile in settings and invalidates it after any relevant library or
+length change. Unknown and percent-only lengths remain ordinary bucket 2 under
+D-028.
+
+**E-099 · Phase 9 implementation stops at the owner checkpoint.** Stats is a
+live editorial ledger; Wishlist and Trash never inflate library counts, and
+only chapter-unit sessions contribute to “chapters read.” Both approved Stats
+illustrations retain their theme-specific derivatives. Spine shelves use
+E-098's adaptive/fixed ladders, fixed-height row virtualization, and a shared
+transition name only on the tapped cover. The definitive 204-unit / 43-E2E gate
+passed, explicit Pixel 7 light/dark review passed, and the exact build is hosted
+on 4173. Phase 10 has not begun and is not authorized by this checkpoint.
+
+**E-100 · Phase 9 is accepted and Phase 10 is authorized.** The owner accepted
+the Phase 9 checkpoint by explicitly instructing work to continue. Phase 10 is
+the final documented roadmap phase and does not authorize an undocumented
+later product phase.
+
+**E-101 · Tag maintenance is explicit, exact, and restore-safe.** [Resolves
+Q-008.] Settings offers manual rename, exact-destination merge, and deletion of
+genuinely unreferenced tags. Rename-to-existing requires an explicit merge
+confirmation. Merge rewrites both work and note ID lists, preserves group
+membership, deduplicates links, and refreshes counts in one transaction. A tag
+referenced only by Trash is visibly named as such and cannot be deleted, because
+restoring the record must remain lossless. Similarity suggestions remain
+unapproved and unimplemented.
+
+**E-102 · Phase 10 implementation stops at the release-candidate checkpoint.**
+Settings/About completion, settings rollback, tag maintenance, semantic and
+touch-target corrections, keyboard behavior, final state/motion/navigation
+audit, performance reruns, and explicit Pixel 7 light/dark inspection passed.
+The definitive 207-unit / 46-E2E gate produced `index-Bz51j1Lk.js`, which is
+hosted on 4173. Q-028 remains a deferred and unpassed physical-device gate;
+emulation is not substituted for it. No Phase 11 exists in the current plan.
+
+**E-103 · The owner-supplied reader-circle artwork is the release icon.**
+[Resolves Q-018.] The supplied square artwork replaces the conservative
+bookplate-frame icon after the owner explicitly asked that it be used for the
+phone release. The regular master preserves the cream paper, ink circle,
+reader, leaves, and red seal while removing the black mockup surround. A
+separate maskable master keeps the full mark inside the platform safe zone.
+`scripts/make-icons.mjs` deterministically produces the manifest's 192px,
+512px, and maskable PNGs from those checked masters.
+
+**E-104 · Installation is a real Settings state and the final first-run tour
+step.** The final onboarding spotlight moves to the existing Settings screen.
+When the browser exposes `beforeinstallprompt`, Install opens its native prompt;
+otherwise the same control gives platform-appropriate manual steps. A launched
+standalone app, or an accepted current prompt, shows a non-colour-only green
+tick with `Installed`. Dismissal remains retryable, failure falls back to the
+manual steps, and no unreliable installed flag is persisted in user data.
+
+**E-105 · The public phone release uses a verified GitHub Pages project-site
+build.** The owner authorized publication to
+`Qusai-Badwaniwala/Ex-Libris`. Vite's base path, manifest, share target,
+catalogue URL, illustration URLs, and route fallback all support
+`/Ex-Libris/`. Because GitHub rejects the 261.1-MiB SQLite file as one Git blob,
+the exact licensed production catalogue is stored as its existing 4-MiB
+checksummed chunks. The Pages workflow reassembles and verifies all 273,784,832
+bytes and the whole SHA-256 before upload. The AniList/MangaDex fixture remains
+ignored and cannot enter the Pages artifact.

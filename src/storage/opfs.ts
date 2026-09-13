@@ -71,6 +71,44 @@ export async function writeFile(path: string, data: Blob | ArrayBuffer | string)
   }
 }
 
+/**
+ * Commit one verified download chunk without replacing bytes already written.
+ * Each call closes its writable before the resume marker advances, so after a
+ * suspended tab the marker can never truthfully claim bytes that were only in
+ * an uncommitted stream.
+ */
+export async function writeFileAt(
+  path: string,
+  position: number,
+  data: ArrayBuffer,
+): Promise<void> {
+  const { dirs, file } = split(path);
+  const dir = await dirFor(dirs, true);
+  const handle = await dir.getFileHandle(file, { create: true });
+  const writable = await handle.createWritable({ keepExistingData: true });
+  try {
+    await writable.write({ type: 'write', position, data });
+  } finally {
+    await writable.close();
+  }
+}
+
+export async function truncateFile(path: string, size: number): Promise<void> {
+  const { dirs, file } = split(path);
+  const dir = await dirFor(dirs, true);
+  const handle = await dir.getFileHandle(file, { create: true });
+  const writable = await handle.createWritable({ keepExistingData: true });
+  try {
+    await writable.truncate(size);
+  } finally {
+    await writable.close();
+  }
+}
+
+export async function fileSize(path: string): Promise<number> {
+  return (await readFile(path))?.size ?? 0;
+}
+
 export async function readFile(path: string): Promise<File | null> {
   const { dirs, file } = split(path);
   try {

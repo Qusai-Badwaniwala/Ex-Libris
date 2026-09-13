@@ -1,6 +1,10 @@
 import { runAnilist } from './sources/anilist.ts';
 import { runMangadex } from './sources/mangadex.ts';
-import { runOpenLibrary, acquireOpenLibrary } from './sources/openlibrary.ts';
+import {
+  runOpenLibrary,
+  runOpenLibraryAuthors,
+  acquireOpenLibrary,
+} from './sources/openlibrary.ts';
 import { runWikidata } from './sources/wikidata.ts';
 import { runMerge } from './merge.ts';
 import type { StageReport } from './types.ts';
@@ -9,16 +13,16 @@ import type { StageReport } from './types.ts';
  * The pipeline runner.
  *
  *   node pipeline/run.ts <stage...> [--pages N]
- *   node pipeline/run.ts anilist mangadex merge build
+ *   node pipeline/run.ts anilist mangadex fixture-merge fixture-build
  *   node pipeline/run.ts all
  *
  * Every stage is resumable and idempotent: rerunning a finished one is a no-op,
  * rerunning an interrupted one picks up from its checkpoint. Nothing here is
  * part of the app bundle — it writes public/corpus/ and stops.
  *
- * `--pages` bounds the API stages, because the difference between proving the
- * pipeline works and pulling the whole of AniList is hours, and only one of
- * those is worth doing before the owner has seen the numbers.
+ * `--pages` bounds the API stages. A bounded Wikidata run stays incomplete and
+ * a production merge refuses it; a local API fixture can still be rebuilt with
+ * explicit AniList/MangaDex stage names.
  */
 
 type Stage = (opts: Options) => Promise<StageReport>;
@@ -29,26 +33,30 @@ interface Options {
 }
 
 const STAGES: Record<string, Stage> = {
-  // 1 — downloads 16.2 GB. Never runs as part of `all`; it has to be asked for.
+  // 1 — downloads 4.84 GB by default. Never runs as part of `all`; the owner
+  // must explicitly approve and request it. `--force` adds unused editions.
   acquire: (o) => acquireOpenLibrary(o.force),
-  // 2 — streams the dumps and cuts them to a shippable core.
+  // 2 — series ids are part of the compact-core predicate, so Wikidata must
+  // complete before the works dump is filtered and its author keys resolved.
+  wikidata: (o) => runWikidata(o.pages),
   openlibrary: () => runOpenLibrary(),
-  // 3 — series membership (P179) and ordinal (P1545).
-  wikidata: () => runWikidata(),
-  // 4, 5 — the free APIs. These run today.
+  'openlibrary-authors': () => runOpenLibraryAuthors(),
+  // 4, 5 — local engineering fixtures only; never default production input.
   anilist: (o) => runAnilist(o.pages),
   mangadex: (o) => runMangadex(Math.max(1, Math.floor(o.pages / 2))),
-  // 6, 7 — normalise, merge, derive.
+  // 6, 7 — production merge ignores restricted caches mechanically. The
+  // fixture variant must be named explicitly and the build marks its output.
   merge: () => runMerge(),
+  'fixture-merge': () => runMerge({ includeRestricted: true, requireCompleteWikidata: false }),
   // 8, 9 — SQLite, manifest, checksum. Imported lazily because node:sqlite
   // prints an experimental warning the moment it is loaded, and a stage that
   // is not running should not be talking.
   build: async () => (await import('./build.ts')).runBuild(),
+  'fixture-build': async () => (await import('./build.ts')).runFixtureBuild(),
 };
 
-/** `all` deliberately excludes `acquire`: a 16 GB download is not something a
- *  command called "all" should start without being asked. */
-const ALL = ['openlibrary', 'wikidata', 'anilist', 'mangadex', 'merge', 'build'];
+/** `all` deliberately excludes acquisition and every restricted API source. */
+const ALL = ['wikidata', 'openlibrary', 'openlibrary-authors', 'merge', 'build'];
 
 async function main() {
   const argv = process.argv.slice(2);

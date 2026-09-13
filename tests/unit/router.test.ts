@@ -92,9 +92,79 @@ describe('opening a screen', () => {
     nav.push({ screen: 'notes' });
     expect(nav.state.overlays).toHaveLength(0);
   });
+
+  it('gives only the tapped cover the shared name for the transition', async () => {
+    const cover = document.createElement('button');
+    const original = (
+      document as Document & { startViewTransition?: (update: () => unknown) => unknown }
+    ).startViewTransition;
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (update: () => unknown) => {
+        update();
+        return {
+          ready: Promise.resolve(),
+          updateCallbackDone: Promise.resolve(),
+          finished: Promise.resolve(),
+        };
+      },
+    });
+
+    try {
+      nav.pushWithCover({ screen: 'detail', id: 'w1' }, cover);
+      expect(nav.state.screens.at(-1)).toEqual({ screen: 'detail', id: 'w1' });
+      expect(cover.style.viewTransitionName).toBe('work-cover');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(cover.style.viewTransitionName).toBe('');
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'startViewTransition', {
+          configurable: true,
+          value: original,
+        });
+      } else {
+        Reflect.deleteProperty(document, 'startViewTransition');
+      }
+    }
+  });
 });
 
 describe('replacing a sheet without racing history', () => {
+  it('finishes the transition update synchronously instead of waiting on a suppressed frame', () => {
+    let callbackResult: unknown;
+    const original = (
+      document as Document & { startViewTransition?: (update: () => unknown) => unknown }
+    ).startViewTransition;
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (update: () => unknown) => {
+        callbackResult = update();
+        return {
+          ready: Promise.resolve(),
+          updateCallbackDone: Promise.resolve(),
+          finished: Promise.resolve(),
+        };
+      },
+    });
+
+    try {
+      nav.open({ kind: 'fabMenu' });
+      nav.swap({ kind: 'byHand' });
+      expect(callbackResult).toBeUndefined();
+      expect(nav.state.overlays.map((overlay) => overlay.kind)).toEqual(['byHand']);
+    } finally {
+      if (original) {
+        Object.defineProperty(document, 'startViewTransition', {
+          configurable: true,
+          value: original,
+        });
+      } else {
+        Reflect.deleteProperty(document, 'startViewTransition');
+      }
+    }
+  });
+
   it('swaps one sheet for another and keeps a single history entry', () => {
     // The FAB menu becoming the add sheet. Spelled as close-then-open it is a
     // race that loses: close() rewinds history and popstate arrives on its own

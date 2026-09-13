@@ -7,54 +7,55 @@ Questions inherited from the design session live in `design/OPEN-QUESTIONS.md`.
 The ones still live are restated below; the rest were answered on 2026-09-02 and
 2026-09-03.
 
+There is no unresolved blocking Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, or
+Phase 10 product decision. The owner
+accepted Phase 5, approved exact title disclosure before bulk Wishlist addition,
+then settled Q-017, authorized Phase 6, accepted it for sequencing, and
+authorized Phase 7 on 2026-09-08. Translation always
+appears as the seventh descriptive step; it remains outside six-axis
+recommendation matching. Q-029 is a non-blocking post-phase proposal, and Q-028
+remains a deferred release check. The owner accepted Phase 7 for sequencing and
+authorized Phase 8 on 2026-09-08. Phase 8's implementation, focused review, and
+full gate passed on 2026-09-12. The owner then accepted that checkpoint for
+sequencing, authorized Phase 9, and approved Q-019's adaptive width proposal by
+instructing work to continue. The owner then authorized Phase 10. Its final
+audit and gate passed on 2026-09-13; Q-008 is resolved by explicit
+rename/merge/delete maintenance without similarity suggestions.
+
+---
+
+## DEFERRED RELEASE CHECK
+
+**Q-028 · Physical Android performance gate.** `DEFERRED BY OWNER ON
+2026-09-06; NOT PASSED.` The desktop browser path is real
+OPFS/worker/FTS5 but Pixel emulation does not emulate phone storage or CPU. The
+engineering fixture's first cold query measured roughly 46-55 ms here, warmed
+queries measured 1-4 ms, and the full Pixel-emulated UI regression is below
+100 ms from input event to next-painted results. The real 438,584-work,
+261.1-MiB production index also installs and searches correctly on desktop.
+Release-quality evidence still requires the same production build on a
+physical mid-range Android device and an under-50-ms input-to-painted-results
+result. The owner explicitly said phone testing is not needed right now and
+authorized work to continue to Phase 4. That is a sequencing decision, not a
+measurement.
+
+No Android device or `adb` executable was available on 2026-09-06. When the
+owner resumes this check, use the free Android Platform Tools, connect an
+owner-supplied phone with USB debugging, run an ADB reverse tunnel from its
+localhost to a production preview, then install and measure the production
+index.
+
 ---
 
 ## NON-BLOCKING
 
-**Q-017 · What "skip the translation axis" means.** `NON-BLOCKING — needed by
-Phase 6.` The owner skipped it on the grounds that nearly everything they read
-is an English translation. That reasoning supports two opposite builds:
-
-1. **Drop the axis entirely.** Six axes, no translation, `isTranslated` stays
-   dormant forever and could eventually be removed.
-2. **Keep the axis and always show it.** If nearly everything is translated, the
-   gate is pointless but the axis is not — a Rough translation and a Fluent one
-   are exactly the distinction the axis exists to record.
-
-`isTranslated` is in the schema either way and nothing sets it today. Reading 2
-is the one that loses nothing, but this is the owner's call.
-
-**Q-018 · The app icon.** `NON-BLOCKING.` Claude Design produced no icon and one
-is required for an installable PWA. `scripts/icon.svg` reuses the bookplate
-frame — nested rules, corner diamonds, tick marks — on the dark page colour, and
-`public/icons/` holds the three PNGs the manifest names. It is deliberately the
-most conservative thing that could be assembled from the existing vocabulary.
-Worth thirty seconds of the owner's eye at a launcher size, because it is the
-one piece of the app seen before the app opens.
-
-**Q-019 · Adaptive spine width buckets change the width key's labels.**
-`NON-BLOCKING — needed by Phase 9.` The owner asked for adaptive buckets so
-Reverend Insanity at 2,300 chapters is not tied with a 1,250-chapter novel.
-Proposed: five thresholds computed as quintiles of the library's own length
-distribution, separate ladders for chapters and pages, recomputed when the
-library changes, cached in settings so a spine never changes width between
-renders. Below about forty works, quintiles are noise, so it falls back to
-D-027's fixed ladder.
-The visible consequence is that the WidthKey at the foot of spine view prints
-live numbers instead of the fixed "<40 / 150 / 500 / 1.2k / 2k+". That is a
-design-visible change to a component `design/COMPONENTS.md` specifies, so it is
-flagged rather than assumed.
-
-**Q-020 · Cover source of record versus the runtime cache.** `NON-BLOCKING —
-needed by Phase 4.` Covers are stored in OPFS permanently and also pass through
-a Workbox `CacheFirst` runtime cache capped at 400 entries and 30 days. Two
-copies of the same bytes. The runtime cache is only the in-flight safety net for
-a fetch that is interrupted, but it does double the disk cost of a cover for a
-month. Options: drop the runtime cache entirely and rely on OPFS plus a retry,
-or keep it and accept the duplication. Leaning toward dropping it once the OPFS
-path is proven in Phase 4.
-
----
+**Q-029 · Explain an honest empty More Like This result?** `PROPOSED AFTER PHASE
+6; NOT IMPLEMENTED.` More Like This is currently omitted when no other owned
+work meets the minimum three shared rated axes plus one exact shared stop. A
+quiet Detail line could explain that another work needs at least three shared
+axes and offer a direct path to rate one. This preserves the threshold and makes
+absence legible, but adds a visible state not present in the frozen design. The
+owner should approve or decline it before implementation.
 
 ## FOR A LATER PHASE, RECORDED SO THEY ARE NOT LOST
 
@@ -64,48 +65,3 @@ a wrong count or loses its finish date. Now partly cheaper to solve than it was,
 because `readingSession` (E-005) already records each pass separately — a
 re-read would be a second run of sessions rather than a schema change to `work`.
 Not built, not designed.
-
-**Q-014 · "Ask a model" is hidden until it works.** Settled: the Settings row is
-not rendered at all until the feature exists (Phase 10 at the earliest). A switch
-that changes nothing is worse than an absent feature.
-
-**Q-008 · Tag cleanup.** The design's Settings promises "three pairs look like
-the same tag twice" and goes nowhere. `normalizedName` is now a unique index, so
-exact collisions cannot happen at all; the interesting case is near-misses that
-do not collide — "Dark fantasy" and "Grimdark". Build B9 in Phase 1 as rename,
-merge and delete; a similarity-suggestion screen is a separate question and is
-not proposed.
-
----
-
----
-
-**Q-023 · The corpus size ceiling needs re-deciding against a measurement.**
-`NON-BLOCKING — needed before the full pipeline run.` A real build measured
-**1,275 bytes per work**, which projects to about **608 MB at 500,000 works** —
-three to six times the 100–200 MB the brief guessed, and the number you
-confirmed before I had one. The sample was all comics, which carry up to twelve
-alternate titles each, so Open Library rows will be leaner and this is an upper
-bound.
-
-You said size does not matter and to build the best PWA, so the honest options
-are:
-
-1. **Take the 600 MB.** A one-time download on wi-fi, then never again except a
-   monthly delta. Storage on a Poco X4 GT is not the constraint; the download is.
-2. **Trim to ~300k works** by tightening the Open Library filter, landing around
-   350 MB, at the cost of coverage in the long tail of published books — which
-   is the part of the catalogue you are least likely to search.
-3. **Ship comics and light novels first** (AniList + MangaDex, tens of MB) and
-   make the Open Library half a separate optional download. The corpus screen
-   already has a skip path, so it has somewhere to live.
-
-I lean toward 3: it gets the part of the catalogue that matches your library
-onto the phone in seconds, and leaves the 600 MB as a choice rather than a wait.
-
-**Q-024 · Should I ask shaido987 for a licence?** `NON-BLOCKING.` The one
-dataset that would solve pure web novels — 24,639 NovelUpdates titles, already
-committed as CSV and JSON — has no LICENSE file, which means all rights
-reserved. Opening an issue asking the author to add one costs nothing and might
-simply work. That is an outward-facing action in your name, so it needs your
-word before I would do it.

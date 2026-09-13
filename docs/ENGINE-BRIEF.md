@@ -199,7 +199,7 @@ interface Work {
   rating?: number; // 1-5, half-steps allowed. Independent of axes.
   tagIds: string[];
 
-  isTranslated: boolean; // gates the optional translation axis
+  isTranslated: boolean; // compatibility only; E-087 shows Translation always
 
   dateAdded: string; // ISO 8601, all dates
   dateStarted?: string;
@@ -249,7 +249,7 @@ interface AxisRating {
   // Mutually exclusive with `ending`. This is NOT a
   // low score — it is a different fact. Never average it in.
   translation?: 1 | 2 | 3 | 4 | 5; // Rough · Stiff · Serviceable · Smooth · Fluent
-  // Only shown when work.isTranslated
+  // E-087: shown for every work, but excluded from six-axis matching
   ratedAt?: string;
 }
 ```
@@ -336,7 +336,11 @@ interface Tag {
 }
 ```
 
-Tags are shared across works and notes. Merge on `normalizedName` collision. Never delete a tag automatically; offer cleanup of zero-usage tags in Settings.
+Tags are shared across works and notes. Merge on `normalizedName` collision.
+Never delete a tag automatically. Settings now offers explicit rename and exact
+destination merge, plus removal only when no active or soft-deleted work or
+note references the tag. Near-match suggestions remain outside the approved
+product.
 
 ### 4.8 `settings`
 

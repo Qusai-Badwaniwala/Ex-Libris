@@ -1,11 +1,19 @@
 import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { nav } from '../../router/router';
 import { caption, displayM, displayS, label, resetButton, tabular } from '../styles';
 import { ChevronLeft } from '../icons';
-import { Cover, GenreChips, ProgressBar, TagPill } from '../components';
+import { Cover, GenreChips, LedgerRow, ProgressBar, TagPill } from '../components';
 import { displayWork } from '../../db/derive';
-import { useTagNames, useWork } from '../store';
+import { localDay } from '../../db/dates';
+import { useNotesForWork, useTagNames, useWork } from '../store';
 import * as repo from '../../db/repo';
+import { RelationshipOffer } from '../relationship-offer';
+import { db } from '../../db/db';
+import { withInteractionFeedback } from '../interaction-feedback';
+import { AxisProfile } from '../axis-profile';
+import { matchedAxesSentence, moreLikeThis } from '../../axes/axes';
+import { NoteCard } from '../note-card';
 
 /**
  * Book detail. The landing site of the cover flight.
@@ -18,17 +26,63 @@ import * as repo from '../../db/repo';
  *       dropped or caught up.
  *   A2–A4  An "Edit" control in the header opens a sheet covering title,
  *       author, shelf, unit, position and total — none of which had a control.
- *   A6  A work's notes will appear here in Phase 7, when notes exist. Nothing
- *       is stubbed in the meantime.
+ *   A6  Phase 7 places each linked note here using the same hierarchy as the
+ *       Notes feed.
  *
- * The axis line is deliberately absent until Phase 6. The design shows it, but
- * a row of type that says "tap to change it" and does not is exactly the
- * switch-with-nothing-behind-it the design itself refuses (Q-014).
+ * Phase 6 restores the designed axis line and its real editing path, followed
+ * by explainable recommendations drawn only from this reader's own library.
  */
-export function Detail({ id }: { id: string }) {
+export function Detail({
+  id,
+  suggestRelationships = false,
+}: {
+  id: string;
+  suggestRelationships?: boolean;
+}) {
   const row = useWork(id);
+  const relationship = useLiveQuery(async () => {
+    const work = await db.work.get(id);
+    if (!work) return null;
+    const [series, universe] = await Promise.all([
+      work.seriesId ? db.series.get(work.seriesId) : undefined,
+      work.universeId ? db.universe.get(work.universeId) : undefined,
+    ]);
+    return { series, universe };
+  }, [id]);
+  const axisRating = useLiveQuery(() => db.axisRating.get(id), [id]);
+  const recommendations = useLiveQuery(async () => {
+    const [target, works, ratings] = await Promise.all([
+      db.axisRating.get(id),
+      repo.listLibrary(),
+      db.axisRating.toArray(),
+    ]);
+    const ratingByWork = new Map(ratings.map((rating) => [rating.workId, rating]));
+    const authorIds = [...new Set(works.flatMap((work) => work.authorIds.slice(0, 1)))];
+    const authors = await db.author.bulkGet(authorIds);
+    const authorById = new Map(
+      authors.flatMap((author) => (author ? [[author.id, author.name]] : [])),
+    );
+    return moreLikeThis(
+      id,
+      target,
+      works.flatMap((work) => {
+        const rating = ratingByWork.get(work.id);
+        if (!rating) return [];
+        return [
+          {
+            work,
+            rating,
+            authorName: work.authorIds[0] ? authorById.get(work.authorIds[0]) : undefined,
+          },
+        ];
+      }),
+    );
+  }, [id]);
   const tagNames = useTagNames(row?.work.tagIds ?? []);
+  const linkedNotes = useNotesForWork(id);
   const [barMotion, setBarMotion] = useState(false);
+  const [mutationError, setMutationError] = useState('');
+  const [busyAction, setBusyAction] = useState<'remove' | 'restore'>();
 
   if (row === undefined) return null;
   if (row === null) {
@@ -116,7 +170,29 @@ export function Detail({ id }: { id: string }) {
             marginTop: 'var(--space-2)',
           }}
         >
-          <Cover color={d.coverColor} width={116} height={174} flightName="work-cover" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <Cover
+              color={d.coverColor}
+              path={work.coverPath}
+              width={116}
+              height={174}
+              flightName="work-cover"
+            />
+            {!deleted ? (
+              <button
+                onClick={() => nav.open({ kind: 'coverPicker', id })}
+                style={{
+                  ...resetButton,
+                  minHeight: 32,
+                  borderRadius: 'var(--radius-button)',
+                  color: 'var(--accent-text)',
+                  ...caption,
+                }}
+              >
+                {work.coverPath ? 'Change cover' : 'Add a cover'}
+              </button>
+            ) : null}
+          </div>
           <div
             style={{
               display: 'flex',
@@ -152,7 +228,28 @@ export function Detail({ id }: { id: string }) {
           gap: 'var(--space-6)',
         }}
       >
-        {deleted ? <InTrashNotice id={id} /> : null}
+        {deleted ? (
+          <InTrashNotice
+            busy={busyAction === 'restore'}
+            onRestore={() => {
+              setBusyAction('restore');
+              setMutationError('');
+              void withInteractionFeedback('Restoring the work…', () => repo.restoreWork(id))
+                .catch(() =>
+                  setMutationError('The work could not be restored. It is still in Trash.'),
+                )
+                .finally(() => setBusyAction(undefined));
+            }}
+          />
+        ) : null}
+
+        {mutationError ? (
+          <p role="alert" style={{ ...caption, color: 'var(--danger-text)', margin: 0 }}>
+            {mutationError}
+          </p>
+        ) : null}
+
+        {suggestRelationships && !deleted ? <RelationshipOffer workId={id} /> : null}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -246,6 +343,66 @@ export function Detail({ id }: { id: string }) {
           </div>
         </div>
 
+        <section aria-labelledby="axes-heading">
+          <div id="axes-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
+            Reading profile
+          </div>
+          <AxisProfile
+            work={work}
+            rating={axisRating}
+            onEdit={(axis) => nav.push({ screen: 'axis', id, axis })}
+          />
+        </section>
+
+        <section aria-labelledby="work-record-heading">
+          <div id="work-record-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
+            Record
+          </div>
+          <LedgerRow
+            label="Format"
+            value={work.format === 'book' ? 'Book' : work.format === 'novel' ? 'Novel' : 'Manhwa'}
+          />
+          <LedgerRow label="Publication" value={d.publicationLabel} />
+          <LedgerRow label="Progress unit" value={work.progressUnit} />
+          <LedgerRow
+            label="Series"
+            value={
+              relationship?.series
+                ? `${relationship.series.name}${work.seriesPosition !== undefined ? ` · ${work.seriesPosition}` : ''}`
+                : 'Standalone'
+            }
+            onClick={() =>
+              relationship?.series
+                ? nav.push({ screen: 'series', id: relationship.series.id })
+                : nav.open({ kind: 'seriesPicker', id })
+            }
+            chevron
+          />
+          {relationship?.universe ? (
+            <LedgerRow
+              label="Universe"
+              value={relationship.universe.name}
+              onClick={() => nav.push({ screen: 'universe', id: relationship.universe!.id })}
+              chevron
+            />
+          ) : null}
+          {relationship?.series || relationship?.universe ? (
+            <button
+              onClick={() => nav.open({ kind: 'seriesPicker', id })}
+              style={{
+                ...resetButton,
+                ...caption,
+                color: 'var(--accent-text)',
+                minHeight: 36,
+                textAlign: 'left',
+              }}
+            >
+              Edit series and universe
+            </button>
+          ) : null}
+          <LedgerRow label="Added" value={localDay(work.dateAdded)} />
+        </section>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -289,6 +446,86 @@ export function Detail({ id }: { id: string }) {
             </div>
           ) : null}
         </div>
+
+        {recommendations?.length ? (
+          <section aria-labelledby="more-like-this-heading">
+            <h2 id="more-like-this-heading" style={{ ...displayS, margin: `0 0 var(--space-2)` }}>
+              More like this
+            </h2>
+            <div style={{ borderBottom: 'var(--hairline-width) solid var(--hairline)' }}>
+              {recommendations.map((recommendation) => {
+                const candidate = displayWork(recommendation.work, recommendation.authorName);
+                return (
+                  <button
+                    key={recommendation.work.id}
+                    aria-label={`${recommendation.work.title}. ${matchedAxesSentence(recommendation.matchedAxes, recommendation.rating)}`}
+                    onClick={() => nav.push({ screen: 'detail', id: recommendation.work.id })}
+                    data-hover="raised"
+                    style={{
+                      ...resetButton,
+                      width: '100%',
+                      minHeight: 76,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                      padding: '8px 0',
+                      borderTop: 'var(--hairline-width) solid var(--hairline)',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Cover
+                      color={candidate.coverColor}
+                      path={recommendation.work.coverPath}
+                      width={40}
+                      height={60}
+                    />
+                    <span
+                      style={{
+                        minWidth: 0,
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 3,
+                      }}
+                    >
+                      <span style={{ fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
+                        {recommendation.work.title}
+                      </span>
+                      {candidate.hasAuthor ? (
+                        <span style={{ ...caption, color: 'var(--text-secondary)' }}>
+                          {candidate.authorLine}
+                        </span>
+                      ) : null}
+                      <span style={{ ...caption, color: 'var(--text-muted)' }}>
+                        {matchedAxesSentence(recommendation.matchedAxes, recommendation.rating)}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" style={{ color: 'var(--text-secondary)' }}>
+                      ›
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {linkedNotes?.length ? (
+          <section aria-labelledby="work-notes-heading">
+            <h2 id="work-notes-heading" style={{ ...displayS, margin: 0 }}>
+              Notes
+            </h2>
+            {linkedNotes.map((context) => (
+              <NoteCard
+                key={context.note.id}
+                context={context}
+                showAttachedWorks={false}
+                onOpen={() => nav.open({ kind: 'noteEditor', id: context.note.id })}
+              />
+            ))}
+            <div style={{ borderTop: 'var(--hairline-width) solid var(--hairline)' }} />
+          </section>
+        ) : null}
       </div>
 
       {!deleted ? (
@@ -306,9 +543,18 @@ export function Detail({ id }: { id: string }) {
               one tap and the thirty-day trash is the confirmation (D-081). */}
           <button
             data-hover="danger"
+            disabled={!!busyAction}
             onClick={() => {
-              void repo.softDeleteWork(id);
-              nav.back();
+              setBusyAction('remove');
+              setMutationError('');
+              void withInteractionFeedback('Moving the work to Trash…', () =>
+                repo.softDeleteWork(id),
+              )
+                .then(() => nav.back())
+                .catch(() =>
+                  setMutationError('The work could not be removed. It is still in your library.'),
+                )
+                .finally(() => setBusyAction(undefined));
             }}
             style={{
               ...resetButton,
@@ -322,7 +568,7 @@ export function Detail({ id }: { id: string }) {
               fontSize: 'var(--size-body)',
             }}
           >
-            Remove from the library
+            {busyAction === 'remove' ? 'Removing…' : 'Remove from the library'}
           </button>
           <div
             style={{
@@ -342,7 +588,7 @@ export function Detail({ id }: { id: string }) {
 
 /** A soft-deleted work is still reachable by history and by the trash. Saying
  *  so beats letting it look like an ordinary shelf entry. */
-function InTrashNotice({ id }: { id: string }) {
+function InTrashNotice({ busy, onRestore }: { busy: boolean; onRestore: () => void }) {
   return (
     <div
       style={{
@@ -359,7 +605,8 @@ function InTrashNotice({ id }: { id: string }) {
         This is in the trash.
       </span>
       <button
-        onClick={() => void repo.restoreWork(id)}
+        disabled={busy}
+        onClick={onRestore}
         style={{
           ...resetButton,
           height: 30,
@@ -371,7 +618,7 @@ function InTrashNotice({ id }: { id: string }) {
           ...caption,
         }}
       >
-        Put it back
+        {busy ? 'Restoring…' : 'Put it back'}
       </button>
     </div>
   );

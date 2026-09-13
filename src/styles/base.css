@@ -175,3 +175,25 @@ html[data-closing]::view-transition-new(add-surface) {
   width: 0;
   height: 0;
 }
+
+/* Theme-paired illustrations are authored assets, not CSS filters. Only one
+   file participates in layout; swapping theme is immediate and preserves the
+   exact SVG geometry. Dark is the root default, matching tokens.css. */
+[data-illustration-theme='light'] {
+  display: none !important;
+}
+[data-illustration-theme='dark'] {
+  display: block !important;
+}
+:root[data-theme='light'] [data-illustration-theme='light'] {
+  display: block !important;
+}
+:root[data-theme='light'] [data-illustration-theme='dark'] {
+  display: none !important;
+}
+
+/* SearchField supplies one deliberate, accessible clear action. Chromium's
+   built-in cancel glyph would otherwise duplicate it. */
+.exl-search-input::-webkit-search-cancel-button {
+  appearance: none;
+}

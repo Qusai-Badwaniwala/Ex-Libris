@@ -1,6 +1,8 @@
-import { JsonlWriter, cachePath, n, readJsonl } from './lib.ts';
-import { couldBeSameWork, matchKey, mergeWork } from './normalize.ts';
+import { existsSync } from 'node:fs';
+import { JsonlWriter, cachePath, n, readCheckpoint, readJsonl } from './lib.ts';
+import { couldBeSameWork, matchKey, mergeWork, normalizeOpenLibraryId } from './normalize.ts';
 import type { AniRelation } from './sources/anilist.ts';
+import type { WikidataMembership } from './sources/wikidata.ts';
 import type { CorpusSeries, CorpusUniverse, CorpusWork, StageReport } from './types.ts';
 
 /**
@@ -15,16 +17,51 @@ import type { CorpusSeries, CorpusUniverse, CorpusWork, StageReport } from './ty
  * report. The visible failure is the better one.
  */
 
-export async function runMerge(): Promise<StageReport> {
-  const started = Date.now();
-  const stage = 'merge';
-  const notes: string[] = [];
+export interface MergeOptions {
+  /** Restricted API rows are only for the explicit local engineering fixture. */
+  includeRestricted?: boolean;
+  /** Production merge refuses a bounded or interrupted Wikidata pull. */
+  requireCompleteWikidata?: boolean;
+}
 
-  const inputs = [
-    cachePath('anilist', 'works.jsonl'),
-    cachePath('mangadex', 'works.jsonl'),
-    cachePath('openlibrary', 'works.jsonl'),
-  ];
+export function mergeInputPaths(includeRestricted = false): string[] {
+  return includeRestricted
+    ? [cachePath('anilist', 'works.jsonl'), cachePath('mangadex', 'works.jsonl')]
+    : [cachePath('openlibrary', 'works.jsonl')];
+}
+
+export async function runMerge(options: MergeOptions = {}): Promise<StageReport> {
+  const started = Date.now();
+  const notes: string[] = [];
+  const includeRestricted = options.includeRestricted ?? false;
+  const stage = includeRestricted ? 'fixture-merge' : 'merge';
+  const requireCompleteWikidata = options.requireCompleteWikidata ?? !includeRestricted;
+
+  const inputs = mergeInputPaths(includeRestricted);
+  const openLibraryWorks = cachePath('openlibrary', 'works.jsonl');
+  if (!includeRestricted && !existsSync(openLibraryWorks)) {
+    return {
+      stage,
+      ok: false,
+      counts: {},
+      notes: ['resolved Open Library works are missing; run both Open Library stages first'],
+      seconds: 0,
+    };
+  }
+  if (requireCompleteWikidata && !readCheckpoint('wikidata').done) {
+    return {
+      stage,
+      ok: false,
+      counts: {},
+      notes: ['Wikidata is incomplete or was page-bounded; resume it before a production merge'],
+      seconds: 0,
+    };
+  }
+  notes.push(
+    includeRestricted
+      ? 'engineering fixture: AniList and MangaDex cache rows only'
+      : 'production merge: Open Library rows only; restricted API caches were ignored',
+  );
 
   const byKey = new Map<string, CorpusWork>();
   const perSource: Record<string, number> = {};
@@ -126,12 +163,14 @@ export async function runMerge(): Promise<StageReport> {
   };
 
   let edges = 0;
-  for await (const rel of readJsonl<AniRelation>(cachePath('anilist', 'relations.jsonl'))) {
-    if (!byAnilistId.has(rel.from) || !byAnilistId.has(rel.to)) continue;
-    if (!parent.has(rel.from)) parent.set(rel.from, rel.from);
-    if (!parent.has(rel.to)) parent.set(rel.to, rel.to);
-    union(rel.from, rel.to);
-    edges++;
+  if (includeRestricted) {
+    for await (const rel of readJsonl<AniRelation>(cachePath('anilist', 'relations.jsonl'))) {
+      if (!byAnilistId.has(rel.from) || !byAnilistId.has(rel.to)) continue;
+      if (!parent.has(rel.from)) parent.set(rel.from, rel.from);
+      if (!parent.has(rel.to)) parent.set(rel.to, rel.to);
+      union(rel.from, rel.to);
+      edges++;
+    }
   }
 
   const clusters = new Map<number, number[]>();
@@ -175,6 +214,75 @@ export async function runMerge(): Promise<StageReport> {
       w.series_position = i + 1;
     });
   }
+  const anilistSeries = series.length;
+
+  /* ── attach explicit Wikidata series memberships ──────────────────────── */
+
+  const byOpenLibraryId = new Map<string, CorpusWork>();
+  const workById = new Map<string, CorpusWork>();
+  for (const work of byKey.values()) {
+    workById.set(work.id, work);
+    const id = readOpenLibraryId(work);
+    if (id) byOpenLibraryId.set(id, work);
+  }
+  const memberships = new Map<string, WikidataMembership[]>();
+  let wikidataRows = 0;
+  for await (const membership of readJsonl<WikidataMembership>(
+    cachePath('wikidata', 'series.jsonl'),
+  )) {
+    wikidataRows++;
+    const openLibraryId = normalizeOpenLibraryId(membership.olid);
+    const work = openLibraryId ? byOpenLibraryId.get(openLibraryId) : undefined;
+    if (!work) continue;
+    const group = memberships.get(work.id) ?? [];
+    group.push(membership);
+    memberships.set(work.id, group);
+  }
+
+  const seriesById = new Map(series.map((entry) => [entry.id, entry]));
+  let wikidataJoined = 0;
+  let wikidataAmbiguous = 0;
+  for (const [workId, candidates] of memberships) {
+    const seriesIds = new Set(candidates.map((candidate) => candidate.series));
+    if (seriesIds.size !== 1) {
+      // P179 can describe several overlapping groupings. The runtime schema
+      // has one series slot, so choosing here would silently discard context.
+      wikidataAmbiguous++;
+      continue;
+    }
+    const work = workById.get(workId);
+    if (!work) continue;
+    const chosen = candidates[0]!;
+    const explicitPositions = [
+      ...new Set(
+        candidates
+          .map((candidate) => candidate.ordinal)
+          .filter((value): value is number => value !== null),
+      ),
+    ];
+    const seriesId = `series:wikidata:${chosen.series}`;
+    work.series_id = seriesId;
+    work.series_position = explicitPositions.length === 1 ? explicitPositions[0]! : null;
+    work.external_ids = JSON.stringify({
+      ...readExternalIds(work),
+      wikidata: chosen.work,
+      wikidataSeries: chosen.series,
+    });
+    if (!seriesById.has(seriesId)) {
+      const entry: CorpusSeries = {
+        id: seriesId,
+        name: chosen.seriesLabel.trim() || chosen.series,
+        universe_id: null,
+        // Membership rows state inclusion and sometimes order, not the full
+        // number of entries. A partial count must never power a completion ring.
+        total_entries: null,
+        source: 'wikidata',
+      };
+      series.push(entry);
+      seriesById.set(seriesId, entry);
+    }
+    wikidataJoined++;
+  }
 
   /* ── universes ────────────────────────────────────────────────────────── */
 
@@ -184,7 +292,9 @@ export async function runMerge(): Promise<StageReport> {
   // confident wrong groupings in front of the reader, which is the one thing
   // the series cascade is written to avoid.
   const universes: CorpusUniverse[] = [];
-  notes.push('universes are empty until the Wikidata stage runs — nothing else states one');
+  notes.push(
+    'universes remain empty: the Wikidata pull states work-to-series membership, not shared continuity',
+  );
 
   /* ── write ────────────────────────────────────────────────────────────── */
 
@@ -211,8 +321,9 @@ export async function runMerge(): Promise<StageReport> {
     `${n(merged)} collapsed on title+author, ${n(crossMerged)} more on title across sources, leaving ${n(workCount)}`,
   );
   notes.push(`${n(ambiguous)} same-title groups left alone as genuinely different works`);
+  notes.push(`${n(edges)} usable AniList relations produced ${n(anilistSeries)} fixture series`);
   notes.push(
-    `${n(edges)} usable relations produced ${n(series.length)} series covering ${n(inSeries)} works`,
+    `${n(wikidataJoined)} Open Library works joined to Wikidata series from ${n(wikidataRows)} membership rows; ${n(wikidataAmbiguous)} multi-series cases left unassigned`,
   );
 
   return {
@@ -227,6 +338,9 @@ export async function runMerge(): Promise<StageReport> {
       series: series.length,
       universes: universes.length,
       worksInSeries: inSeries,
+      wikidataRows,
+      wikidataJoined,
+      wikidataAmbiguous,
     },
     notes,
     seconds: (Date.now() - started) / 1000,
@@ -241,3 +355,21 @@ function readAnilistId(w: CorpusWork): number | null {
     return null;
   }
 }
+
+function readExternalIds(work: CorpusWork): Record<string, unknown> {
+  try {
+    const value = JSON.parse(work.external_ids || '{}') as unknown;
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function readOpenLibraryId(work: CorpusWork): string | null {
+  const value = readExternalIds(work)['openLibraryWork'];
+  return typeof value === 'string' ? normalizeOpenLibraryId(value) : null;
+}
+
+export { normalizeOpenLibraryId } from './normalize.ts';

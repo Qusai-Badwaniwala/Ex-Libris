@@ -15,6 +15,10 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  // The suite contains real worker/OPFS latency assertions. Running four
+  // emulated phones at once made those assertions measure host contention
+  // instead of catalogue search, while the same journey passed in isolation.
+  workers: 1,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
@@ -31,9 +35,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173',
+    // Test mode is still Vite's optimized production build. Its only project
+    // difference is that the distribution guard copies the explicitly marked
+    // local corpus fixture from pipeline/.cache into dist after the build, so
+    // the real worker/OPFS path can be exercised without touching the
+    // production Open Library catalogue in public/corpus.
+    command:
+      'npm run pipeline -- fixture-merge fixture-build && npm run build -- --mode test && npm run preview -- --port 4173',
     url: 'http://localhost:4173',
-    reuseExistingServer: !process.env['CI'],
+    // Reusing the owner's production preview would silently skip the test-mode
+    // build and its test bridge. A busy port is therefore a loud failure.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

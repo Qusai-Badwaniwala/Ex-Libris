@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react';
+import { flushSync } from 'react-dom';
+import type { AxisKey } from '../axes/axes';
 
 /**
  * Navigation, and the Android back gesture.
@@ -38,6 +40,7 @@ export type Screen =
   | 'corpus'
   | 'trash'
   | 'about'
+  | 'tags'
   | 'tagpick'
   | 'axis'
   | 'finish'
@@ -55,12 +58,14 @@ export type OverlayKind =
   | 'byHand'
   | 'editWork'
   | 'noteEditor'
+  | 'noteTags'
   | 'genreEditor'
   | 'genreFilter'
   | 'session'
   | 'surprise'
   | 'statusPicker'
   | 'seriesPicker'
+  | 'readingOrderEditor'
   | 'coverPicker'
   | 'sortSheet';
 
@@ -70,11 +75,22 @@ export interface Route {
   id?: string;
   /** Format screens only. */
   format?: 'book' | 'novel' | 'manhwa';
+  /** Everything screen only: a genre selected from a search result. */
+  genre?: import('../db/schema').GenreIndex;
+  /** Detail only: offer relationship evidence immediately after a new add. */
+  suggestRelationships?: boolean;
+  /** Axis screen only: open directly at the word the reader selected. */
+  axis?: AxisKey;
 }
 
 export interface Overlay {
   kind: OverlayKind;
   id?: string;
+  contextType?: 'series' | 'universe';
+  query?: string;
+  /** Manual-add title carried from a share target or catalogue search. */
+  initialTitle?: string;
+  candidate?: import('../catalogue/types').CorpusMatch;
 }
 
 export interface NavState {
@@ -92,6 +108,98 @@ const listeners = new Set<Listener>();
 function emit(next: NavState) {
   state = next;
   for (const l of listeners) l();
+}
+
+const isAddSurface = (kind: OverlayKind | undefined) =>
+  kind === 'catalogue' || kind === 'byHand' || kind === 'noteEditor';
+
+/**
+ * The FAB and its sheets are one shared surface in the approved motion model.
+ * React's external-store update must commit inside the transition callback.
+ * Waiting for `requestAnimationFrame` here deadlocks with the browser's render
+ * suppression until Chromium's roughly four-second transition timeout expires.
+ * `flushSync` gives the browser the new side immediately and does no extra work
+ * outside this rare add-surface transition.
+ */
+function emitAddTransition(next: NavState, closing = false) {
+  const start = (
+    document as Document & {
+      startViewTransition?: (update: () => void | Promise<void>) => {
+        ready: Promise<void>;
+        updateCallbackDone: Promise<void>;
+        finished: Promise<void>;
+      };
+    }
+  ).startViewTransition;
+  const prefersReducedMotion =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!start || prefersReducedMotion) {
+    emit(next);
+    return;
+  }
+  if (closing) document.documentElement.dataset['closing'] = '';
+  const cleanup = () => {
+    delete document.documentElement.dataset['closing'];
+  };
+  let updated = false;
+  try {
+    const transition = start.call(document, () => {
+      updated = true;
+      flushSync(() => emit(next));
+    });
+    // A rapid second navigation can skip a transition. All three promises may
+    // reject in that normal path; allSettled consumes every outcome and keeps
+    // cleanup single-sourced (design MOTION §13).
+    void Promise.allSettled([
+      transition.ready,
+      transition.updateCallbackDone,
+      transition.finished,
+    ]).then(cleanup);
+  } catch {
+    // A browser may reject a second transition synchronously. The navigation
+    // still has to happen once, without leaving the closing speed override on.
+    cleanup();
+    if (!updated) emit(next);
+  }
+}
+
+function emitCoverTransition(next: NavState, cover: HTMLElement) {
+  const start = (
+    document as Document & {
+      startViewTransition?: (update: () => void | Promise<void>) => {
+        ready: Promise<void>;
+        updateCallbackDone: Promise<void>;
+        finished: Promise<void>;
+      };
+    }
+  ).startViewTransition;
+  const prefersReducedMotion =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!start || prefersReducedMotion) {
+    emit(next);
+    return;
+  }
+  cover.style.viewTransitionName = 'work-cover';
+  const cleanup = () => {
+    cover.style.viewTransitionName = '';
+  };
+  let updated = false;
+  try {
+    const transition = start.call(document, () => {
+      updated = true;
+      flushSync(() => emit(next));
+    });
+    void Promise.allSettled([
+      transition.ready,
+      transition.updateCallbackDone,
+      transition.finished,
+    ]).then(cleanup);
+  } catch {
+    cleanup();
+    if (!updated) emit(next);
+  }
 }
 
 function subscribe(l: Listener) {
@@ -115,6 +223,12 @@ export const nav = {
   push(route: Route) {
     pushHistory();
     emit({ screens: [...state.screens, route], overlays: [] });
+  },
+
+  /** The source cover owns the shared name only for this one navigation. */
+  pushWithCover(route: Route, cover: HTMLElement) {
+    pushHistory();
+    emitCoverTransition({ screens: [...state.screens, route], overlays: [] }, cover);
   },
 
   /**
@@ -160,7 +274,13 @@ export const nav = {
       this.open(overlay);
       return;
     }
-    emit({ ...state, overlays: [...state.overlays.slice(0, -1), overlay] });
+    const next = { ...state, overlays: [...state.overlays.slice(0, -1), overlay] };
+    const current = state.overlays.at(-1)?.kind;
+    if (isAddSurface(overlay.kind) && (current === 'fabMenu' || isAddSurface(current))) {
+      emitAddTransition(next);
+    } else {
+      emit(next);
+    }
   },
 
   /**
@@ -212,7 +332,9 @@ export function installHistory() {
   history.replaceState({ exl: 1 }, '');
   const onPop = () => {
     if (state.overlays.length > 0) {
-      emit({ ...state, overlays: state.overlays.slice(0, -1) });
+      const next = { ...state, overlays: state.overlays.slice(0, -1) };
+      if (isAddSurface(state.overlays.at(-1)?.kind)) emitAddTransition(next, true);
+      else emit(next);
       return;
     }
     if (state.screens.length > 1) {

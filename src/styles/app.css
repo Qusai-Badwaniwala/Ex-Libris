@@ -46,10 +46,65 @@
   [data-hover='danger-ink']:hover {
     color: var(--danger);
   }
+  .exl-spine:hover {
+    transform: translateY(-6px);
+  }
+}
+
+.exl-spine {
+  transition: transform var(--dur-fast) var(--ease-snap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exl-spine {
+    transition: none;
+  }
+}
+
+/* The approved axis gesture briefly yields the word while the thumb catches
+   up. It communicates the changed stop; there is no ambient motion. */
+.exl-axis-word {
+  animation: exl-axis-word var(--dur-fast) var(--ease-out) both;
+}
+
+@keyframes exl-axis-word {
+  0% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.exl-finish-tick {
+  stroke-dashoffset: 48;
+  animation: exl-finish-tick var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes exl-finish-tick {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exl-axis-word,
+  .exl-finish-tick {
+    animation: none;
+  }
+  .exl-finish-tick {
+    stroke-dashoffset: 0;
+  }
 }
 
 [data-active='accent']:active {
   background: var(--accent-muted);
+}
+
+/* A backdrop is itself the close control. Lightening it under the finger makes
+   that acknowledgement visible before history/view-transition work begins. */
+[data-dismiss-scrim]:active {
+  opacity: 0.72 !important;
 }
 
 /* The prototype's underlined bookplate field: the rule goes accent on focus. */
@@ -69,4 +124,69 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* A named wait, not pretend progress. The open book belongs to the bookplate
+   vocabulary; one short registering rule moves only while real work remains. */
+.exl-pending {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-4) + var(--safe-bottom));
+  z-index: var(--z-overlay);
+  max-width: min(82vw, 320px);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 12px;
+  border: var(--hairline-width) solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-fab);
+  color: var(--text-primary);
+  font-size: var(--size-caption);
+  line-height: var(--lh-caption);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: exl-fade var(--dur-fast) var(--ease-out) both;
+}
+
+.exl-pending__mark {
+  width: 26px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: var(--accent-text);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.exl-pending__register {
+  transform-origin: 18px 5px;
+  animation: exl-register-page calc(var(--duration-fluid) * 2) var(--ease-fluid-out) infinite;
+}
+
+@keyframes exl-register-page {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.35);
+  }
+  45%,
+  70% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exl-pending {
+    animation: none;
+  }
+  .exl-pending__register {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

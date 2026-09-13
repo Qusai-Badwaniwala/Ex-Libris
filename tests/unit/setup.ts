@@ -1,5 +1,10 @@
 import 'fake-indexeddb/auto';
 
+// React 19 requires test environments to opt in before act() can flush work
+// without warning. jsdom does not set this flag itself.
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
+
 // jsdom has no crypto.randomUUID. The app uses it as its only id source, so a
 // missing one would fail every write path in a way that looks like a Dexie bug.
 if (!globalThis.crypto?.randomUUID) {

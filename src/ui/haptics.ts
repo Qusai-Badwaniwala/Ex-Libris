@@ -32,3 +32,22 @@ export function tick(): void {
     /* some browsers throw when the page is not visible; a missed tick is fine */
   }
 }
+
+/** A drag can cross several stops in one pointer event. One vibration pattern
+ * preserves every tick; repeated synchronous vibrate calls would replace the
+ * previous call on Android and collapse the gesture to a single pulse. */
+export function tickStops(count: number): void {
+  const pulses = Math.max(0, Math.floor(count));
+  if (pulses <= 1) {
+    if (pulses === 1) tick();
+    return;
+  }
+  if (typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  const duration = tickMs();
+  const pattern = Array.from({ length: pulses * 2 - 1 }, () => duration);
+  try {
+    navigator.vibrate(pattern);
+  } catch {
+    /* a missed gesture tick is fine when the page is no longer visible */
+  }
+}

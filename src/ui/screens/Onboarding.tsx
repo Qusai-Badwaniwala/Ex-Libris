@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Constellation } from '../constellation';
 import { caption, displayL, displayS, label, resetButton } from '../styles';
 import { prefersReducedMotion } from '../theme';
-import { WELCOME_ART_MS, WELCOME_BEATS } from '../design-literals';
+import { TOUR_SCRIM, WELCOME_ART_MS, WELCOME_BEATS } from '../design-literals';
+import { Illustration } from '../illustration';
+import { requestPwaInstall, usePwaInstall } from '../../pwa/install';
 
 /**
  * First run. Ported from design/Ex Libris.dc.html.
@@ -12,9 +14,10 @@ import { WELCOME_ART_MS, WELCOME_BEATS } from '../design-literals';
  * the frequency band where expressive motion is welcome (MOTION §11). Reduced
  * motion drops the stagger entirely rather than shortening it.
  *
- * The four-step spotlight tour that follows the bookplate (D-074) is Phase 1
- * work still to come — it has to point at real controls, and it measures their
- * rects live rather than hardcoding them.
+ * The six-step spotlight tour follows the required bookplate, points at the
+ * real Home controls, and finishes on Settings' real install control. D-074
+ * and D-079 require its live measurement; there is no detached tutorial
+ * layout or hardcoded target geometry.
  */
 
 function beat(i: number) {
@@ -99,6 +102,405 @@ export function Welcome({ onNext }: { onNext: () => void }) {
           Open the library
         </button>
       </div>
+    </div>
+  );
+}
+
+interface TourStep {
+  target: 'search' | 'continue' | 'drawer' | 'everything' | 'fab' | 'install';
+  radius: string;
+  pad?: number;
+  head: string;
+  body: string;
+}
+
+interface TourRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  frameHeight: number;
+}
+
+const TOUR_STEPS: readonly TourStep[] = [
+  {
+    target: 'search',
+    radius: 'var(--radius-pill)',
+    pad: 6,
+    head: 'Search only what you own',
+    body: 'Titles, authors, your own notes, your own tags. It reads the library on this device and nothing else.',
+  },
+  {
+    target: 'continue',
+    radius: 'var(--radius-card)',
+    head: 'Return to the exact work',
+    body: 'The cover, reading state and real progress live together here. The whole record opens, so the route back into a book is never hidden in a tiny control.',
+  },
+  {
+    target: 'drawer',
+    radius: '10px',
+    pad: 6,
+    head: 'Notes, trash and backups',
+    body: 'Notes live alongside the books they belong to. Nothing you delete is really gone for thirty days.',
+  },
+  {
+    target: 'everything',
+    radius: '10px',
+    pad: 4,
+    head: 'Everything, filtered',
+    body: 'Every work you own in one list, however long it gets. Filter it by genre — any of the ones you pick, or only works carrying all of them.',
+  },
+  {
+    target: 'fab',
+    radius: 'var(--radius-sheet)',
+    head: 'Add anything',
+    body: 'By hand, or from the catalogue — downloaded once and searchable with no signal. The catalogue is optional; typing a title yourself works exactly the same.',
+  },
+  {
+    target: 'install',
+    radius: 'var(--radius-card)',
+    pad: 6,
+    head: 'Keep Ex Libris on this phone',
+    body: 'Install it once and it opens from your home screen without browser controls. Your library still stays only on this device.',
+  },
+] as const;
+
+const EMPTY_CONTINUE_STEP: Pick<TourStep, 'head' | 'body'> = {
+  head: 'Begin with anything',
+  body: 'Add a book, web novel or manhwa. Once you start reading, this space becomes a clear path back to where you left off.',
+};
+
+/**
+ * D-074/D-079's measured tour, extended to the actual Settings install row.
+ *
+ * `rect` deliberately survives step changes. The old geometry stays painted
+ * until the next target has been measured, so the scrim does not re-fade and
+ * the spotlight has a real previous position to travel from (MOTION §12).
+ */
+export function SpotlightTour({
+  onDone,
+  onShowSettings,
+}: {
+  onDone: () => void;
+  onShowSettings: () => void;
+}) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [rect, setRect] = useState<TourRect | null>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const focusedStep = useRef(-1);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const headingId = useId();
+  const bodyId = useId();
+  const step = TOUR_STEPS[stepIndex]!;
+  const reduceMotion = prefersReducedMotion();
+  const install = usePwaInstall();
+
+  useEffect(() => {
+    returnFocus.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => returnFocus.current?.focus();
+  }, []);
+
+  // Prevent wheel and keyboard scrolling while the tour is open. A target
+  // below the fold is still moved under the scrim by measure() via scrollTop.
+  useLayoutEffect(() => {
+    const frame = layerRef.current?.parentElement;
+    if (!frame) return;
+    const scrollers = [...frame.querySelectorAll<HTMLElement>('.exl-scroll')];
+    const before = scrollers.map((scroller) => scroller.style.overflowY);
+    scrollers.forEach((scroller) => {
+      scroller.style.overflowY = 'hidden';
+    });
+    return () => {
+      scrollers.forEach((scroller, index) => {
+        scroller.style.overflowY = before[index] ?? '';
+      });
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const layer = layerRef.current;
+    const frame = layer?.parentElement;
+    if (!frame) return;
+
+    let target: HTMLElement | null = null;
+    let frameObserver: ResizeObserver | null = null;
+    let targetObserver: ResizeObserver | null = null;
+    let retry: number | null = null;
+
+    const measure = () => {
+      target = frame.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
+      if (!target) {
+        retry = window.requestAnimationFrame(measure);
+        return;
+      }
+
+      const scroller = target.closest<HTMLElement>('.exl-scroll');
+      if (scroller && scroller.scrollHeight > scroller.clientHeight + 8) {
+        const targetBeforeScroll = target.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const offset =
+          targetBeforeScroll.top -
+          scrollerRect.top -
+          (scrollerRect.height - targetBeforeScroll.height) / 2;
+        if (Math.abs(offset) > 24) {
+          const wanted = Math.max(
+            0,
+            Math.min(scroller.scrollHeight - scroller.clientHeight, scroller.scrollTop + offset),
+          );
+          if (Math.abs(wanted - scroller.scrollTop) > 2) scroller.scrollTop = wanted;
+        }
+      }
+
+      const targetRect = target.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
+      const pad = step.pad ?? 8;
+      const next: TourRect = {
+        left: targetRect.left - frameRect.left - pad,
+        top: targetRect.top - frameRect.top - pad,
+        width: targetRect.width + pad * 2,
+        height: targetRect.height + pad * 2,
+        frameHeight: frameRect.height,
+      };
+      setRect((current) =>
+        current &&
+        current.left === next.left &&
+        current.top === next.top &&
+        current.width === next.width &&
+        current.height === next.height &&
+        current.frameHeight === next.frameHeight
+          ? current
+          : next,
+      );
+    };
+
+    measure();
+    if (target) retry = window.requestAnimationFrame(measure);
+    window.addEventListener('resize', measure);
+    if (typeof ResizeObserver !== 'undefined') {
+      frameObserver = new ResizeObserver(measure);
+      frameObserver.observe(frame);
+      if (target) {
+        targetObserver = new ResizeObserver(measure);
+        targetObserver.observe(target);
+      }
+    }
+
+    return () => {
+      if (retry !== null) window.cancelAnimationFrame(retry);
+      window.removeEventListener('resize', measure);
+      frameObserver?.disconnect();
+      targetObserver?.disconnect();
+    };
+  }, [step]);
+
+  useEffect(() => {
+    if (!rect || focusedStep.current === stepIndex) return;
+    focusedStep.current = stepIndex;
+    nextRef.current?.focus();
+  }, [rect, stepIndex]);
+
+  const finish = () => onDone();
+  const next = () => {
+    if (stepIndex === TOUR_STEPS.length - 1) {
+      void requestPwaInstall().finally(finish);
+      return;
+    }
+    const nextStep = TOUR_STEPS[stepIndex + 1];
+    if (nextStep?.target === 'install') onShowSettings();
+    setStepIndex((current) => current + 1);
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finish();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const controls = cardRef.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])');
+    if (!controls?.length) return;
+    const first = controls[0]!;
+    const last = controls[controls.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  // The rect half of the gate prevents a 0 × 0 ring at the frame origin before
+  // the first live measurement. It is deliberately not cleared between steps.
+  const visible = rect !== null;
+  const target = visible
+    ? layerRef.current?.parentElement?.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
+    : null;
+  let copy: Pick<TourStep, 'head' | 'body'> =
+    step.target === 'continue' && target?.dataset.tourState === 'empty'
+      ? EMPTY_CONTINUE_STEP
+      : step;
+  if (step.target === 'install' && install.installed) {
+    copy = {
+      head: 'Ex Libris is installed',
+      body: 'The green tick in Settings confirms it. Open it from your home screen whenever you want your library.',
+    };
+  } else if (step.target === 'install' && !install.available) {
+    copy = {
+      head: 'Keep Ex Libris on this phone',
+      body: install.isIos
+        ? 'The next button will show the Safari steps. Your library still stays only on this device.'
+        : 'The next button will open the installer when your browser supports it, or show the exact menu steps.',
+    };
+  }
+  const cardBelow = rect ? rect.top < rect.frameHeight * 0.45 : true;
+
+  return (
+    <div
+      ref={layerRef}
+      role={visible ? 'dialog' : undefined}
+      aria-modal={visible ? 'true' : undefined}
+      aria-labelledby={visible ? headingId : undefined}
+      aria-describedby={visible ? bodyId : undefined}
+      aria-hidden={visible ? undefined : 'true'}
+      onKeyDown={onKeyDown}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 'var(--z-overlay)' as unknown as number,
+        pointerEvents: visible ? 'auto' : 'none',
+        touchAction: 'none',
+        visibility: visible ? 'visible' : 'hidden',
+        animation:
+          visible && !reduceMotion
+            ? 'exl-fade var(--duration-medium) var(--ease-fluid-out) both'
+            : undefined,
+      }}
+    >
+      {rect ? (
+        <>
+          <div
+            data-tour-spotlight={step.target}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height,
+              borderRadius: step.radius,
+              boxShadow: `0 0 0 2px var(--accent), 0 0 0 9999px ${TOUR_SCRIM}`,
+              pointerEvents: 'none',
+              transition: reduceMotion
+                ? 'none'
+                : 'left var(--duration-fluid) var(--ease-fluid-out), top var(--duration-fluid) var(--ease-fluid-out), width var(--duration-fluid) var(--ease-fluid-out), height var(--duration-fluid) var(--ease-fluid-out)',
+            }}
+          />
+          <div
+            ref={cardRef}
+            style={{
+              position: 'absolute',
+              left: 'var(--space-4)',
+              right: 'var(--space-4)',
+              top: cardBelow ? rect.top + rect.height + 16 : 'auto',
+              bottom: cardBelow ? 'auto' : rect.frameHeight - rect.top + 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-3)',
+              padding: 'var(--space-5)',
+              borderRadius: 'var(--radius-card)',
+              background: 'var(--surface-overlay)',
+              border: 'var(--hairline-width) solid var(--hairline-strong)',
+              boxShadow: 'var(--shadow-fab)',
+              transition: reduceMotion
+                ? 'none'
+                : 'top var(--duration-fluid) var(--ease-fluid-out), bottom var(--duration-fluid) var(--ease-fluid-out)',
+            }}
+          >
+            <div id={headingId} style={displayS}>
+              {copy.head}
+            </div>
+            <div
+              id={bodyId}
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--size-body)',
+                lineHeight: 'var(--lh-body)',
+                color: 'var(--text-secondary)',
+                textWrap: 'pretty',
+              }}
+            >
+              {copy.body}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                marginTop: 4,
+              }}
+            >
+              <div aria-hidden="true" style={{ display: 'flex', gap: 6 }}>
+                {TOUR_STEPS.map((tourStep, index) => (
+                  <span
+                    key={tourStep.target}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 'var(--radius-pill)',
+                      background: index === stepIndex ? 'var(--accent)' : 'var(--hairline-strong)',
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="exl-sr">
+                Step {stepIndex + 1} of {TOUR_STEPS.length}
+              </span>
+              <span style={{ flex: 1 }} />
+              <button
+                onClick={finish}
+                style={{
+                  ...resetButton,
+                  padding: 'var(--space-2) var(--space-3)',
+                  margin: 'calc(var(--space-2) * -1) 0',
+                  fontSize: 'var(--size-caption)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Skip
+              </button>
+              <button
+                ref={nextRef}
+                data-ripple
+                data-active="accent"
+                onClick={next}
+                style={{
+                  ...resetButton,
+                  padding: '0 22px',
+                  height: 'var(--touch-min)',
+                  lineHeight: 'var(--touch-min)',
+                  borderRadius: 'var(--radius-button)',
+                  background: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  fontSize: 'var(--size-body)',
+                  fontWeight: 500,
+                }}
+              >
+                {stepIndex === TOUR_STEPS.length - 1
+                  ? install.installed
+                    ? 'Finish'
+                    : install.available
+                      ? 'Install Ex Libris'
+                      : 'See install steps'
+                  : 'Next'}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -210,11 +612,7 @@ export function Bookplate({
             justifyContent: 'center',
           }}
         >
-          <img
-            src="/illustrations/magic-tree-cuate.svg"
-            alt=""
-            style={{ maxWidth: '100%', maxHeight: '100%' }}
-          />
+          <Illustration name="magic-tree-cuate" style={{ maxWidth: '100%', maxHeight: '100%' }} />
         </div>
         <div
           style={{

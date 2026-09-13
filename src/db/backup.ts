@@ -5,6 +5,8 @@ import type {
   Author,
   Note,
   NoteLink,
+  ReadingOrder,
+  ReadingOrderEntry,
   ReadingSession,
   Series,
   Settings,
@@ -16,15 +18,9 @@ import type {
 /**
  * Export.
  *
- * SCHEMA §11 describes the finished shape: a .zip carrying data.json, the
- * user-supplied covers, and a manifest. Phase 8 builds that. What is here is
- * data.json on its own, and today that is the WHOLE library — there is no cover
- * pipeline until Phase 4, so there are no user covers to leave out. The screen
- * says so rather than implying a partial backup.
- *
- * This exists in Phase 1 rather than Phase 8 because the design's Settings has
- * an "Export a copy" row with no handler behind it, and that is the wrong row
- * to leave inert: it is the only protection against losing the device.
+ * This is the schema-versioned data.json inside Phase 8's ZIP. It remains a
+ * separate function because automatic snapshots, manual exports, and restore
+ * validation all need exactly the same record set and credential redaction.
  */
 
 export interface BackupFile {
@@ -33,7 +29,13 @@ export interface BackupFile {
   appVersion: string;
   createdAt: string;
   kind: 'auto' | 'manual';
-  counts: { works: number; notes: number; series: number; universes: number };
+  counts: {
+    works: number;
+    notes: number;
+    series: number;
+    universes: number;
+    readingOrders: number;
+  };
   data: {
     works: Work[];
     axisRatings: AxisRating[];
@@ -42,64 +44,28 @@ export interface BackupFile {
     authors: Author[];
     notes: Note[];
     noteLinks: NoteLink[];
+    readingOrders: ReadingOrder[];
+    readingOrderEntries: ReadingOrderEntry[];
     tags: Tag[];
     readingSessions: ReadingSession[];
     settings: Settings | null;
   };
-  /** Empty until Phase 4 gives covers somewhere to live. */
-  userCovers: { workId: string; filename: string }[];
+  userCovers: {
+    workId: string;
+    /** Existing device path, used only while the archive is assembled. */
+    path: string;
+    filename: string;
+    archivePath?: string;
+    mediaType?: string;
+  }[];
 }
 
 export async function buildBackup(
   appVersion: string,
   kind: 'auto' | 'manual' = 'manual',
 ): Promise<BackupFile> {
-  const [
-    works,
-    axisRatings,
-    series,
-    universes,
-    authors,
-    notes,
-    noteLinks,
-    tags,
-    readingSessions,
-    settingsRow,
-  ] = await Promise.all([
-    db.work.toArray(),
-    db.axisRating.toArray(),
-    db.series.toArray(),
-    db.universe.toArray(),
-    db.author.toArray(),
-    db.note.toArray(),
-    db.noteLink.toArray(),
-    db.tag.toArray(),
-    db.readingSession.toArray(),
-    db.settings.get('singleton'),
-  ]);
-
-  // SCHEMA §11: the API key is EXCLUDED. A backup is a file the reader may put
-  // anywhere — a cloud drive, a chat to themselves — and a credential inside it
-  // travels wherever the file does.
-  let settings: Settings | null = null;
-  if (settingsRow) {
-    settings = { ...settingsRow };
-    delete settings.aiApiKey;
-  }
-
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    dbVersion: DB_VERSION,
-    appVersion,
-    createdAt: new Date().toISOString(),
-    kind,
-    counts: {
-      works: works.length,
-      notes: notes.length,
-      series: series.length,
-      universes: universes.length,
-    },
-    data: {
+  return db.transaction('r', db.tables, async () => {
+    const [
       works,
       axisRatings,
       series,
@@ -107,12 +73,84 @@ export async function buildBackup(
       authors,
       notes,
       noteLinks,
+      readingOrders,
+      readingOrderEntries,
       tags,
       readingSessions,
-      settings,
-    },
-    userCovers: [],
-  };
+      settingsRow,
+    ] = await Promise.all([
+      db.work.toArray(),
+      db.axisRating.toArray(),
+      db.series.toArray(),
+      db.universe.toArray(),
+      db.author.toArray(),
+      db.note.toArray(),
+      db.noteLink.toArray(),
+      db.readingOrder.toArray(),
+      db.readingOrderEntry.toArray(),
+      db.tag.toArray(),
+      db.readingSession.toArray(),
+      db.settings.get('singleton'),
+    ]);
+
+    // SCHEMA §11: the API key is EXCLUDED. A backup is a file the reader may put
+    // anywhere — a cloud drive, a chat to themselves — and a credential inside it
+    // travels wherever the file does.
+    let settings: Settings | null = null;
+    if (settingsRow) {
+      settings = { ...settingsRow };
+      delete settings.aiApiKey;
+    }
+
+    const safeWorks = works.map((work) => {
+      if (work.coverSource !== 'api') return work;
+      // API covers are replaceable and intentionally absent from the archive.
+      // A restored record therefore cannot point at a file that was never sent.
+      const copy = { ...work, coverSource: 'none' as const };
+      delete copy.coverPath;
+      return copy;
+    });
+
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      dbVersion: DB_VERSION,
+      appVersion,
+      createdAt: new Date().toISOString(),
+      kind,
+      counts: {
+        works: works.length,
+        notes: notes.length,
+        series: series.length,
+        universes: universes.length,
+        readingOrders: readingOrders.length,
+      },
+      data: {
+        works: safeWorks,
+        axisRatings,
+        series,
+        universes,
+        authors,
+        notes,
+        noteLinks,
+        readingOrders,
+        readingOrderEntries,
+        tags,
+        readingSessions,
+        settings,
+      },
+      userCovers: works.flatMap((work) =>
+        work.coverSource === 'user' && work.coverPath
+          ? [
+              {
+                workId: work.id,
+                path: work.coverPath,
+                filename: work.coverPath.split('/').at(-1) ?? `${work.id}.webp`,
+              },
+            ]
+          : [],
+      ),
+    };
+  });
 }
 
 /** `ex-libris-2026-09-03.json`. The date is the reader's, not UTC's. */

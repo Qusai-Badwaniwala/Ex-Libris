@@ -1,9 +1,11 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { GENRE_NAMES, isWarningOnly } from '../data/taxonomy';
 import type { GenreIndex } from '../db/schema';
 import { caption, coverRadius, displayS, label, resetButton, tabular } from './styles';
 import { prefersReducedMotion } from './theme';
+import { coverService } from '../covers';
+import { Illustration, type IllustrationName } from './illustration';
 
 /* ── Cover ──────────────────────────────────────────────────────────────── */
 
@@ -16,6 +18,7 @@ import { prefersReducedMotion } from './theme';
 export function Cover({
   color,
   ink,
+  path,
   width,
   height,
   title,
@@ -23,6 +26,8 @@ export function Cover({
 }: {
   color: string;
   ink?: string;
+  /** OPFS path for a validated, downscaled cover. Remote URLs never render directly. */
+  path?: string;
   width: number;
   height: number;
   /** Only drawn at 132×198 and above, per COMPONENTS. */
@@ -31,6 +36,29 @@ export function Cover({
   flightName?: string;
 }) {
   const showTitle = !!title && width >= 132;
+  const [imageUrl, setImageUrl] = useState<string>();
+
+  useEffect(() => {
+    let currentUrl: string | undefined;
+    let cancelled = false;
+    setImageUrl(undefined);
+    if (!path) return;
+    void coverService
+      .read({ coverPath: path })
+      .then((blob) => {
+        if (!blob || cancelled) return;
+        currentUrl = URL.createObjectURL(blob);
+        setImageUrl(currentUrl);
+      })
+      .catch(() => {
+        // The colour fallback remains a complete cover when OPFS is unavailable.
+      });
+    return () => {
+      cancelled = true;
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+    };
+  }, [path]);
+
   return (
     <div
       data-cover
@@ -44,11 +72,17 @@ export function Cover({
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'flex-end',
-        padding: showTitle ? 'var(--space-3)' : 0,
+        padding: showTitle && !imageUrl ? 'var(--space-3)' : 0,
         ...(flightName ? { viewTransitionName: flightName } : {}),
       }}
     >
-      {showTitle ? (
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : showTitle ? (
         <span
           style={{
             fontFamily: 'var(--font-display)',
@@ -71,6 +105,54 @@ export function Cover({
  * 3px track. The bar is a fact, not an event: it does not animate in, and it
  * animates only when the reader has just changed the value (audit M-06).
  */
+/**
+ * The three-spine registration mark shared by Home and each format shelf.
+ * It is structural identity, so it never disappears with the last work. Real
+ * cover colours replace the neutral fallback from left to right when present.
+ */
+export function ShelfMarker({
+  colors = [],
+  compact = false,
+}: {
+  colors?: string[];
+  compact?: boolean;
+}) {
+  const fallback = [
+    'var(--cover-fallback)',
+    'color-mix(in oklab, var(--cover-fallback), var(--text-secondary) 16%)',
+    'color-mix(in oklab, var(--cover-fallback), var(--text-primary) 24%)',
+  ];
+  const heights = compact ? [32, 36, 29] : [46, 52, 41];
+
+  return (
+    <span
+      data-shelf-marker
+      aria-hidden="true"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'flex-end',
+        gap: compact ? 3 : 4,
+        width: compact ? 40 : 52,
+        height: compact ? 38 : 54,
+        flex: 'none',
+      }}
+    >
+      {fallback.map((neutral, index) => (
+        <span
+          key={index}
+          style={{
+            width: compact ? 6 : 8,
+            height: heights[index],
+            borderRadius: 'var(--cover-radius) var(--cover-radius) 1px 1px',
+            background: colors[index] ?? neutral,
+            boxShadow: 'var(--cover-inset)',
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function ProgressBar({
   width,
   track,
@@ -231,13 +313,19 @@ export function Sheet({
   onClose,
   title,
   maxHeight = '92%',
+  transitionName,
 }: {
   children: ReactNode;
   onClose: () => void;
   title?: string;
   maxHeight?: string;
+  transitionName?: 'add-surface';
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     const el = panel.current;
@@ -252,12 +340,48 @@ export function Sheet({
   }, []);
 
   useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const element = panel.current;
+    const targets = () =>
+      Array.from(
+        element?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]',
+        ) ?? [],
+      ).filter((target) => target.getClientRects().length > 0);
+    const frame = requestAnimationFrame(() => {
+      (targets().find((target) => target.tagName === 'INPUT') ?? targets()[0])?.focus();
+    });
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close.current();
+      }
+      if (e.key === 'Tab') {
+        const controls = targets();
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (
+          e.shiftKey &&
+          (document.activeElement === first || !element?.contains(document.activeElement))
+        ) {
+          e.preventDefault();
+          last?.focus();
+        } else if (
+          !e.shiftKey &&
+          (document.activeElement === last || !element?.contains(document.activeElement))
+        ) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', onKey);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, []);
 
   return (
     <div
@@ -269,12 +393,15 @@ export function Sheet({
       <button
         onClick={onClose}
         aria-label="Close"
+        data-dismiss-scrim
+        data-no-press
         style={{
           ...resetButton,
           position: 'absolute',
           inset: 0,
           background: 'rgba(0,0,0,0.5)',
           animation: 'exl-fade var(--dur-base) var(--ease-out) both',
+          transition: 'opacity var(--dur-fast) var(--ease-out)',
         }}
       />
       <div
@@ -291,6 +418,7 @@ export function Sheet({
           borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
           boxShadow: 'var(--shadow-sheet)',
           overflow: 'hidden',
+          ...(transitionName ? { viewTransitionName: transitionName } : {}),
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
@@ -522,7 +650,7 @@ export function EmptyState({
   cta,
   onCta,
 }: {
-  art?: string;
+  art?: IllustrationName;
   artWidth?: string;
   head: string;
   body: string;
@@ -544,7 +672,7 @@ export function EmptyState({
     >
       {art ? (
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-          <img src={art} alt="" style={{ width: artWidth ?? '78%' }} />
+          <Illustration name={art} style={{ width: artWidth ?? '78%' }} />
         </div>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

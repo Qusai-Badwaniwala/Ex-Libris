@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../../router/router';
 import { caption, displayM, displayS, label, resetButton, tabular } from '../styles';
-import { ChevronRight, Menu } from '../icons';
+import { Check, ChevronRight, Menu } from '../icons';
 import { Field } from '../components';
 import { storageUsage, type StorageUsage } from '../../storage/opfs';
-import { buildBackup, downloadBackup } from '../../db/backup';
-import { APP_VERSION, useSettings, useTrash } from '../store';
+import { exportManualBackup } from '../../data-safety/backup';
+import { APP_VERSION, useTrash } from '../store';
 import { localDay } from '../../db/dates';
 import type { Format, Settings as SettingsRow, ThemeChoice, ViewMode } from '../../db/schema';
 import { applyTheme } from '../theme';
+import { withInteractionFeedback } from '../interaction-feedback';
+import { closeInstallInstructions, requestPwaInstall, usePwaInstall } from '../../pwa/install';
 
 /**
  * Settings. Ported from design/Ex Libris.dc.html as a ruled ledger — label
@@ -37,17 +39,36 @@ const SHELVES: { key: Format; label: string }[] = [
   { key: 'manhwa', label: 'Manhwa' },
 ];
 
-export function Settings() {
-  const { settings, update } = useSettings();
+export function Settings({
+  settings,
+  update,
+}: {
+  settings: SettingsRow;
+  update: (patch: Partial<SettingsRow>) => Promise<boolean>;
+}) {
   const trash = useTrash();
   const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [usageError, setUsageError] = useState(false);
   const [exported, setExported] = useState<string | null>(null);
+  const [exportError, setExportError] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const install = usePwaInstall();
 
   useEffect(() => {
-    void storageUsage().then(setUsage);
+    setUsageError(false);
+    void storageUsage()
+      .then(setUsage)
+      .catch(() => setUsageError(true));
   }, [exported]);
 
-  if (!settings) return null;
+  const persist = async (patch: Partial<SettingsRow>) => {
+    setSettingsError('');
+    const saved = await update(patch);
+    if (!saved)
+      setSettingsError('That setting could not be saved. The previous value was restored.');
+    return saved;
+  };
 
   return (
     <div
@@ -82,8 +103,14 @@ export function Settings() {
         >
           <Menu />
         </button>
-        <div style={{ ...displayM, flex: 1 }}>Settings</div>
+        <h1 style={{ ...displayM, flex: 1, margin: 0 }}>Settings</h1>
       </div>
+
+      {settingsError ? (
+        <p role="alert" style={{ ...caption, color: 'var(--danger-text)' }}>
+          {settingsError}
+        </p>
+      ) : null}
 
       <Group heading="Appearance">
         <Row label="Theme">
@@ -95,8 +122,11 @@ export function Settings() {
               { value: 'system', label: 'System' },
             ]}
             onChange={(t) => {
+              const previous = settings.theme;
               applyTheme(t);
-              void update({ theme: t });
+              void persist({ theme: t }).then((saved) => {
+                if (!saved) applyTheme(previous);
+              });
             }}
             ariaLabel="Theme"
           />
@@ -106,7 +136,108 @@ export function Settings() {
       {/* B7. The bookplate asks once and then becomes About; without this a
           typo at first run is permanent. */}
       <Group heading="The bookplate">
-        <OwnerName settings={settings} onSave={(ownerName) => void update({ ownerName })} />
+        <OwnerName settings={settings} onSave={(ownerName) => persist({ ownerName })} />
+      </Group>
+
+      <Group heading="Install Ex Libris">
+        <div
+          data-tour="install"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            minHeight: 64,
+            padding: 'var(--space-2) 0',
+            borderTop: 'var(--hairline-width) solid var(--hairline)',
+          }}
+        >
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            <span style={{ fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
+              Keep it on this device
+            </span>
+            <br />
+            <span style={label}>
+              {install.installed
+                ? 'Ex Libris opens from your home screen like an app.'
+                : 'Its library stays on this device and works without a signal.'}
+            </span>
+          </span>
+          {install.installed ? (
+            <span
+              role="status"
+              style={{
+                ...caption,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--status-finished)',
+                fontWeight: 500,
+              }}
+            >
+              <Check /> Installed
+            </span>
+          ) : (
+            <button
+              disabled={install.busy}
+              onClick={() => void requestPwaInstall()}
+              style={{
+                ...resetButton,
+                flex: 'none',
+                minWidth: 76,
+                minHeight: 44,
+                padding: '0 var(--space-3)',
+                borderRadius: 'var(--radius-button)',
+                border: 'var(--hairline-width) solid var(--accent)',
+                color: 'var(--accent-text)',
+                ...caption,
+                fontWeight: 500,
+              }}
+            >
+              {install.busy ? 'Opening…' : 'Install'}
+            </button>
+          )}
+        </div>
+        {install.error ? (
+          <p role="alert" style={{ ...caption, color: 'var(--danger-text)', margin: '8px 0 0' }}>
+            {install.error}
+          </p>
+        ) : null}
+        {install.instructionsOpen && !install.installed ? (
+          <div
+            role="status"
+            style={{
+              padding: 'var(--space-3) 0',
+              borderTop: 'var(--hairline-width) solid var(--hairline)',
+            }}
+          >
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--size-body)',
+                lineHeight: 'var(--lh-body)',
+                color: 'var(--text-secondary)',
+                margin: 0,
+                textWrap: 'pretty',
+              }}
+            >
+              {install.isIos
+                ? 'Open this page in Safari, tap Share, choose Add to Home Screen, then tap Add.'
+                : 'Open your browser menu, choose Install app or Add to Home screen, then confirm.'}
+            </p>
+            <button
+              onClick={closeInstallInstructions}
+              style={{
+                ...resetButton,
+                minHeight: 44,
+                marginTop: 'var(--space-2)',
+                ...caption,
+                color: 'var(--accent-text)',
+              }}
+            >
+              Hide the steps
+            </button>
+          </div>
+        ) : null}
       </Group>
 
       <Group heading="Default views">
@@ -119,7 +250,7 @@ export function Settings() {
                 { value: 'spine', label: 'Spines' },
               ]}
               onChange={(v) =>
-                void update({ defaultView: { ...settings.defaultView, [s.key]: v } })
+                void persist({ defaultView: { ...settings.defaultView, [s.key]: v } })
               }
               ariaLabel={`Default view for ${s.label}`}
             />
@@ -128,7 +259,7 @@ export function Settings() {
         <Row label="Series sections start open">
           <Switch
             on={settings.seriesSectionsDefaultOpen}
-            onChange={(v) => void update({ seriesSectionsDefaultOpen: v })}
+            onChange={(v) => void persist({ seriesSectionsDefaultOpen: v })}
             ariaLabel="Series sections start open"
           />
         </Row>
@@ -137,18 +268,45 @@ export function Settings() {
       <Group heading="Your data">
         <button
           data-hover="raised"
+          onClick={() => nav.push({ screen: 'backup' })}
+          style={rowButton}
+        >
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            <span style={{ fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
+              Backup and restore
+            </span>
+            <br />
+            <span style={label}>
+              {settings.lastAutoBackupAt
+                ? `Backed up ${localDay(settings.lastAutoBackupAt)}`
+                : 'Automatic snapshots start after the library opens.'}
+            </span>
+          </span>
+          <ChevronRight />
+        </button>
+        <button
+          data-hover="raised"
+          disabled={exporting}
           onClick={() => {
-            void buildBackup(APP_VERSION).then((file) => {
-              downloadBackup(file);
-              void update({ lastManualExportAt: new Date().toISOString() });
-              setExported(new Date().toISOString());
-            });
+            if (exporting) return;
+            setExportError('');
+            setExporting(true);
+            void withInteractionFeedback('Preparing the backup…', () =>
+              exportManualBackup(APP_VERSION),
+            )
+              .then((archive) => {
+                if (!archive) return;
+                setExported(archive.manifest.createdAt);
+                void persist({ lastManualExportAt: archive.manifest.createdAt });
+              })
+              .catch(() => setExportError('The backup could not be exported. Nothing was changed.'))
+              .finally(() => setExporting(false));
           }}
           style={rowButton}
         >
           <span style={{ flex: 1, textAlign: 'left' }}>
             <span style={{ fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
-              Export a copy
+              {exporting ? 'Preparing a copy…' : 'Export a copy'}
             </span>
             <br />
             <span style={label}>
@@ -158,6 +316,11 @@ export function Settings() {
             </span>
           </span>
         </button>
+        {exportError ? (
+          <p role="alert" style={{ ...caption, color: 'var(--danger-text)', margin: '8px 0' }}>
+            {exportError}
+          </p>
+        ) : null}
 
         <button data-hover="raised" onClick={() => nav.push({ screen: 'trash' })} style={rowButton}>
           <span style={{ flex: 1, textAlign: 'left', fontSize: 'var(--size-body)' }}>Trash</span>
@@ -170,14 +333,22 @@ export function Settings() {
         {/* C4. Real numbers or an em dash — never a plausible zero. */}
         <Row label="Storage used">
           <span style={{ ...caption, ...tabular, color: 'var(--text-secondary)' }}>
-            {usage && usage.quotaBytes > 0
-              ? `${mb(usage.usedBytes)} of ${mb(usage.quotaBytes)}`
-              : '—'}
+            {usageError
+              ? 'unavailable'
+              : usage && usage.quotaBytes > 0
+                ? `${mb(usage.usedBytes)} of ${mb(usage.quotaBytes)}`
+                : '—'}
           </span>
         </Row>
         <Row label="Kept safe from eviction">
           <span style={{ ...caption, color: 'var(--text-secondary)' }}>
-            {usage === null ? '—' : usage.persisted ? 'Yes' : 'Not yet'}
+            {usageError
+              ? 'unavailable'
+              : usage === null
+                ? '—'
+                : usage.persisted
+                  ? 'Yes'
+                  : 'Not yet'}
           </span>
         </Row>
         {usage && !usage.persisted ? (
@@ -191,11 +362,24 @@ export function Settings() {
 
       {/* C1. This was filed under "Help from a model", which has nothing to do
           with it. */}
+      <Group heading="The catalogue">
+        <button
+          data-hover="raised"
+          onClick={() => nav.push({ screen: 'corpus' })}
+          style={rowButton}
+        >
+          <span style={{ flex: 1, textAlign: 'left', fontSize: 'var(--size-body)' }}>
+            The search index
+          </span>
+          <ChevronRight />
+        </button>
+      </Group>
+
       <Group heading="Tags">
         <Row label="Show content warning tags">
           <Switch
             on={settings.contentWarningsOn}
-            onChange={(v) => void update({ contentWarningsOn: v })}
+            onChange={(v) => void persist({ contentWarningsOn: v })}
             ariaLabel="Show content warning tags"
           />
         </Row>
@@ -204,6 +388,16 @@ export function Settings() {
             ? 'On. Warning tags show with a red wash wherever tags appear.'
             : 'Off. Those tags are neither shown nor created when a work is added.'}
         </p>
+        <button data-hover="raised" onClick={() => nav.push({ screen: 'tags' })} style={rowButton}>
+          <span style={{ flex: 1, textAlign: 'left' }}>
+            <span style={{ fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
+              Tidy up the tags
+            </span>
+            <br />
+            <span style={label}>Rename, merge or remove tags you no longer need.</span>
+          </span>
+          <ChevronRight />
+        </button>
       </Group>
 
       <Group heading="">
@@ -232,9 +426,7 @@ const rowButton = {
 function Group({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 'var(--space-6)' }}>
-      {heading ? (
-        <div style={{ ...displayS, marginBottom: 'var(--space-1)' }}>{heading}</div>
-      ) : null}
+      {heading ? <h2 style={{ ...displayS, margin: '0 0 var(--space-1)' }}>{heading}</h2> : null}
       {children}
       {/* The last row in a group takes a bottom border so the group closes
           (COMPONENTS, LedgerRow). */}
@@ -287,16 +479,36 @@ function Pill<T extends string>({
         flex: 'none',
       }}
     >
-      {options.map((o) => {
+      {options.map((o, index) => {
         const on = o.value === value;
         return (
           <button
             key={o.value}
             role="radio"
             aria-checked={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => onChange(o.value)}
+            onKeyDown={(event) => {
+              const last = options.length - 1;
+              const next =
+                event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                  ? (index + 1) % options.length
+                  : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                    ? (index - 1 + options.length) % options.length
+                    : event.key === 'Home'
+                      ? 0
+                      : event.key === 'End'
+                        ? last
+                        : -1;
+              if (next < 0) return;
+              event.preventDefault();
+              onChange(options[next]!.value);
+              const buttons = event.currentTarget.parentElement?.querySelectorAll('button');
+              (buttons?.[next] as HTMLButtonElement | undefined)?.focus();
+            }}
             style={{
               ...resetButton,
+              minHeight: 44,
               padding: '6px 14px',
               ...caption,
               background: on ? 'var(--surface-raised)' : 'transparent',
@@ -311,7 +523,7 @@ function Pill<T extends string>({
   );
 }
 
-/** 44×26 pill, 20px knob. The knob travels by transform, never by
+/** 44×26 visual track inside a 44×44 target. The knob travels by transform, never by
  *  justify-content, which cannot tween (audit M-04). */
 function Switch({
   on,
@@ -331,28 +543,38 @@ function Switch({
       style={{
         ...resetButton,
         width: 44,
-        height: 26,
+        height: 44,
         flex: 'none',
-        borderRadius: 'var(--radius-pill)',
-        padding: 2,
         display: 'flex',
         alignItems: 'center',
-        background: on ? 'var(--accent)' : 'var(--surface-sunken)',
-        border: `var(--hairline-width) solid ${on ? 'var(--accent)' : 'var(--hairline-strong)'}`,
-        transition: 'background-color var(--dur-fast) var(--ease-snap)',
+        justifyContent: 'center',
       }}
     >
       <span
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: 999,
-          // Non-text UI, so --text-muted clears the 3:1 floor and is legal here.
-          background: on ? 'var(--on-accent)' : 'var(--text-muted)',
-          transform: on ? 'translateX(18px)' : 'none',
-          transition: 'transform var(--dur-fast) var(--ease-snap)',
+          width: 44,
+          height: 26,
+          borderRadius: 'var(--radius-pill)',
+          padding: 2,
+          display: 'flex',
+          alignItems: 'center',
+          background: on ? 'var(--accent)' : 'var(--surface-sunken)',
+          border: `var(--hairline-width) solid ${on ? 'var(--accent)' : 'var(--hairline-strong)'}`,
+          transition: 'background-color var(--dur-fast) var(--ease-snap)',
         }}
-      />
+      >
+        <span
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 999,
+            // Non-text UI, so --text-muted clears the 3:1 floor and is legal here.
+            background: on ? 'var(--on-accent)' : 'var(--text-muted)',
+            transform: on ? 'translateX(18px)' : 'none',
+            transition: 'transform var(--dur-fast) var(--ease-snap)',
+          }}
+        />
+      </span>
     </button>
   );
 }
@@ -364,9 +586,10 @@ function OwnerName({
   onSave,
 }: {
   settings: SettingsRow;
-  onSave: (name: string) => void;
+  onSave: (name: string) => Promise<boolean>;
 }) {
   const [name, setName] = useState(settings.ownerName ?? '');
+  const [saving, setSaving] = useState(false);
   const changed = name.trim() !== (settings.ownerName ?? '');
   const ok = name.trim().length > 0;
 
@@ -386,15 +609,24 @@ function OwnerName({
       />
       {changed && ok ? (
         <button
-          onClick={() => onSave(name.trim())}
+          disabled={saving}
+          onClick={() => {
+            setSaving(true);
+            void onSave(name.trim()).then((saved) => {
+              if (saved) setName(name.trim());
+              setSaving(false);
+            });
+          }}
           style={{
             ...resetButton,
             marginTop: 'var(--space-2)',
+            minHeight: 44,
+            padding: '0 var(--space-2)',
             ...caption,
             color: 'var(--accent-text)',
           }}
         >
-          Save the name
+          {saving ? 'Saving…' : 'Save the name'}
         </button>
       ) : null}
     </div>

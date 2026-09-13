@@ -1,7 +1,7 @@
 import { nav } from '../../router/router';
 import { displayS, label, resetButton, tabular } from '../styles';
 import { ChevronRight, Menu, Moon, Search, Sun } from '../icons';
-import { Cover, ProgressBar } from '../components';
+import { Cover, EmptyState, ProgressBar, ShelfMarker } from '../components';
 import { displayWork } from '../../db/derive';
 import { useContinuing, useHomeFigures, useLibrary, useShelfCounts } from '../store';
 import type { Format, ThemeChoice } from '../../db/schema';
@@ -38,8 +38,8 @@ export function Home({
   const lead = reading[0];
   const peek = reading.slice(1, 3);
 
-  /** Three cover colours per shelf, as slivers. */
-  const slivers = (format: Format) =>
+  /** Real cover colours replace, but never remove, the shelf's three spines. */
+  const shelfColors = (format: Format) =>
     (library ?? [])
       .filter((x) => x.work.format === format)
       .slice(0, 3)
@@ -47,7 +47,7 @@ export function Home({
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <Constellation />
+      <Constellation full />
       <div
         className="exl-scroll"
         style={{
@@ -163,14 +163,21 @@ export function Home({
                   onClick={() => nav.push({ screen: 'detail', id: d.id })}
                   style={{
                     ...resetButton,
+                    width: '100%',
                     display: 'flex',
                     gap: 'var(--space-4)',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
+                    padding: 'var(--space-4)',
+                    borderRadius: 'var(--radius-card)',
+                    border: 'var(--hairline-width) solid var(--hairline)',
+                    background: 'var(--surface-raised)',
                   }}
+                  data-hover="hairline"
                 >
                   <Cover
                     color={d.coverColor}
                     ink={d.coverInk}
+                    path={lead.work.coverPath}
                     width={132}
                     height={198}
                     title={d.title}
@@ -183,6 +190,7 @@ export function Home({
                       paddingTop: 'var(--space-1)',
                       minWidth: 0,
                       textAlign: 'left',
+                      flex: 1,
                     }}
                   >
                     <div style={displayS}>{d.title}</div>
@@ -221,6 +229,15 @@ export function Home({
                         />
                       ) : null}
                     </div>
+                    <div
+                      style={{
+                        ...label,
+                        color: 'var(--accent-text)',
+                        marginTop: 'var(--space-2)',
+                      }}
+                    >
+                      Open this record
+                    </div>
                   </div>
                 </button>
               );
@@ -248,7 +265,7 @@ export function Home({
                         border: 'var(--hairline-width) solid var(--hairline)',
                       }}
                     >
-                      <Cover color={d.coverColor} width={32} height={48} />
+                      <Cover color={d.coverColor} path={work.coverPath} width={32} height={48} />
                       <div
                         style={{
                           display: 'flex',
@@ -277,6 +294,56 @@ export function Home({
               </div>
             ) : null}
           </div>
+        ) : library !== undefined ? (
+          <div
+            data-tour="continue"
+            data-tour-state="empty"
+            style={{
+              display: 'flex',
+              minHeight: library.length === 0 ? '52vh' : undefined,
+              marginBottom: 'var(--space-7)',
+            }}
+          >
+            {library.length === 0 ? (
+              <EmptyState
+                art="dragon-rafiki"
+                artWidth="84%"
+                head="Your library begins here"
+                body="Add a work by hand, or search the catalogue when it is installed. Your library stays on this device."
+                cta="Add a work"
+                onCta={() => nav.open({ kind: 'byHand' })}
+              />
+            ) : (
+              <button
+                data-hover="hairline"
+                onClick={() => nav.push({ screen: 'everything' })}
+                style={{
+                  ...resetButton,
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-4)',
+                  padding: 'var(--space-4)',
+                  borderRadius: 'var(--radius-card)',
+                  border: 'var(--hairline-width) solid var(--hairline)',
+                  background: 'var(--surface-raised)',
+                  textAlign: 'left',
+                }}
+              >
+                <ShelfMarker
+                  colors={(library ?? [])
+                    .slice(0, 3)
+                    .map((row) => row.work.coverDominantColor ?? 'var(--cover-fallback)')}
+                />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <span style={displayS}>Choose what comes next</span>
+                  <span style={{ fontSize: 'var(--size-caption)', color: 'var(--text-secondary)' }}>
+                    Open your library and mark a work as reading.
+                  </span>
+                </span>
+              </button>
+            )}
+          </div>
         ) : null}
 
         <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-7)' }}>
@@ -295,11 +362,7 @@ export function Home({
                 borderTop: 'var(--hairline-width) solid var(--hairline)',
               }}
             >
-              <div style={{ display: 'flex', gap: 3, width: 44, flex: 'none' }}>
-                {slivers(s.key).map((c, i) => (
-                  <div key={i} style={{ width: 6, height: 36, borderRadius: 1, background: c }} />
-                ))}
-              </div>
+              <ShelfMarker colors={shelfColors(s.key)} compact />
               <div style={{ ...displayS, flex: 1, textAlign: 'left' }}>{s.label}</div>
               <div
                 style={{
@@ -329,11 +392,10 @@ export function Home({
               borderTop: 'var(--hairline-width) solid var(--hairline)',
             }}
           >
-            <div style={{ display: 'flex', gap: 3, width: 44, flex: 'none' }}>
-              {['var(--text-faint)', 'var(--text-muted)', 'var(--text-secondary)'].map((c) => (
-                <div key={c} style={{ width: 6, height: 36, borderRadius: 1, background: c }} />
-              ))}
-            </div>
+            <ShelfMarker
+              colors={['var(--text-faint)', 'var(--text-muted)', 'var(--text-secondary)']}
+              compact
+            />
             <div style={{ ...displayS, flex: 1, textAlign: 'left' }}>Everything</div>
             <span
               style={{

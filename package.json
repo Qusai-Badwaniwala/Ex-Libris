@@ -17,12 +17,15 @@
     "check:tokens": "node scripts/check-tokens.mjs",
     "gate": "npm run format:check && npm run lint && npm run typecheck && npm run check:tokens && npm run test && npm run test:e2e && npm run build",
     "icons": "node scripts/make-icons.mjs",
+    "pages:corpus:split": "node scripts/pages-corpus.mjs split",
+    "pages:corpus:assemble": "node scripts/pages-corpus.mjs assemble",
     "pipeline": "node pipeline/run.ts"
   },
   "dependencies": {
     "@fontsource/montserrat-alternates": "^5.2.5",
     "@fontsource/sansita": "^5.2.5",
     "@fontsource/taviraj": "^5.2.5",
+    "@journeyapps/wa-sqlite": "0.4.2",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
     "react": "^19.1.0",

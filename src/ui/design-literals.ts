@@ -22,6 +22,7 @@
  */
 export const SCRIM = 'rgba(0, 0, 0, 0.5)'; // tokens-allow: design/Ex Libris.dc.html, every sheet and the drawer
 export const SCRIM_MENU = 'rgba(0, 0, 0, 0.42)'; // tokens-allow: lighter, because the FAB stays lit above it (D-062)
+export const TOUR_SCRIM = 'rgba(3, 6, 12, 0.76)'; // tokens-allow: D-074 spotlight must leave one measured hole in an otherwise quiet Home
 
 /**
  * The gold-leaf gradient under the drawer wordmark. It reads as leaf rather
@@ -35,8 +36,19 @@ export const LEAF_GRADIENT = 'linear-gradient(100deg, #8A6A34, #E8C77A 42%, #C9A
  * Stagger delays. These are choreography, not durations — the durations they
  * stagger are tokens. Each list is in the order the elements appear.
  */
-/** The drawer's four rows trail the panel rather than racing it (D-065). */
-export const DRAWER_ROW_DELAYS = ['140ms', '200ms', '260ms', '320ms']; // tokens-allow: D-065
+/**
+ * The drawer now has five real destinations, including Catalogue index. The
+ * rows trail the panel in one bounded cascade instead of racing the surface.
+ */
+export const DRAWER_ROW_DELAYS = ['120ms', '170ms', '220ms', '270ms', '320ms']; // tokens-allow: Phase 4 approved drawer
+
+/**
+ * The owner asked for the only full-width travelling surface to feel more
+ * deliberate than the former 380ms drawer. Exit stays shorter so dismissal
+ * acknowledges the decision without making the reader wait.
+ */
+export const DRAWER_ENTER_DURATION = '460ms'; // tokens-allow: Phase 4 owner-approved drawer timing
+export const DRAWER_EXIT_DURATION = '320ms'; // tokens-allow: asymmetric drawer dismissal
 
 /** The FAB's two doors, bottom one first — it is nearest the thumb (D-056). */
 export const FAB_DOOR_DELAYS = ['60ms', '20ms']; // tokens-allow: D-056
@@ -48,6 +60,12 @@ export const FAB_DOOR_DELAYS = ['60ms', '20ms']; // tokens-allow: D-056
  * MOTION §8 specifies 130ms and the prototype uses exactly that.
  */
 export const EXIT_UNMOUNT_MS = 130; // tokens-allow: MOTION.md §8
+
+/**
+ * Fast writes should never flash a busy surface. Past this perceptual boundary
+ * the reader benefits from being told which real operation is still running.
+ */
+export const PENDING_REVEAL_MS = 180; // tokens-allow: approved interaction-feedback delay
 
 /**
  * The welcome screen's five beats plus its button. The longest sequence in the

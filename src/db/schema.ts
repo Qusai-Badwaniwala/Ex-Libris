@@ -28,11 +28,12 @@
  * Two fields are kept but deliberately dormant. Both stay in the type so a
  * backup written by any build restores cleanly:
  *   work.rating          no screen sets it. The six axes do this job better.
- *   work.isTranslated    kept; no control sets it yet. See OPEN-QUESTIONS Q-017.
+ *   work.isTranslated    retained for backup compatibility, but no longer gates
+ *                        Translation: the owner chose to show that axis always.
  */
 
 /** Bump when a shipped field changes meaning. Backups carry this number. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export type Format = 'book' | 'novel' | 'manhwa';
 export type ReadingStatus = 'wishlist' | 'reading' | 'caught_up' | 'finished' | 'dropped';
@@ -106,7 +107,7 @@ export interface Work {
   /** At most two, primary first. */
   genres: GenreIndex[];
 
-  /** Dormant: gates the translation axis, which is not yet built. Q-017. */
+  /** Compatibility field only. Translation now appears for every work (E-087). */
   isTranslated: boolean;
 
   dateAdded: string;
@@ -166,6 +167,39 @@ export interface Universe {
   source: 'corpus' | 'user';
   externalIds: { wikidata?: string };
   updatedAt: string;
+}
+
+/**
+ * One named way through a series or universe. A context can have several
+ * orders (publication, chronological, preferred) without any one being
+ * silently treated as canonical.
+ */
+export interface ReadingOrder {
+  id: string;
+  contextType: 'series' | 'universe';
+  contextId: string;
+  name: string;
+  description?: string;
+  source: 'corpus' | 'user';
+  updatedAt: string;
+}
+
+/**
+ * An order entry can point at a local work/series or at a catalogue ghost.
+ * `label` is retained so the order remains understandable if the local target
+ * is later removed. Exactly one of workId/seriesId may be present; corpusId is
+ * allowed beside workId so a downloaded-catalogue identity is not lost.
+ */
+export interface ReadingOrderEntry {
+  id: string;
+  orderId: string;
+  position: number;
+  kind: 'work' | 'series';
+  label: string;
+  workId?: string;
+  seriesId?: string;
+  corpusId?: string;
+  note?: string;
 }
 
 export interface Author {
@@ -236,6 +270,18 @@ export type ViewMode = 'list' | 'spine';
 export type ThemeChoice = 'light' | 'dark' | 'system';
 export type GenreFilterMode = 'any' | 'all';
 
+/** Cached Phase 9 width ladder. Missing means derive it from the current
+ * library; small per-unit samples retain the fixed design thresholds. */
+export interface SpineWidthProfileSetting {
+  version: 1;
+  signature: string;
+  thresholds: {
+    chapter: [number, number, number, number];
+    page: [number, number, number, number];
+  };
+  adaptiveUnits: Array<'chapter' | 'page'>;
+}
+
 export interface Settings {
   id: 'singleton';
   /**
@@ -255,6 +301,7 @@ export interface Settings {
   tourCompletedAt?: string;
   /** Stamped once at first run. The origin for "years tracked". */
   firstTrackedAt?: string;
+  spineWidthProfile?: SpineWidthProfileSetting;
 
   corpusVersion?: string;
   corpusInstalledAt?: string;

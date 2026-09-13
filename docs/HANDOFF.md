@@ -1,207 +1,126 @@
-# HANDOFF.md
+# Ex Libris handoff
 
-Written for someone with no memory of the conversation. Read this first, then
-`OPEN-QUESTIONS.md`. Update both before the end of every session.
+**Last updated:** 2026-09-13
 
-**Ex Libris** — a personal reading tracker PWA for one person. Mobile-first,
-offline-first, single user, no accounts, no cloud, no cost. It tracks books, web
-novels and manhwa in one library.
+**Repository:** `H:\Ex libris Project\Website`
 
----
+**Active checkpoint:** Phase 10 accepted; verified public phone-release files
+ready to commit and publish
 
-## What this project refuses to be
+Read `OPEN-QUESTIONS.md`, `EXECUTION-PLAN.md`, and `DESIGN-STATE.md` before
+changing anything. The immutable Claude package under `design/`, frozen
+`src/styles/tokens.css`, and frozen `src/data/taxonomy.json` remain untouched.
 
-- **No cloud, no account, no sync, no telemetry, no analytics.** Every byte of
-  user data lives on the device. The network is used for metadata lookups, cover
-  images and the one-time catalogue download, and for nothing else.
-- **No gamification.** No streaks, no badges, no congratulation, no
-  notifications. Finishing a book is acknowledged once, quietly, and never
-  celebrated.
-- **No paid dependency.** Nothing with a credit card attached, ever.
-- **Finished is never rendered as diminished** — no strikethrough, no grey, no
-  reduced opacity. It is the shelf the owner should be proudest of.
+## Roadmap checkpoint
 
----
+| Phase                    | State                   | Durable truth                                                                                                                    |
+| ------------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 0–4                      | Complete for sequencing | Phase 3's physical Android worker/OPFS latency gate remains deferred as Q-028, not passed.                                       |
+| 5 · Series and universes | Accepted                | Confirmation-only relationships, named orders, starting point, feedback, gate, and exact-title Wishlist preflight passed.        |
+| 6 · Axes and matching    | Accepted                | Seven-step editing, Finished-only ending, finish paths, Detail profile, explainable six-axis matching, gate, and review passed.  |
+| 7 · Notes                | Accepted                | Multi-work links, tags, pinning, cross-search, Detail notes, reversible deletion, themed illustrations, gate, and review passed. |
+| 8 · Data safety          | Accepted                | Automatic snapshots, complete ZIP export/restore, paste/CSV import, share target, gate, and review passed.                       |
+| 9 · Stats and spine view | Accepted                | Truthful Stats, adaptive/fixed widths, row virtualization, 500-work performance, gate, and visual review passed.                 |
+| **10 · Final polish**    | **Accepted**            | Original 207/46 gate plus the owner-approved icon/install/publication extension and definitive 207/47 gate passed.               |
 
-## Where the work stopped
+There is no Phase 11. The current work is a bounded public-release extension,
+not a new product phase.
 
-**Phase 0 complete. Phase 1 part done. Phase 2 built and partly run. Gate green.**
+## Phone-release extension delivered
 
-The app runs and is usable end to end for one job: you can open it for the first
-time, name the bookplate, add a work by hand, find it on its shelf, change
-everything about it, log reading against it, delete it and get it back.
+- Q-018 is resolved. The owner-supplied reader-circle logo is now the release
+  icon, with separate full-bleed and maskable masters and deterministic 192px,
+  512px, and maskable outputs.
+- Settings has one real `Install Ex Libris` section. It opens the native browser
+  prompt when available, gives iOS or generic browser menu instructions when it
+  is not, keeps dismissal retryable, and displays a green tick plus `Installed`
+  for a standalone launch or an accepted current prompt.
+- First-run onboarding has a sixth and final spotlight. It navigates from Home
+  to the real Settings installation row and invokes that same installation
+  path; no duplicate or ornamental install control exists.
+- All runtime public paths support the GitHub Pages project base
+  `/Ex-Libris/`, including the manifest, icons, service worker, illustrations,
+  share target, route fallback, and optional catalogue download.
+- `.github/workflows/pages.yml` builds the project site on `master`. The ignored
+  261.1-MiB production SQLite file is represented by 66 checked 4-MiB-or-smaller
+  parts under `deployment/corpus/`; CI reassembles and verifies the exact
+  273,784,832 bytes before upload. The AniList/MangaDex fixture remains ignored
+  and cannot ship.
+- `README.md` is a concise first-person project introduction, install note,
+  privacy/backups warning, local setup, and acknowledgements. It does not claim
+  the software was authored by an automated system.
 
-**Built in Phase 1 so far:** the splash, the welcome screen, the bookplate, Home
-(Continue strip, Shelves, Everything row, the three figures, the theme
-switches), the format screen with sort and status filter, book detail, the
-status picker, the edit sheet, the reading-session sheet, the genre editor, the
-add-by-hand sheet, the drawer, the bottom nav, the FAB and its two doors, and
-Trash with restore, per-item purge and empty.
+No dependency, Dexie migration, corpus row/source/licence change, immutable
+design edit, speculative feature, or unrelated refactor was added.
 
-Also built: the Wishlist with Surprise me, Settings as a ruled ledger (owner
-name, theme, default views, export, storage, content warnings), and About. Three
-of the four nav tabs are real screens now; only Stats shows the placeholder.
+## Verification evidence
 
-**Still to build in Phase 1:** the Everything screen with its genre filter, the
-four-step spotlight tour after the bookplate, tag editing and tag housekeeping
-(B9), and manual series and universe editing (B5). Per-axis entry (B4) belongs
-with the axes in Phase 6. The unbuilt screens land on a mono-voiced "not built
-yet · phase N" panel rather than a plausible-looking empty state, so the app
-never claims to do something it cannot.
+- Focused strict TypeScript and production Pixel 7 install journeys passed.
+  Native-prompt acceptance, Installed status, completed-tour persistence, and
+  manual fallback are covered.
+- Explicitly inspected `.impeccable/review/release-install-*.png` in warm light
+  and blue-grey dark, including the spotlight, native state, manual instructions,
+  and green Installed state. The 192px regular and 512px maskable icons were
+  also inspected after generation.
+- A local `/Ex-Libris/` production build and preview returned HTTP 200 for the
+  app, web manifest, and catalogue manifest. The assembled catalogue was
+  273,784,832 bytes and matched SHA-256
+  `1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7`.
+- Definitive `npm run gate` passed on 2026-09-13: formatting, lint, strict
+  TypeScript, frozen token/taxonomy checks across 96 source files, 207/207 unit
+  tests in 20 files, 47/47 production Pixel 7 E2E tests, and the production PWA
+  build.
+- Final local application JS is `index-BNZBCYIL.js`, 621.67 kB raw / 180.73 kB
+  gzip; CSS is `index-DXm9LgQ2.css`, 24.18 kB / 4.87 kB gzip; worker JS is
+  77.68 kB; FTS5 WASM is 842.76 kB / 411.47 kB gzip. Workbox precaches 82
+  entries / 15,784.70 KiB and excludes catalogue bytes.
+- Public-file audit found zero high-confidence credentials in the current tree
+  and existing Git history. `.env`, local databases, pipeline cache, test output,
+  and visual-review captures are ignored. Broad matches were only deliberate
+  fake values in backup tests that prove keys are excluded.
+- Q-028 remains deferred and explicitly unpassed. Pixel 7 emulation does not
+  measure physical Android storage or CPU.
 
-**Deferred with a reason, not silently:** B1, the manual cover override, moves
-to Phase 4. A user-supplied cover and a fetched one share the same store,
-downscale and colour-extraction path, and building that path twice is how the
-two diverge.
+## Still open
 
-**Phase 2 — the corpus pipeline** lives in `pipeline/` and is run with
-`npm run pipeline`. Nine resumable, checkpointed stages. Zero new dependencies:
-Node 24 ships SQLite 3.50 with FTS5 and the exact tokenizer SCHEMA §10 names,
-and it strips TypeScript natively. AniList and MangaDex have been run for real;
-Open Library and Wikidata are written and verified but not run, because that is
-a 16.2 GB download and the phase gate says to report first. Read
-`docs/PIPELINE-NOTES.md` before touching any of it — especially the section on
-AniList returning the comic rather than the novel.
+- Q-028 is the deferred physical mid-range Android input-to-painted catalogue
+  result.
+- Q-029 is an unapproved, unimplemented empty `More Like This` explanation.
+- Q-013 re-reads remain deferred and undesigned.
 
-Measured on 2026-09-03, not estimated:
+## Next three actions
 
-|                         |                                                                    |
-| ----------------------- | ------------------------------------------------------------------ |
-| unit tests              | 112 passing, 8 files                                               |
-| end-to-end tests        | 11 passing against a production build, as one journey              |
-| structural checks       | 5 passing                                                          |
-| JS bundle               | 396 kB raw, **120.3 kB gzipped** (budget: 250 kB)                  |
-| corpus, sample build    | 3,722 works, 4.6 MB — 1,275 bytes/work, ~608 MB projected at 500k  |
-| corpus typeahead        | 0.15–0.55 ms for a 3-character prefix (budget 50 ms)               |
-| service worker precache | 55 entries, 5.4 MB (mostly the 13 illustrations and 21 font files) |
+1. Stage the audited project paths, inspect the exact staged inventory, commit
+   on the existing `master` branch, add the owner's public GitHub remote, and
+   push without rewriting history.
+2. Watch the GitHub Pages workflow. If GitHub asks for one repository setting,
+   enable Pages with `GitHub Actions` as its source; then verify the public URL,
+   manifest, icons, service worker, app start, and catalogue manifest.
+3. Record the actual commit, workflow, public URL, and any remaining owner step
+   here and in `progress.md`; commit and push that durable release record. Do not
+   start an undocumented product phase.
 
----
+## Environment and repository hazards
 
-## How to run it
+- The current working tree intentionally contains the complete uncommitted
+  Phase 2–10 implementation. It has been audited as one public release unit. Do
+  not reset, clean, discard, or split away earlier phase work.
+- Nothing is committed, pushed, or deployed at this checkpoint. The owner has
+  explicitly authorized all three operations to the supplied public repository.
+- Run Git, npm, and tests from `H:\Ex libris Project\Website`.
+- Ports 5173 and 4173 are stopped. Never build while either serves this
+  repository; host the exact gate build on 4173 after Git work if local review
+  is still useful.
+- `public/corpus/` and `pipeline/.cache/` are deliberately ignored. Only the
+  production checksummed parts in `deployment/corpus/` belong in Git.
+- Existing Vite warnings about the main chunk size and mixed static/dynamic
+  `dates.ts` import are non-blocking and unchanged in kind.
+- The optional local `impeccable` engine binary is absent. The release review
+  used its complete documented manual criteria; do not install it without owner
+  instruction.
 
+```text
+npm run gate
+$env:VITE_BASE_PATH='/Ex-Libris/'; npm run build
+npm run pages:corpus:assemble
 ```
-cd "H:\Ex libris Project\Website"
-npm install          # first time only
-npm run dev          # http://localhost:5173
-npm run gate         # the full gate — must pass before anything is "done"
-```
-
-Other scripts: `npm run build`, `npm run preview`, `npm run test:watch`,
-`npm run icons` (regenerates the three PNG app icons from `scripts/icon.svg`),
-`npm run pipeline` (the corpus pipeline — read `docs/PIPELINE-NOTES.md` first).
-
-**The gate is one chain and it is not optional:**
-
-```
-format:check → lint → typecheck → check:tokens → unit tests → e2e → build
-```
-
-First run of the e2e suite on a new machine needs `npx playwright install chromium`.
-
-### Environment gotchas — read these before losing an hour
-
-- **Never run `npm run build` while `npm run dev` is running.** The build
-  overwrites what the dev server is serving and the site starts 500ing.
-- **OPFS and the service worker both need a secure context.** `localhost` counts;
-  a bare LAN address like `http://192.168.1.x:5173` does **not**. Opening the dev
-  server on the phone over wi-fi will start, and then silently persist nothing.
-  To test on the phone properly, use a tunnel that terminates TLS, or Chrome's
-  `chrome://flags/#unsafely-treat-insecure-origin-as-secure` with the LAN origin
-  added. This is the single biggest difference between testing here and testing
-  on the device.
-- **Heredocs are unreliable in this shell.** Write source files with an editor
-  tool, not `cat > file <<EOF`. Multi-line commit messages go in a file and use
-  `git commit -F`.
-- **Prettier must never touch `src/styles/tokens.css` or
-  `src/data/taxonomy.json`.** Both are in `.prettierignore`; both are verbatim
-  copies of the design contract and formatting them counts as drift.
-  `npm run check:tokens` fails if either drifts.
-
----
-
-## How it is laid out
-
-```
-design/            The handoff package from Claude Design, vendored verbatim.
-                   NEVER EDITED. It is the contract, and check:tokens proves
-                   the copies in src/ still match it.
-docs/              These files. ENGINE-BRIEF.md is the original brief;
-                   PIPELINE-NOTES.md is required reading before running the
-                   corpus pipeline.
-pipeline/          The build-time corpus pipeline. NOT part of the app bundle —
-                   nothing in src/ imports it, and the bundle hash is unchanged
-                   by its presence. Run with `npm run pipeline`.
-scripts/           check-tokens.mjs (structural gate), make-icons.mjs, icon.svg
-src/db/            schema.ts (the contract as types), db.ts (Dexie +
-                   migrations), keys.ts (sort keys), dates.ts (local calendar)
-src/storage/       opfs.ts, persist.ts
-src/router/        router.ts — screens, sheets, and the Android back gesture
-src/data/          taxonomy.json (verbatim) + taxonomy.ts (typed accessors)
-src/styles/        tokens.css (verbatim) + base.css (ported from the prototype)
-src/ui/            App.tsx (Phase 0 panel, deleted in Phase 1), theme.ts
-tests/unit/        vitest, against fake-indexeddb
-tests/e2e/         playwright, against a production build on localhost:4173
-```
-
----
-
-## Rules this codebase holds itself to
-
-1. **The design package is the contract.** `design/` is never edited. Anything
-   in `src/` copied from it is byte-compared by `check:tokens`. If the design
-   needs to change, that goes to the owner first.
-2. **Nothing hardcodes a colour or a duration.** `check:tokens` scans every
-   source file and fails on a literal hex or `NNNms`. Use tokens.
-3. **Nothing derives a calendar day by slicing an ISO string.** Storage is UTC;
-   every question the app asks is local. Use `localDay` / `localYear` /
-   `yearsTracked` from `src/db/dates.ts`. `check:tokens` enforces this.
-4. **A migration may only add.** `MIGRATIONS` in `src/db/db.ts` is the single
-   list; append, never edit a shipped entry. A missing field must resolve to the
-   behaviour that user already had, decided in the upgrade function, not at
-   every read site.
-5. **Collecting nothing is a failure.** `check:tokens` fails if it scans zero
-   files; vitest fails if it finds no tests.
-6. **Every test has been watched to fail.** See `progress.md` for the list of
-   defects that were reintroduced to prove it.
-
----
-
-## The next three concrete actions
-
-1. **Answer Q-023, the corpus size ceiling.** A real build measured 1,275 bytes
-   per work, projecting to ~608 MB at 500k — three to six times the brief's
-   guess. Three options are laid out in `OPEN-QUESTIONS.md`; nothing else in
-   Phase 2 should run until one is picked, because a full `acquire` is 16.2 GB
-   and hours.
-2. **Finish Phase 1's remaining screens.** Tag editing and housekeeping (B9),
-   manual series and universe editing (B5), the Everything screen with its genre
-   filter, and the four-step spotlight tour. `repo.setSeries`, `seriesByName`,
-   `tagByName` and `refreshTagCounts` all exist and are tested; what is missing
-   is the UI.
-3. **Phase 3 must show `format_hint` in the add flow.** Not a nicety — see
-   PIPELINE-NOTES. AniList returns a 96-chapter manhua for "Reverend Insanity"
-   where the novel is 2,334 chapters, so a match offered without its format
-   hands the reader a number wrong by 24x.
-
----
-
-## Anything broken or half-finished
-
-Nothing is broken. Beyond the Phase 1 list above, two things are deliberately
-dormant and documented:
-
-- `work.rating` exists in the type and no screen sets it. The six axes do the
-  job; the field stays so a restored backup from any build is not lossy.
-- `work.isTranslated` exists and no control sets it. See Q-017 — the owner
-  deferred the translation axis and the two readings of that answer differ.
-
-The app icon in `public/icons/` is assembled from the bookplate frame in the
-design package because Claude Design never produced one. It is conservative and
-correct, and it wants the owner's eye (Q-018).
-
-**One design behaviour to raise with the owner, not a bug:** a work whose
-position reaches its published count renders its progress as "Chapter 2,334
-published" with a full segmented track — the design's own rule (D-009, D-105) —
-while the status pill still reads whatever is stored, usually Reading. Both
-statements are true and the screen makes the reader reconcile them. Recorded as
-Q-022 rather than changed, because it is a design decision and not mine.

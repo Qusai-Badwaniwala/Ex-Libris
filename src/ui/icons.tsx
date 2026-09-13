@@ -74,6 +74,21 @@ export function Search({ size = 16, color = 'var(--text-muted)' }: IconProps) {
   );
 }
 
+export function Filter({ size = 14, color = 'currentColor' }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 14 14"
+      stroke={color}
+      aria-hidden="true"
+      {...stroke}
+    >
+      <path d="M1 3h12M3 7h8M5 11h4" />
+    </svg>
+  );
+}
+
 export function Sun({ size = 17, color = 'currentColor' }: IconProps) {
   return (
     <svg
@@ -162,6 +177,21 @@ export function BackupIcon({ size = 16, color = 'var(--text-secondary)' }: IconP
       {...stroke}
     >
       <path d="M8 2v8M5 7l3 3 3-3M3 13h10" />
+    </svg>
+  );
+}
+
+export function CatalogueIcon({ size = 16, color = 'var(--text-secondary)' }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      stroke={color}
+      aria-hidden="true"
+      {...stroke}
+    >
+      <path d="M2.5 3.2c1.8-.8 3.7-.5 5.5.8v9c-1.8-1.3-3.7-1.6-5.5-.8zM13.5 3.2c-1.8-.8-3.7-.5-5.5.8v9c1.8-1.3 3.7-1.6 5.5-.8z" />
     </svg>
   );
 }
@@ -261,6 +291,21 @@ export function Close({ size = 14, color = 'currentColor' }: IconProps) {
       {...stroke}
     >
       <path d="M2 2l10 10M12 2L2 12" />
+    </svg>
+  );
+}
+
+export function Check({ size = 16, color = 'currentColor' }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      stroke={color}
+      aria-hidden="true"
+      {...stroke}
+    >
+      <path d="M2.5 8.2l3.4 3.4 7.6-7.4" />
     </svg>
   );
 }

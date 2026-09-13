@@ -7,19 +7,9 @@
  * (D-076). Dark needs roughly a third of light's value, and both live in
  * tokens.css as `--art-line` and `--art-dot`.
  */
-export function Constellation() {
-  return (
-    <svg
-      viewBox="0 0 800 800"
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        top: '-6%',
-        left: '-34%',
-        width: '168%',
-        pointerEvents: 'none',
-      }}
-    >
+export function Constellation({ full = false }: { full?: boolean }) {
+  const motif = (
+    <>
       <g fill="none" stroke="var(--art-line)" strokeWidth="2.1">
         <path d="M769 229L1037 260.9M927 880L731 737 520 660 309 538 40 599 295 764 126.5 879.5 40 599-197 493 102 382-31 229 126.5 79.5-69-63" />
         <path d="M-31 229L237 261 390 382 603 493 308.5 537.5 101.5 381.5M370 905L295 764" />
@@ -47,6 +37,26 @@ export function Constellation() {
           <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="8" />
         ))}
       </g>
+    </>
+  );
+
+  return (
+    <svg
+      viewBox={full ? '0 0 800 1600' : '0 0 800 800'}
+      preserveAspectRatio={full ? 'xMidYMid slice' : 'xMidYMid meet'}
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        top: full ? 0 : '-6%',
+        bottom: full ? 0 : undefined,
+        left: '-34%',
+        width: '168%',
+        height: full ? '100%' : undefined,
+        pointerEvents: 'none',
+      }}
+    >
+      {motif}
+      {full ? <g transform="translate(800 1600) rotate(180)">{motif}</g> : null}
     </svg>
   );
 }

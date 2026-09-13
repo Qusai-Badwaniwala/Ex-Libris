@@ -55,6 +55,13 @@ describe('creating a work', () => {
     const w = await novel({ genres: [1, 4, 8] });
     expect(w.genres).toEqual([1, 4]);
   });
+
+  it('treats a remote cover URL as a lead until a local OPFS cover is committed', async () => {
+    const w = await novel({ coverRemoteUrl: 'https://covers.openlibrary.org/b/id/42-L.jpg' });
+    expect(w.coverRemoteUrl).toBe('https://covers.openlibrary.org/b/id/42-L.jpg');
+    expect(w.coverSource).toBe('none');
+    expect(w.coverPath).toBeUndefined();
+  });
 });
 
 // ── A1 ────────────────────────────────────────────────────────────────────
@@ -108,6 +115,56 @@ describe('changing the status', () => {
   it('refuses caught up on a complete work rather than storing it', async () => {
     const w = await novel({ publicationStatus: 'complete' });
     await expect(repo.setStatus(w.id, 'caught_up')).rejects.toThrow(/not offered/);
+  });
+
+  it('clears ending facts when a mistaken finish is corrected but keeps the other axes', async () => {
+    const w = await novel({ status: 'finished' });
+    await repo.saveAxisRating(w.id, { protagonist: 4, endingNone: true, translation: 2 });
+    await repo.setStatus(w.id, 'reading');
+    expect(await db.axisRating.get(w.id)).toMatchObject({
+      workId: w.id,
+      protagonist: 4,
+      translation: 2,
+    });
+    expect((await db.axisRating.get(w.id))?.ending).toBeUndefined();
+    expect((await db.axisRating.get(w.id))?.endingNone).toBeUndefined();
+  });
+});
+
+describe('rating the reading axes', () => {
+  it('stores a partial profile, including the always-available Translation axis', async () => {
+    const w = await novel();
+    await repo.saveAxisRating(w.id, { protagonist: 5, translation: 2 });
+    expect(await db.axisRating.get(w.id)).toMatchObject({
+      workId: w.id,
+      protagonist: 5,
+      translation: 2,
+    });
+  });
+
+  it('refuses both forms of ending until the work is Finished', async () => {
+    const w = await novel();
+    await expect(repo.saveAxisRating(w.id, { ending: 3 })).rejects.toThrow(/Finished/);
+    await expect(repo.saveAxisRating(w.id, { endingNone: true })).rejects.toThrow(/Finished/);
+    expect(await db.axisRating.get(w.id)).toBeUndefined();
+  });
+
+  it('keeps Ending and Unfinished mutually exclusive', async () => {
+    const w = await novel({ status: 'finished' });
+    await repo.saveAxisRating(w.id, { ending: 5 });
+    expect(await db.axisRating.get(w.id)).toMatchObject({ ending: 5 });
+    await repo.saveAxisRating(w.id, { endingNone: true });
+    expect(await db.axisRating.get(w.id)).toMatchObject({ endingNone: true });
+    expect((await db.axisRating.get(w.id))?.ending).toBeUndefined();
+    await repo.saveAxisRating(w.id, { ending: 2 });
+    expect((await db.axisRating.get(w.id))?.endingNone).toBeUndefined();
+  });
+
+  it('deletes the empty axis row when its last value is cleared', async () => {
+    const w = await novel();
+    await repo.saveAxisRating(w.id, { prose: 3 });
+    await repo.saveAxisRating(w.id, { prose: undefined });
+    expect(await db.axisRating.get(w.id)).toBeUndefined();
   });
 });
 
@@ -358,9 +415,136 @@ describe('tags', () => {
     await repo.purgeWork(w.id);
     expect((await db.tag.get(tag.id))?.usageCount).toBe(0);
   });
+
+  it('renames a tag without changing its identity or links', async () => {
+    const tag = await repo.tagByName('Dark fantasy');
+    const work = await novel({ tagIds: [tag.id] });
+    await repo.refreshTagCounts();
+
+    const result = await repo.renameOrMergeTag(tag.id, 'Shadow fantasy');
+
+    expect(result.kind).toBe('renamed');
+    expect(result.tag).toMatchObject({ id: tag.id, name: 'Shadow fantasy' });
+    expect((await db.work.get(work.id))?.tagIds).toEqual([tag.id]);
+  });
+
+  it('merges an exact destination transactionally across works and notes', async () => {
+    const source = await repo.tagByName('Dark fantasy');
+    const destination = await repo.tagByName('Grimdark');
+    const work = await novel({ tagIds: [source.id, destination.id] });
+    const note = await repo.createNote({
+      body: 'Two names for one idea.',
+      tagNames: [source.name],
+    });
+
+    const result = await repo.renameOrMergeTag(source.id, 'Grimdark');
+
+    expect(result.kind).toBe('merged');
+    expect(await db.tag.get(source.id)).toBeUndefined();
+    expect((await db.work.get(work.id))?.tagIds).toEqual([destination.id]);
+    expect((await db.note.get(note.id))?.tagIds).toEqual([destination.id]);
+    expect((await db.tag.get(destination.id))?.usageCount).toBe(2);
+  });
+
+  it('deletes only tags with no active or Trash references', async () => {
+    const unused = await repo.tagByName('Unused');
+    await repo.deleteUnusedTag(unused.id);
+    expect(await db.tag.get(unused.id)).toBeUndefined();
+
+    const retained = await repo.tagByName('Retained in Trash');
+    const work = await novel({ tagIds: [retained.id] });
+    await repo.softDeleteWork(work.id);
+    const rows = await repo.listTagsForMaintenance();
+    expect(rows.find((row) => row.tag.id === retained.id)).toMatchObject({
+      activeUses: 0,
+      trashUses: 1,
+    });
+    await expect(repo.deleteUnusedTag(retained.id)).rejects.toThrow(
+      'This tag is still attached to something.',
+    );
+  });
 });
 
 // ── display ───────────────────────────────────────────────────────────────
+
+describe('plain-text notes', () => {
+  it('creates, updates, and orders notes by the last saved change', async () => {
+    const first = await repo.createNote({ title: ' First thought ', body: 'A margin note.' });
+    const second = await repo.createNote({ body: 'A loose note.' });
+
+    expect(first.title).toBe('First thought');
+    expect(second.title).toBeUndefined();
+    await db.note.update(second.id, { updatedAt: '2020-01-01T00:00:00.000Z' });
+    await repo.updateNote(first.id, { title: '', body: 'Rewritten.' });
+
+    const notes = await repo.listNotes();
+    expect(notes.map((note) => note.id)).toEqual([first.id, second.id]);
+    expect(notes[0]?.title).toBeUndefined();
+    expect(notes[0]?.body).toBe('Rewritten.');
+  });
+
+  it('does not overwrite a missing note', async () => {
+    await expect(repo.updateNote('missing', { body: 'No.' })).rejects.toThrow(
+      'Note missing does not exist.',
+    );
+  });
+
+  it('saves pinning, tags, and two work attachments as one note transaction', async () => {
+    const firstWork = await novel({ title: 'The First Ledger' });
+    const secondWork = await novel({ title: 'The Second Ledger' });
+    const loose = await repo.createNote({ body: 'Loose and newer.' });
+    const linked = await repo.createNote({
+      title: 'A route through both books',
+      body: 'Read the marginalia together.',
+      pinned: true,
+      tagNames: ['Memory', 'A private tag'],
+      workIds: [firstWork.id, secondWork.id],
+    });
+
+    expect((await repo.listNotes()).map((note) => note.id)).toEqual([linked.id, loose.id]);
+    const context = await repo.getNoteContext(linked.id);
+    expect(context?.works.map((work) => work.title).sort()).toEqual([
+      'The First Ledger',
+      'The Second Ledger',
+    ]);
+    expect(context?.tags.map((tag) => tag.name)).toEqual(['Memory', 'A private tag']);
+    expect((await db.tag.where('normalizedName').equals('memory').first())?.usageCount).toBe(1);
+  });
+
+  it('rolls a new note, its new tag, and all links back when one attachment is gone', async () => {
+    const work = await novel({ title: 'Still present' });
+    await expect(
+      repo.createNote({
+        body: 'This draft must not partly land.',
+        tagNames: ['Rollback tag'],
+        workIds: [work.id, 'missing-work'],
+      }),
+    ).rejects.toThrow('no longer exists');
+
+    expect(await db.note.count()).toBe(0);
+    expect(await db.noteLink.count()).toBe(0);
+    expect(await db.tag.where('normalizedName').equals('rollback tag').count()).toBe(0);
+  });
+
+  it('moves a note through Trash without losing its links, then removes both permanently', async () => {
+    const work = await novel();
+    const note = await repo.createNote({
+      body: 'Keep the link if I change my mind.',
+      workIds: [work.id],
+    });
+    await repo.softDeleteNote(note.id);
+    expect(await repo.listNotes()).toHaveLength(0);
+    expect(await repo.listDeletedNotes()).toHaveLength(1);
+    expect(await db.noteLink.count()).toBe(1);
+
+    await repo.restoreNote(note.id);
+    expect(await repo.listNotes()).toHaveLength(1);
+    await repo.softDeleteNote(note.id);
+    await repo.purgeNote(note.id);
+    expect(await db.note.count()).toBe(0);
+    expect(await db.noteLink.count()).toBe(0);
+  });
+});
 
 describe('what a screen paints', () => {
   const base = (over: Partial<Work>): Work =>

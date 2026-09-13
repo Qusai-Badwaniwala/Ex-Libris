@@ -2,10 +2,19 @@ import { useMemo, useState } from 'react';
 import { nav } from '../../router/router';
 import { caption, displayM, label, resetButton, tabular } from '../styles';
 import { ChevronLeft, ListView, SpineView } from '../icons';
-import { Cover, EmptyState, GenreChipsCompact, ProgressBar, Segmented, Sheet } from '../components';
+import {
+  Cover,
+  EmptyState,
+  GenreChipsCompact,
+  ProgressBar,
+  Segmented,
+  Sheet,
+  ShelfMarker,
+} from '../components';
 import { STATUS_LABEL, displayWork } from '../../db/derive';
-import { useShelf, type WorkWithAuthor } from '../store';
+import { useShelf } from '../store';
 import type { Format as FormatKey, ReadingStatus } from '../../db/schema';
+import { SORTS, sortWorks, type SortKey } from '../work-sort';
 
 /**
  * The format screen — one shelf.
@@ -29,39 +38,7 @@ const EMPTY_COPY: Record<FormatKey, { head: string; cta: string }> = {
   manhwa: { head: 'No manhwa yet', cta: 'Add a manhwa' },
 };
 
-export type SortKey = 'recent' | 'title' | 'progress' | 'added';
-
-const SORTS: { value: SortKey; label: string; note: string }[] = [
-  { value: 'recent', label: 'Last read', note: 'What you touched most recently, first.' },
-  { value: 'added', label: 'Date added', note: 'Newest addition first.' },
-  { value: 'title', label: 'Title', note: 'Alphabetical, ignoring a leading The or A.' },
-  { value: 'progress', label: 'Progress', note: 'Furthest through, first.' },
-];
-
 type StatusFilter = 'all' | ReadingStatus;
-
-export function sortWorks(rows: WorkWithAuthor[], by: SortKey): WorkWithAuthor[] {
-  const out = [...rows];
-  switch (by) {
-    case 'title':
-      return out.sort((a, b) => a.work.sortTitle.localeCompare(b.work.sortTitle));
-    case 'added':
-      return out.sort((a, b) => b.work.dateAdded.localeCompare(a.work.dateAdded));
-    case 'progress':
-      // Works with no total have no fraction to compare, so they sort by raw
-      // position among themselves and below anything measurable. Inventing a
-      // denominator to rank them would be the same lie as inventing a bar.
-      return out.sort((a, b) => fraction(b.work) - fraction(a.work));
-    case 'recent':
-    default:
-      return out.sort((a, b) => b.work.updatedAt.localeCompare(a.work.updatedAt));
-  }
-}
-
-function fraction(w: WorkWithAuthor['work']): number {
-  if (!w.progressTotal) return -1;
-  return Math.min(1, w.progressCurrent / w.progressTotal);
-}
 
 export function Format({ format }: { format: FormatKey }) {
   const rows = useShelf(format);
@@ -85,6 +62,9 @@ export function Format({ format }: { format: FormatKey }) {
     status === 'all'
       ? SORTS.find((s) => s.value === sort)!.label
       : `${STATUS_LABEL[status]} · ${SORTS.find((s) => s.value === sort)!.label}`;
+  const markerColors = (rows ?? [])
+    .slice(0, 3)
+    .map(({ work }) => work.coverDominantColor ?? 'var(--cover-fallback)');
 
   return (
     <div
@@ -120,6 +100,7 @@ export function Format({ format }: { format: FormatKey }) {
         >
           <ChevronLeft />
         </button>
+        <ShelfMarker colors={markerColors} compact />
         <div style={{ ...displayM, flex: 1 }}>{SHELF_NAME[format]}</div>
         <div
           style={{
@@ -191,7 +172,7 @@ export function Format({ format }: { format: FormatKey }) {
       {rows === undefined ? null : shown.length === 0 ? (
         <div style={{ padding: '0 var(--page-gutter)', display: 'flex', minHeight: '50vh' }}>
           <EmptyState
-            art={status === 'all' ? '/illustrations/library-rafiki.svg' : undefined}
+            art={status === 'all' ? 'library-rafiki' : undefined}
             artWidth="84%"
             head={
               status === 'all'
@@ -227,7 +208,7 @@ export function Format({ format }: { format: FormatKey }) {
                   borderTop: 'var(--hairline-width) solid var(--hairline)',
                 }}
               >
-                <Cover color={d.coverColor} width={44} height={66} />
+                <Cover color={d.coverColor} path={work.coverPath} width={44} height={66} />
                 <div
                   style={{
                     flex: 1,

@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Dexie from 'dexie';
-import { ExLibrisDB, MIGRATIONS, defaultSettings } from '../../src/db/db';
+import {
+  db as appDb,
+  ExLibrisDB,
+  loadSettings,
+  MIGRATIONS,
+  defaultSettings,
+} from '../../src/db/db';
 import { newId, nowIso, normalizeTag } from '../../src/db/keys';
 import type { Tag, Work } from '../../src/db/schema';
 
@@ -123,7 +129,7 @@ describe('the migration harness', () => {
     const upgraded = new Dexie(name);
     for (const m of MIGRATIONS) upgraded.version(m.version).stores(m.stores);
     upgraded
-      .version(2)
+      .version(MIGRATIONS[MIGRATIONS.length - 1]!.version + 1)
       .stores({ work: `${MIGRATIONS[0]!.stores['work']}, shelfNote` })
       .upgrade(async (tx) => {
         await tx
@@ -135,7 +141,7 @@ describe('the migration harness', () => {
       });
     await upgraded.open();
 
-    expect(upgraded.verno).toBe(2);
+    expect(upgraded.verno).toBe(MIGRATIONS[MIGRATIONS.length - 1]!.version + 1);
     const after = await upgraded.table('work').get(w.id);
     expect(after.title).toBe('The Verdigris Ledger');
     expect(after.shelfNote).toBe('migrated');
@@ -144,6 +150,22 @@ describe('the migration harness', () => {
 });
 
 describe('default settings', () => {
+  it('serializes simultaneous first loads into one singleton row', async () => {
+    appDb.close();
+    await Dexie.delete('ex-libris');
+    // close() disables Dexie's automatic reopen. A real fresh app starts with
+    // an unopened database, so explicitly reopen that same state here.
+    await appDb.open();
+    const [first, second] = await Promise.all([loadSettings('0.1.0'), loadSettings('0.1.0')]);
+
+    expect(first.id).toBe('singleton');
+    expect(second.id).toBe('singleton');
+    expect(await appDb.settings.count()).toBe(1);
+
+    appDb.close();
+    await Dexie.delete('ex-libris');
+  });
+
   it('ships with the model off and content warnings off', () => {
     const s = defaultSettings('0.0.0');
     expect(s.aiEnabled).toBe(false);

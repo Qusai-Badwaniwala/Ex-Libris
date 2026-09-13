@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { nav } from '../../router/router';
 import { caption, displayL, displayS, label, resetButton, tabular } from '../styles';
 import { ChevronLeft } from '../icons';
-import { APP_VERSION, useSettings } from '../store';
+import { APP_VERSION } from '../store';
+import type { Settings } from '../../db/schema';
 import { storageUsage, type StorageUsage } from '../../storage/opfs';
 import { localDay } from '../../db/dates';
 import { LEAF_GRADIENT } from '../design-literals';
+import { Illustration } from '../illustration';
 
 /**
  * About — the bookplate, kept.
@@ -17,12 +19,14 @@ import { LEAF_GRADIENT } from '../design-literals';
  * The owner's name is edited in Settings rather than here (B7): About is a
  * plate, and a plate is read rather than filled in.
  */
-export function About() {
-  const { settings } = useSettings();
+export function About({ settings }: { settings: Settings }) {
   const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [usageError, setUsageError] = useState(false);
 
   useEffect(() => {
-    void storageUsage().then(setUsage);
+    void storageUsage()
+      .then(setUsage)
+      .catch(() => setUsageError(true));
   }, []);
 
   return (
@@ -64,14 +68,15 @@ export function About() {
           padding: 'var(--space-5) 0 var(--space-6)',
         }}
       >
-        <img
-          src="/illustrations/magic-tree-cuate.svg"
-          alt=""
+        <Illustration
+          name="magic-tree-cuate"
           style={{ width: '72%', maxWidth: 260, marginBottom: 'var(--space-5)' }}
         />
-        <div style={displayL}>Ex Libris</div>
+        <h1 style={{ ...displayL, margin: 0 }}>Ex Libris</h1>
         <div style={{ ...label, margin: 'var(--space-3) 0 var(--space-1)' }}>From the books of</div>
-        <div style={displayS}>{settings?.ownerName ?? 'no name yet'}</div>
+        <div style={{ ...displayS, overflowWrap: 'anywhere', maxWidth: '100%' }}>
+          {settings.ownerName ?? 'no name yet'}
+        </div>
         <div
           style={{
             ...label,
@@ -90,15 +95,21 @@ export function About() {
       <Row label="Version" value={APP_VERSION} />
       <Row
         label="Search index"
-        value={settings?.corpusVersion ? `v${settings.corpusVersion}` : 'not installed'}
+        value={settings.corpusVersion ? `v${settings.corpusVersion}` : 'not installed'}
       />
       <Row
         label="Kept on"
-        value={settings?.firstTrackedAt ? localDay(settings.firstTrackedAt) : '—'}
+        value={settings.firstTrackedAt ? localDay(settings.firstTrackedAt) : '—'}
       />
       <Row
         label="Storage used"
-        value={usage && usage.quotaBytes > 0 ? `${(usage.usedBytes / 1048576).toFixed(1)} MB` : '—'}
+        value={
+          usageError
+            ? 'unavailable'
+            : usage && usage.quotaBytes > 0
+              ? `${(usage.usedBytes / 1048576).toFixed(1)} MB`
+              : '—'
+        }
       />
       <div style={{ borderTop: 'var(--hairline-width) solid var(--hairline)' }} />
 
@@ -135,7 +146,18 @@ function Row({ label: text, value }: { label: string; value: string }) {
       <span style={{ flex: 1, fontSize: 'var(--size-body)', lineHeight: 'var(--lh-body)' }}>
         {text}
       </span>
-      <span style={{ ...caption, ...tabular, color: 'var(--text-secondary)' }}>{value}</span>
+      <span
+        style={{
+          ...caption,
+          ...tabular,
+          color: 'var(--text-secondary)',
+          maxWidth: '58%',
+          textAlign: 'right',
+          overflowWrap: 'anywhere',
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

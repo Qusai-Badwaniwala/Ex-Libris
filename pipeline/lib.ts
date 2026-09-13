@@ -6,6 +6,7 @@ import {
   readFileSync,
   renameSync,
   statSync,
+  truncateSync,
   writeFileSync,
 } from 'node:fs';
 import { createInterface } from 'node:readline';
@@ -89,19 +90,40 @@ export function writeAtomic(path: string, data: string | Buffer): void {
 export class JsonlWriter {
   private stream;
   private count = 0;
+  private bytes: number;
 
   constructor(path: string, append = false) {
     mkdirSync(dirname(path), { recursive: true });
+    this.bytes = append && existsSync(path) ? statSync(path).size : 0;
     this.stream = createWriteStream(path, { flags: append ? 'a' : 'w' });
   }
 
   write(row: unknown): void {
-    this.stream.write(`${JSON.stringify(row)}\n`);
+    const line = `${JSON.stringify(row)}\n`;
+    this.stream.write(line);
     this.count++;
+    this.bytes += Buffer.byteLength(line);
   }
 
   get written(): number {
     return this.count;
+  }
+
+  /** Number of bytes that will exist after all queued writes land. */
+  get writtenBytes(): number {
+    return this.bytes;
+  }
+
+  /**
+   * Wait until every earlier write has reached the file before publishing a
+   * checkpoint that promises those bytes exist. Without this boundary a crash
+   * can leave the cursor ahead of the JSONL and make a resume silently skip
+   * source rows.
+   */
+  async flush(): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      this.stream.write('', (error) => (error ? reject(error) : resolve()));
+    });
   }
 
   async close(): Promise<number> {
@@ -110,6 +132,48 @@ export class JsonlWriter {
     );
     return this.count;
   }
+}
+
+export interface JsonlResumeCursor {
+  /** Last completely transformed source position (line, page, or other unit). */
+  position: number;
+  /** Exact output boundary paired with that position. */
+  outputBytes: number;
+}
+
+/**
+ * Restore an append-only JSONL file to its last committed checkpoint.
+ *
+ * A process can die after output is flushed but before its newer checkpoint is
+ * atomically renamed. Truncating that uncommitted tail prevents the replayed
+ * source interval from being appended twice. If the checkpoint promises more
+ * bytes than are present, restarting is the only lossless response.
+ */
+export function prepareJsonlResume(
+  path: string,
+  cursor: unknown,
+): { append: boolean; position: number } {
+  if (!isJsonlResumeCursor(cursor) || !existsSync(path)) {
+    return { append: false, position: -1 };
+  }
+
+  const bytes = statSync(path).size;
+  if (bytes < cursor.outputBytes) {
+    return { append: false, position: -1 };
+  }
+  if (bytes > cursor.outputBytes) truncateSync(path, cursor.outputBytes);
+  return { append: true, position: cursor.position };
+}
+
+function isJsonlResumeCursor(value: unknown): value is JsonlResumeCursor {
+  if (typeof value !== 'object' || value === null) return false;
+  const cursor = value as Partial<JsonlResumeCursor>;
+  return (
+    Number.isSafeInteger(cursor.position) &&
+    Number(cursor.position) >= 0 &&
+    Number.isSafeInteger(cursor.outputBytes) &&
+    Number(cursor.outputBytes) >= 0
+  );
 }
 
 /** Streams a JSONL file a row at a time. Never loads it into memory. */

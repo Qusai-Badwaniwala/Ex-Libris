@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { checksumFile, CORPUS_CHUNK_BYTES } from './checksum.ts';
 import { OUT, cachePath, human, n, readJsonl, writeAtomic } from './lib.ts';
 import type { CorpusSeries, CorpusUniverse, CorpusWork, StageReport } from './types.ts';
 
@@ -80,12 +80,19 @@ CREATE VIRTUAL TABLE corpus_work_fts USING fts5(
 );
 `;
 
-export async function runBuild(): Promise<StageReport> {
+interface BuildOptions {
+  inputStage?: 'merge' | 'fixture-merge';
+  outputDir?: string;
+}
+
+export async function runBuild(options: BuildOptions = {}): Promise<StageReport> {
   const started = Date.now();
-  const stage = 'build';
+  const inputStage = options.inputStage ?? 'merge';
+  const outputDir = options.outputDir ?? OUT;
+  const stage = inputStage === 'fixture-merge' ? 'fixture-build' : 'build';
   const notes: string[] = [];
 
-  const worksPath = cachePath('merge', 'works.jsonl');
+  const worksPath = cachePath(inputStage, 'works.jsonl');
   if (!existsSync(worksPath)) {
     return {
       stage,
@@ -96,8 +103,8 @@ export async function runBuild(): Promise<StageReport> {
     };
   }
 
-  mkdirSync(OUT, { recursive: true });
-  const dbPath = join(OUT, 'corpus.sqlite');
+  mkdirSync(outputDir, { recursive: true });
+  const dbPath = join(outputDir, 'corpus.sqlite');
   // Rebuild from scratch every time. An incremental build would need a
   // reconciliation step whose only job is to undo a previous run's mistakes.
   for (const f of [dbPath, `${dbPath}-journal`, `${dbPath}-wal`]) {
@@ -157,11 +164,11 @@ export async function runBuild(): Promise<StageReport> {
       }
     }
 
-    for await (const s of readJsonl<CorpusSeries>(cachePath('merge', 'series.jsonl'))) {
+    for await (const s of readJsonl<CorpusSeries>(cachePath(inputStage, 'series.jsonl'))) {
       insertSeries.run(s.id, s.name, s.universe_id, s.total_entries, s.source);
       series++;
     }
-    for await (const u of readJsonl<CorpusUniverse>(cachePath('merge', 'universes.jsonl'))) {
+    for await (const u of readJsonl<CorpusUniverse>(cachePath(inputStage, 'universes.jsonl'))) {
       insertUniverse.run(u.id, u.name, u.description, u.source);
       universes++;
     }
@@ -178,6 +185,15 @@ export async function runBuild(): Promise<StageReport> {
   db.exec('ANALYZE');
   db.exec('VACUUM');
 
+  // FTS5's integrity path uses a special write, so this belongs here while the
+  // database is writable. At runtime the exact checked bytes are opened
+  // immutable after the manifest's chunk hashes have been verified.
+  const integrity = db.prepare('PRAGMA quick_check(1)').get() as
+    { quick_check?: string } | undefined;
+  if (integrity?.quick_check !== 'ok') {
+    throw new Error(`corpus.sqlite failed quick_check: ${integrity?.quick_check ?? 'no result'}`);
+  }
+
   // A real query against the finished file. "It built" and "it answers" are
   // different claims, and only the second one is worth shipping.
   const probe = db
@@ -190,19 +206,51 @@ export async function runBuild(): Promise<StageReport> {
     `FTS probe "sol*" returned ${probe.length}: ${probe.map((p) => p.title).join(' / ') || 'nothing'}`,
   );
 
+  // The current bounded sample contains API data that proved the pipeline but
+  // is not licensed for bulk redistribution. Mark that fact in the artifact,
+  // so the production build can mechanically refuse to ship it. Once the
+  // replacement Open Library/Wikidata corpus is built, this becomes
+  // `production` without a hand-edited flag that someone could forget. Check
+  // both the winning row source and merged external ids: mergeWork is
+  // field-by-field, so a Wikidata-winning row can still contain restricted API
+  // data inherited from the other record.
+  const sourceRows = db
+    .prepare(`SELECT source, COUNT(*) AS count FROM corpus_work GROUP BY source`)
+    .all() as { source: string; count: number }[];
+  const restrictedRows = db
+    .prepare(
+      `SELECT COUNT(*) AS count
+         FROM corpus_work
+        WHERE lower(external_ids) LIKE '%"anilist"%'
+           OR lower(external_ids) LIKE '%"mangadex"%'`,
+    )
+    .get() as { count: number };
+
   db.close();
 
   const bytes = statSync(dbPath).size;
-  const checksum = createHash('sha256').update(readFileSync(dbPath)).digest('hex');
+  const checksum = checksumFile(dbPath);
+  const sourceCounts = Object.fromEntries(sourceRows.map((row) => [row.source, row.count]));
+  const productionSources = new Set(['openlibrary', 'wikidata']);
+  const distribution =
+    restrictedRows.count === 0 && sourceRows.every((row) => productionSources.has(row.source))
+      ? 'production'
+      : 'engineering-fixture';
 
   const manifest = {
+    schema: 1,
     version: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
     builtAt: new Date().toISOString(),
+    file: 'corpus.sqlite',
     bytes,
-    sha256: checksum,
+    sha256: checksum.sha256,
+    chunkSize: CORPUS_CHUNK_BYTES,
+    chunks: checksum.chunks,
+    distribution,
+    sources: sourceCounts,
     counts: { works, series, universes, withSeries, withCover },
   };
-  writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  writeAtomic(join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
   notes.push(`corpus.sqlite is ${human(bytes)} for ${n(works)} works`);
   notes.push(`${n(withSeries)} works carry a series link, ${n(withCover)} carry a cover id`);
@@ -214,4 +262,9 @@ export async function runBuild(): Promise<StageReport> {
     notes,
     seconds: (Date.now() - started) / 1000,
   };
+}
+
+/** The Playwright corpus is built beside source caches and never overwrites production output. */
+export function runFixtureBuild(): Promise<StageReport> {
+  return runBuild({ inputStage: 'fixture-merge', outputDir: cachePath('fixture-corpus') });
 }
