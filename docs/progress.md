@@ -1325,3 +1325,23 @@ occurred. Phase 10 stops for owner review; there is no authorized later phase.
 
 At this checkpoint nothing has yet been committed, pushed, or deployed. The
 verified public file set is ready for the explicitly authorized Git operation.
+
+## 2026-09-13 — Release commit pushed; Pages setting required
+
+- Committed the complete audited release as
+  `b41ac679f9527cc5a47799852a889c4297c7e3ca` (`Complete Ex Libris PWA and
+prepare phone release`) on `master` and pushed it to the owner's public
+  `Qusai-Badwaniwala/Ex-Libris` repository.
+- GitHub rejected the first push before publishing because the local commit
+  inherited a private email address. The unpushed commit was amended to use the
+  account's GitHub no-reply address, then pushed successfully. The rejected
+  commit is not in remote history and the private address was not published.
+- GitHub Actions run `34745951062` completed the checkout, dependency install,
+  project-site build, and exact production-catalogue reconstruction. It stopped
+  only at `Configure GitHub Pages` because Pages is not yet enabled for this new
+  repository; the deploy job was correctly skipped.
+- The required owner action is one repository setting: **Settings → Pages →
+  Build and deployment → Source → GitHub Actions**. The available in-app browser
+  is not signed in, so it could not make that account-level change. The public
+  app URL is not reported as live until a fresh workflow and network checks
+  succeed.

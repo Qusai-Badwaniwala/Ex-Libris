@@ -4,8 +4,8 @@
 
 **Repository:** `H:\Ex libris Project\Website`
 
-**Active checkpoint:** Phase 10 accepted; verified public phone-release files
-ready to commit and publish
+**Active checkpoint:** Phase 10 accepted; release commit pushed; GitHub Pages
+needs the owner's one-time repository setting
 
 Read `OPEN-QUESTIONS.md`, `EXECUTION-PLAN.md`, and `DESIGN-STATE.md` before
 changing anything. The immutable Claude package under `design/`, frozen
@@ -80,6 +80,14 @@ design edit, speculative feature, or unrelated refactor was added.
   fake values in backup tests that prove keys are excluded.
 - Q-028 remains deferred and explicitly unpassed. Pixel 7 emulation does not
   measure physical Android storage or CPU.
+- Commit `b41ac679f9527cc5a47799852a889c4297c7e3ca` is pushed to
+  `origin/master` at the public
+  `https://github.com/Qusai-Badwaniwala/Ex-Libris` repository. Its author and
+  committer use GitHub's verified-format no-reply address; the first rejected
+  attempt published nothing and the private email is absent from Git history.
+- GitHub Actions run `34745951062` built through the corpus reconstruction, then
+  failed only at `Configure GitHub Pages` because Pages is not enabled for this
+  new repository. The deploy job was skipped; no public app URL is live yet.
 
 ## Still open
 
@@ -90,23 +98,25 @@ design edit, speculative feature, or unrelated refactor was added.
 
 ## Next three actions
 
-1. Stage the audited project paths, inspect the exact staged inventory, commit
-   on the existing `master` branch, add the owner's public GitHub remote, and
-   push without rewriting history.
-2. Watch the GitHub Pages workflow. If GitHub asks for one repository setting,
-   enable Pages with `GitHub Actions` as its source; then verify the public URL,
-   manifest, icons, service worker, app start, and catalogue manifest.
-3. Record the actual commit, workflow, public URL, and any remaining owner step
-   here and in `progress.md`; commit and push that durable release record. Do not
-   start an undocumented product phase.
+1. Owner opens the repository's **Settings → Pages**, changes **Build and
+   deployment → Source** to **GitHub Actions**, and reports that it is done. This
+   is the only current external blocker; the unauthenticated in-app browser
+   cannot change repository settings.
+2. Trigger and watch a fresh Pages workflow, then verify the public URL,
+   manifest, icons, service worker, app start, share fallback, and production
+   catalogue manifest from the network.
+3. Record the successful workflow and public URL here and in `progress.md`,
+   commit and push that final durable release record, and give the owner the
+   detailed first-time phone guide. Do not start an undocumented product phase.
 
 ## Environment and repository hazards
 
-- The current working tree intentionally contains the complete uncommitted
-  Phase 2–10 implementation. It has been audited as one public release unit. Do
-  not reset, clean, discard, or split away earlier phase work.
-- Nothing is committed, pushed, or deployed at this checkpoint. The owner has
-  explicitly authorized all three operations to the supplied public repository.
+- Commit `b41ac67` contains the complete Phase 2–10 implementation as one
+  audited public release unit. Do not reset, clean, discard, or rewrite its
+  history.
+- The release commit is pushed; Pages is not deployed because the repository
+  setting above is still off. Do not claim that the app URL is live until a
+  fresh workflow succeeds and the network checks pass.
 - Run Git, npm, and tests from `H:\Ex libris Project\Website`.
 - Ports 5173 and 4173 are stopped. Never build while either serves this
   repository; host the exact gate build on 4173 after Git work if local review
