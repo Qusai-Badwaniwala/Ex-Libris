@@ -1441,3 +1441,18 @@ the preview command, without changing application code. Browser review covered
 360x640 and 390x844, all tour steps, replay, clear light/dark selections, real
 manual save and Codex/detail navigation. No runtime errors were captured.
 Only a clearly labelled disposable record was created on the local origin.
+
+Committed application release 4fa9e934eb75698f8eeaa3284cd0c0049a8ce548, fast-forwarded
+the clean production master checkout and pushed normally. Pages run 36963081036
+completed successfully. Public JS/CSS asset names match the reviewed normal
+build; public install/share identity and catalogue checksum/count are preserved.
+A real public-origin browser upgrade first showed the cached original frontend;
+closing/reopening activated the new release with the existing two records and
+onboarding intact. Inspected the live phone Collection/Codex; no runtime errors.
+No local review record was exported or added to the public origin.
+
+Installed the exact lockfile in Website. The refreshed registry audit now reports
+five development-only entries (one high, three moderate, one low), versus two at
+the earlier checkpoint; zero production vulnerabilities. Recorded new transitive
+tooling advisories and a separate targeted maintenance recommendation. No force
+fix, bulk upgrade, or unverified dependency change was made to the gated release.

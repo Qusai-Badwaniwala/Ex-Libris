@@ -44,8 +44,8 @@ This is a bounded source and browser review, not a penetration-test certificate.
 - **Recommendation:** Serialize the read, session insert and progress/status
   update in one transaction; reject non-finite input before writing.
 - **Difficulty / risk:** Medium; both finish paths share this repository action.
-- **Adoption:** Corrected and covered by targeted and journey tests. Public
-  production remains unchanged.
+- **Adoption:** Corrected and covered by targeted and journey tests; published
+  in application release 4fa9e93 on 2026-10-02.
 
 ### H3 — Settings could indicate completion before storage accepted it
 
@@ -243,6 +243,15 @@ This is a bounded source and browser review, not a penetration-test certificate.
 - **Astra:** Same development dependency; not upgraded as part of the redesign.
 
 ## Other review results and limits
+
+The 2026-10-02 refresh after installing the exact release lockfile reports five
+development-only dependency entries (one high, three moderate, one low), while
+`npm audit --omit=dev` reports zero. New transitive tool reports affect
+brace-expansion (GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p),
+fast-uri (GHSA-hrr3-gc8f-f4qj) and serialize-javascript (GHSA-gfhx-hw2g-v5hg).
+These join the earlier Vitest/mocker report above. No shipped-app exploit was
+demonstrated. Recommended follow-up is a targeted compatible tool update with
+the full gate, separately from a major Vitest migration; do not run force fixes.
 
 - No account or server-side authorization boundary exists in this personal
   on-device app. No client-rendered HTML injection sink or bundled credential

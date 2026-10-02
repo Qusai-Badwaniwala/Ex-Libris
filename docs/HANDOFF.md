@@ -1,10 +1,17 @@
-# Ex Libris — Reading Room release preparation
+# Ex Libris — Reading Room publicly released
 
-Updated 2026-10-02. Active checkout: `H:\Ex libris Project\Astra-Redesign`,
-branch `astra/frontend-redesign`. The owner explicitly authorised commit, push
+Updated 2026-10-02. Production checkout: `H:\Ex libris Project\Website`,
+branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
+`astra/frontend-redesign`. The owner explicitly authorised commit, push
 and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
 and subtle Add by hand selection. This supersedes earlier no-publication notes.
 No prescriptive design skills. Preserve deployed data only; never import samples.
+
+**Live:** https://qusai-badwaniwala.github.io/Ex-Libris/
+Application release: `4fa9e934eb75698f8eeaa3284cd0c0049a8ce548`.
+GitHub Pages run [36963081036](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36963081036)
+completed successfully. Both checkouts fast-forwarded from a218b8a; nothing was
+reset or force-pushed. The production checkout's exact dependencies were installed.
 
 ## Implemented
 
@@ -61,22 +68,36 @@ JS. The production catalogue assembled with full checksum verification:
 438,584 works, 273,784,832 bytes, SHA256
 1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7.
 
-1. Format changed docs, stage reviewed named files and commit.
-   Production checkout ../Website is clean at a218b8a; verify
-   origin/master again before a normal fast-forward push through existing Pages.
-2. Monitor deployment and verify the public assets/manifest/UI.
-3. Record the release SHA/run URL in the handoff and publication log.
+Public HTML serves index-C2dMfdb1.js and index-DJYBSpXD.css, matching the reviewed
+local Pages-path build. Public manifest retains name, scope, start URL, icons
+and share target; production catalogue count/bytes/checksum match local output.
+The browser initially ran the cached original frontend. Closing that public tab
+and reopening activated the new worker and preserved both existing records,
+their reading/finished statuses and completed onboarding. Live 390x844 Collection
+and Codex were inspected with the new asset loaded and no captured runtime errors.
+
+Next three actions:
+
+1. The owner can use the live app. To upgrade the old installed build, open online,
+   close all Ex Libris tabs and the installed app, then reopen. Do not clear site
+   data or reinstall. Export a complete manual backup from the phone as normal.
+2. If the owner reports a device-specific issue, reproduce the exact journey in
+   the adopted frontend; do not restart the redesign or restore the old DB-v2 build.
+3. Perform deferred Q-028 on an available physical Android device. It remains
+   unpassed; no new implementation phase is waiting for approval.
 
 Normal production preview: http://127.0.0.1:4275/Ex-Libris/ (exec 67419).
 Set VITE_BASE_PATH=/Ex-Libris/ for both build and preview; omitting it from
 preview serves HTML for nested JS URLs. CUA browser 1/tab 1 has a disposable
 local review record. Stop preview before building. Older localhost tabs may have
-stale workers. No phone data has been read, exported or altered.
-The latest published Pages run is 34747574260, before adoption.
+stale workers. No phone data has been read, exported or altered. Public browser
+inspection used its already-existing two-record library, without adding records.
 
 See [adoption](astra/ADOPTION.md), [audit](astra/AUDIT.md),
 [comparison](astra/COMPARISON.md), [upgrade/rollback](astra/RELEASE.md).
 Historical prototype docs are marked as such. A presentation rollback must
 retain DB-v3 compatibility; do not simply redeploy the DB-v2 binary.
 Q-028 physical Android catalogue latency and physical TalkBack review remain
-unpassed. Development-only Vitest/mocker advisories are recorded in RELEASE.
+unpassed. The refreshed 2026-10-02 audit reports zero production vulnerabilities
+and five development-only entries (one high, three moderate, one low); details
+and the deferred tooling maintenance are recorded in RELEASE and AUDIT.

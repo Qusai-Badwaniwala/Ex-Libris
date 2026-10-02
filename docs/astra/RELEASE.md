@@ -1,9 +1,14 @@
-# Reading Room production candidate
+# Reading Room release
 
 Prepared on `astra/frontend-redesign`. The owner authorised commit, push and
 GitHub Pages publication on 2026-09-21. See the canonical HANDOFF for the exact
 release commit, verification and deployment status. No localhost sample data
 is transferred to the deployed reader's library.
+
+Published 2026-10-02: application commit `4fa9e93`, successful Pages run
+[36963081036](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36963081036).
+The public app's main JS/CSS match the locally reviewed build. A real cached-old
+to new-worker browser upgrade preserved its existing two records and onboarding.
 
 ## Switch boundary
 
@@ -56,9 +61,12 @@ backup loses subsequent edits and is a separately approved destructive action.
   This is more complex than Index and remains optional.
 - Legacy conflicts are retained for review, not guessed away. Named orders are
   optional and must be selected explicitly; incomplete metadata stays incomplete.
-- The dependency audit reports two moderate development-only Vitest/mocker
-  advisories (one root advisory, GHSA-82fw-gwwq-j7x9). No production dependency
-  advisory was reported. A major test-tool upgrade is deferred; no force fix.
+- The refreshed 2026-10-02 dependency audit reports five development-only entries:
+  brace-expansion (high), fast-uri (moderate), serialize-javascript (low), and
+  Vitest/mocker (two moderate entries). `npm audit --omit=dev` reports zero
+  vulnerabilities. The first three are newly reported transitive tool advisories;
+  the earlier Vitest fix requires a major update. Targeted tooling maintenance is
+  deferred separately from the usable app release; no blanket or force fix.
 - Actual installed-device and assistive-technology evidence is still distinct
   from automated browser and semantic checks.
 
