@@ -96,6 +96,40 @@ export async function buildBackupArchive(
 }
 
 let autoRun: Promise<boolean> | null = null;
+let automaticStatus: { active: boolean; error?: string } = { active: false };
+const automaticListeners = new Set<() => void>();
+const publishAutomatic = (next: typeof automaticStatus) => {
+  automaticStatus = next;
+  for (const listener of automaticListeners) listener();
+};
+export const automaticBackupStore = {
+  getSnapshot: () => automaticStatus,
+  subscribe(listener: () => void) {
+    automaticListeners.add(listener);
+    return () => automaticListeners.delete(listener);
+  },
+};
+
+/** Fresh, read-back-verified archive before a destructive group operation.
+ * This deliberately cannot reuse an unrelated in-flight automatic snapshot. */
+export async function createSafetyBackup(appVersion: string): Promise<void> {
+  if (!(await opfsAvailable())) throw new Error('Storage is unavailable; no group was changed.');
+  const archive = await buildBackupArchive(appVersion, 'auto');
+  const path = `backups/${archive.filename.replace('.zip', `-${crypto.randomUUID()}.zip`)}`;
+  await writeFile(path, bytesAsBlobPart(archive.bytes));
+  const stored = await readFile(path);
+  if (!stored) throw new Error('The safety backup could not be read back. Nothing was changed.');
+  const bytes = new Uint8Array(await stored.arrayBuffer());
+  if (
+    bytes.length !== archive.bytes.length ||
+    bytes.some((value, index) => value !== archive.bytes[index])
+  ) {
+    throw new Error('The safety backup verification failed. Nothing was changed.');
+  }
+  // ZIP CRC validation verifies each stored entry, including every user cover.
+  readZip(bytesAsBlobPart(bytes));
+  await saveSettings({ lastAutoBackupAt: archive.manifest.createdAt });
+}
 
 /** Creates at most one snapshot per launch and keeps the newest ten. */
 export function maybeCreateAutomaticBackup(
@@ -104,6 +138,7 @@ export function maybeCreateAutomaticBackup(
   force = false,
 ): Promise<boolean> {
   if (autoRun) return autoRun;
+  publishAutomatic({ active: true });
   autoRun = (async () => {
     const previous = lastAutoBackupAt ? new Date(lastAutoBackupAt).getTime() : 0;
     if (!force && Date.now() - previous < AUTO_AFTER_MS) return false;
@@ -119,9 +154,18 @@ export function maybeCreateAutomaticBackup(
     }
     await saveSettings({ lastAutoBackupAt: archive.manifest.createdAt });
     return true;
-  })().finally(() => {
-    autoRun = null;
-  });
+  })()
+    .catch((cause: unknown) => {
+      publishAutomatic({
+        active: true,
+        error: cause instanceof Error ? cause.message : 'The automatic backup could not be saved.',
+      });
+      throw cause;
+    })
+    .finally(() => {
+      autoRun = null;
+      publishAutomatic({ ...automaticStatus, active: false });
+    });
   return autoRun;
 }
 

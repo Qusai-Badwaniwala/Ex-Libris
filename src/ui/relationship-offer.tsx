@@ -48,7 +48,7 @@ export function RelationshipOffer({ workId }: { workId: string }) {
       }
       return undefined;
     };
-    void withInteractionFeedback('Checking series and universe…', find)
+    void withInteractionFeedback('Checking series and world…', find)
       .then((result) => {
         if (!cancelled) {
           setEvidence(result);
@@ -111,12 +111,12 @@ export function RelationshipOffer({ workId }: { workId: string }) {
     setBusy('universe');
     setError('');
     try {
-      const confirmed = await withInteractionFeedback('Linking the universe…', () =>
+      const confirmed = await withInteractionFeedback('Linking the world…', () =>
         repo.confirmUniverseSuggestion(workId, suggestion),
       );
       setConfirmedUniverseId(confirmed.universe.id);
     } catch {
-      setError('The universe could not be saved. Nothing was changed; try again.');
+      setError('The world could not be saved. Nothing was changed; try again.');
     } finally {
       setBusy(undefined);
     }
@@ -144,7 +144,7 @@ export function RelationshipOffer({ workId }: { workId: string }) {
 
   return (
     <section
-      aria-label="Series and universe suggestions"
+      aria-label="Series and world suggestions"
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
     >
       {shownSeries ? (
@@ -292,7 +292,7 @@ export function RelationshipOffer({ workId }: { workId: string }) {
               onClick={() => nav.push({ screen: 'universe', id: confirmedUniverseId })}
               style={secondaryButton}
             >
-              View the universe
+              View the world
             </button>
           ) : (
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -301,7 +301,7 @@ export function RelationshipOffer({ workId }: { workId: string }) {
                 onClick={() => setDismissedUniverse(true)}
                 style={secondaryButton}
               >
-                Not this universe
+                Not this world
               </button>
               <button
                 disabled={!!busy}

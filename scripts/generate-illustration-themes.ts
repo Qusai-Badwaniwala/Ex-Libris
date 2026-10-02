@@ -82,41 +82,54 @@ function oklchToHex({ l: lightness, c: chroma, h: hue }: Oklch) {
 }
 
 function artDirectedHue(source: string, theme: IllustrationTheme, hue: number) {
-  if (SKIN_RAMP.has(source)) return theme === 'light' ? hue : 350;
+  if (SKIN_RAMP.has(source)) return hue;
   if (theme === 'light') {
     if (hue >= 85 && hue < 180) return 88; // paper-warm olive and sage
-    if (hue >= 180 && hue < 310) return 38; // cool Storyset accents become leather/copper
-    return 62; // existing ambers and reds resolve into the cream theme
+    if (hue >= 180 && hue < 310) return 32; // vermilion joins the Reading Room accent
+    return hue < 85 ? 38 : hue;
   }
-  if (hue >= 85 && hue < 180) return 205; // botanical values become blue-teal
-  if (hue >= 180 && hue < 310) return 248; // blues and violets join the slate family
-  return 276; // orange ornament becomes luminous ink-violet, not muddy grey
+  if (hue >= 85 && hue < 180) return 165; // botanical forms retain their identity
+  return 260; // cool slate accents against near-black surfaces
 }
 
-export function themeColor(value: string, theme: IllustrationTheme) {
+export function themeColor(value: string, theme: IllustrationTheme, accentFamily = false) {
   const source = normalizeHex(value);
   const color = hexToOklch(source);
   if (color.c < 0.022) return source.toUpperCase();
   const skin = SKIN_RAMP.has(source);
+  if (skin) return source.toUpperCase();
   const chromaScale = theme === 'light' ? 0.86 : skin ? 0.68 : 0.76;
   const chromaCeiling = theme === 'light' ? 0.105 : 0.09;
-  return oklchToHex({
+  const target = {
     // Lightness is deliberately invariant. It carries every highlight, fold,
     // shadow and plane distinction in the supplied drawings.
     l: color.l,
     c: Math.min(color.c * chromaScale, chromaCeiling),
-    h: artDirectedHue(source, theme, color.h),
-  });
+    h: accentFamily ? (theme === 'light' ? 32 : 260) : artDirectedHue(source, theme, color.h),
+  };
+  // Hue changes can leave sRGB near bright highlights. Reduce chroma rather
+  // than clipping a channel and unintentionally changing the drawing's depth.
+  let result = oklchToHex(target);
+  for (
+    let attempt = 0;
+    attempt < 24 && Math.abs(hexToOklch(result).l - color.l) > 0.003;
+    attempt++
+  ) {
+    target.c *= 0.9;
+    result = oklchToHex(target);
+  }
+  return result;
 }
 
 export function themedSvg(source: string, name: string, theme: IllustrationTheme) {
-  if (name === 'magic-tree-cuate') return source;
   const mapped = new Map<string, string>();
   return source.replace(HEX, (match) => {
     const normalized = normalizeHex(match);
     let next = mapped.get(normalized);
     if (!next) {
-      next = themeColor(normalized, theme);
+      // These drawings use green for clothes, stationery and a flying book,
+      // not living foliage. Their accent follows the interface, not the tree ramp.
+      next = themeColor(normalized, theme, name === 'studying-bro' || name === 'bibliophile-bro');
       if ([...mapped.values()].includes(next)) {
         throw new Error(`${name}/${theme}: ${normalized} would collapse into ${next}`);
       }

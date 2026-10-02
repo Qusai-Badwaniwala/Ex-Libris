@@ -13,7 +13,7 @@ accepted Phase 5, approved exact title disclosure before bulk Wishlist addition,
 then settled Q-017, authorized Phase 6, accepted it for sequencing, and
 authorized Phase 7 on 2026-09-08. Translation always
 appears as the seventh descriptive step; it remains outside six-axis
-recommendation matching. Q-029 is a non-blocking post-phase proposal, and Q-028
+recommendation matching. Q-029 was settled by adoption decision E-110; Q-028
 remains a deferred release check. The owner accepted Phase 7 for sequencing and
 authorized Phase 8 on 2026-09-08. Phase 8's implementation, focused review, and
 full gate passed on 2026-09-12. The owner then accepted that checkpoint for
@@ -46,16 +46,6 @@ localhost to a production preview, then install and measure the production
 index.
 
 ---
-
-## NON-BLOCKING
-
-**Q-029 · Explain an honest empty More Like This result?** `PROPOSED AFTER PHASE
-6; NOT IMPLEMENTED.` More Like This is currently omitted when no other owned
-work meets the minimum three shared rated axes plus one exact shared stop. A
-quiet Detail line could explain that another work needs at least three shared
-axes and offer a direct path to rate one. This preserves the threshold and makes
-absence legible, but adds a visible state not present in the frozen design. The
-owner should approve or decline it before implementation.
 
 ## FOR A LATER PHASE, RECORDED SO THEY ARE NOT LOST
 

@@ -1368,3 +1368,76 @@ prepare phone release`) on `master` and pushed it to the owner's public
 - Phase 10 remains the final planned phase. Q-028 is still deferred and
   explicitly unpassed; this desktop and Pixel-emulated verification is not a
   physical Android latency measurement.
+
+## 2026-09-20 — Isolated Reading Room adoption
+
+Implemented the approved light-preserving production candidate: near-black/slate
+dark theme, deterministic illustration derivatives, consolidated runtime tokens,
+original install identity, test-only evaluation launcher, onboarding replay and
+safe update offer. Removed the Spine UI/layout and added append-only preference
+migration 3. Added central relationship queries, a transactional organiser,
+series/world pages and the optional Three.js Codex.
+
+Hardening found real session atomicity/concurrency defects, an optimistic
+onboarding-completion race and orphan group references. New membership guards
+reject stale edits and preserve Trash/legacy conflicts. Complete safety ZIPs are
+read back and checked before destructive group edits or replacement restore.
+Missing user cover bytes block the operation. Background backup failures are
+visible and active backups defer app updates.
+
+Observed regression proof: restoring transaction-free session logging failed
+the orphan/double-count assertions; removing organiser safeguards failed stale
+membership/Trash assertions; restoring optimistic settings publication failed
+the held-write completion assertion. Fixes were restored. The first Codex stress
+run measured 22.7 fps; three instanced batches, matte lighting and bounded canvas
+resizing improved the same 500-work emulated sweep to 60.0 fps, with at most five
+rows mounted. Idle rendering and GPU loss passed. This is desktop emulation,
+not a physical-phone measurement.
+
+An intermediate complete run passed 216 unit tests and 53/54 browser tests,
+finding the first-run persistence race above. The corrected candidate is being
+regated with enlarged-text, scroll-restoration and all-artwork review coverage.
+Final results belong in HANDOFF; the intermediate result is not release approval.
+Production checkout and deployment remain untouched. No commit or push.
+
+## 2026-09-21 — Owner-authorised Reading Room release
+
+The owner authorised commit/push/publication and reported unreachable onboarding
+actions and weak selected form options. Reproduced the tour at 360x640 with
+enlarged text: action bottom 948.7px. Bounded the measured card, kept its action
+row separate from scrollable copy, prevented focus scrolling and retained target
+scrolling. All six steps now pass the same regression. Shared segmented controls
+use theme accent plus a checkmark and arrow/Home/End operation. Restoring the old
+unmarked selection makes the new assertion fail; the fix was restored byte-for-byte
+to the gated source. Both themes were visually reviewed.
+
+The definitive repository gate passed: format, lint, strict types, token/source
+integrity, 218 unit tests, 58 browser journeys and a normal production build.
+This includes first run, all major reading/library/editor flows, relationship
+organisation, old schema migration, complete ZIP/cover restore, failed writes,
+offline restart and waiting-worker upgrade with saved data preserved. Corrected
+test helpers wait for persisted onboarding completion and explicitly account
+for shared-title startup, which opens acquisition before the Home-only tour.
+
+The final 500-work desktop-emulated sweep measured 60.004fps with five mounted
+rows maximum; idle rendering, GPU context loss and scroll restoration passed.
+All thirteen light/dark art derivatives were reviewed as contact sheets; the
+study/bibliophile accent families were corrected without changing original SVGs.
+Q-028 physical Android latency and physical assistive-technology checks remain
+unpassed. Publication and exact Pages-path build evidence follow in HANDOFF.
+
+## 2026-10-02 — Release resumed and exact build reviewed
+
+Resumed the authorised publication after interruption. The restored selected
+control source still matches the gated hash. Normal Pages-path output excludes
+the test launcher/bridges; its catalogue is the verified 438,584-work production
+distribution. A broad text scan initially matched the manifest parser's allowed
+engineering-fixture enum, not fixture data; narrowed runtime/manifest checks
+confirmed the correct distribution.
+
+Hosted at 127.0.0.1:4275/Ex-Libris/ with the same base setting as build. Omitting
+the base from Vite preview initially served HTML at nested asset URLs; corrected
+the preview command, without changing application code. Browser review covered
+360x640 and 390x844, all tour steps, replay, clear light/dark selections, real
+manual save and Codex/detail navigation. No runtime errors were captured.
+Only a clearly labelled disposable record was created on the local origin.

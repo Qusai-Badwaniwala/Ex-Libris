@@ -31,14 +31,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('empty Notes and its blank editor keep their themed illustration states', async ({ page }) => {
-  await page.getByLabel('Light theme').click();
+  if (await page.getByLabel('Light theme').isVisible())
+    await page.getByLabel('Light theme').click();
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openNotes());
   await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible();
   await expect(page.getByText('A clear page')).toBeVisible();
   await expect(
     page.locator('img[src*="/illustrations/light/research-paper-amico.svg"]'),
   ).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase7-notes-empty-light.png' });
+  await page.screenshot({ path: '.astra/review/phase7-notes-empty-light.png' });
 
   await page.getByRole('button', { name: 'Write a note' }).click();
   const editor = page.getByRole('dialog', { name: 'New note' });
@@ -46,7 +47,7 @@ test('empty Notes and its blank editor keep their themed illustration states', a
   await expect(editor.getByRole('button', { name: 'Save' })).toBeDisabled();
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await expect(editor.locator('img[src*="/illustrations/dark/studying-bro.svg"]')).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase7-editor-blank-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase7-editor-blank-dark.png' });
 });
 
 test('a pinned tagged note attaches to two works, appears in three places, and keeps a failed draft', async ({
@@ -68,7 +69,7 @@ test('a pinned tagged note attaches to two works, appears in three places, and k
   await tags.getByRole('button', { name: 'Memory', exact: true }).click();
   await tags.getByLabel('Search tags').fill('Reading route');
   await tags.getByRole('button', { name: 'New tag' }).click();
-  await page.screenshot({ path: '.impeccable/review/phase7-tags-light.png' });
+  await page.screenshot({ path: '.astra/review/phase7-tags-light.png' });
   await tags.getByRole('button', { name: 'Done' }).click();
   await editor.getByRole('switch', { name: 'Keep it at the top' }).click();
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
@@ -82,7 +83,7 @@ test('a pinned tagged note attaches to two works, appears in three places, and k
   await expect(pinned).toContainText('A River of Margins');
   const notes = page.getByRole('button', { name: /^Edit note:/ });
   await expect(notes.first()).toHaveAccessibleName(/A route through both books/);
-  await page.screenshot({ path: '.impeccable/review/phase7-notes-feed-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase7-notes-feed-dark.png' });
 
   await page.evaluate((id) => window.__EXL_PHASE7_TEST__!.openDetail(id), fixture.firstWorkId);
   await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible();
@@ -91,10 +92,10 @@ test('a pinned tagged note attaches to two works, appears in three places, and k
   ).toBeVisible();
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.getByRole('heading', { name: 'Notes' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: '.impeccable/review/phase7-work-notes-light.png' });
+  await page.screenshot({ path: '.astra/review/phase7-work-notes-light.png' });
 
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openSearch());
-  await page.getByLabel('Search your library').fill('Reading route');
+  await page.getByRole('searchbox', { name: 'Search your library' }).fill('Reading route');
   await expect(
     page.getByRole('button', { name: /Edit note: A route through both books/ }),
   ).toBeVisible();
@@ -130,7 +131,7 @@ test('deleting and restoring a note is reversible, while permanent work deletion
   await expect(page.getByRole('button', { name: /Edit note: Surviving note/ })).toHaveCount(0);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openTrash());
-  await page.screenshot({ path: '.impeccable/review/phase7-note-trash-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase7-note-trash-dark.png' });
   const row = page.getByText('Surviving note').locator('..').locator('..');
   await row.getByRole('button', { name: 'Restore' }).click();
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openNotes());

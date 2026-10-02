@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { readRelationships } from '../relationships/library';
 import * as repo from '../db/repo';
 import type { ReadingOrder, ReadingOrderEntry } from '../db/schema';
 import { Field, Sheet } from './components';
@@ -28,7 +29,8 @@ export function ReadingOrderEditor({
   onClose: () => void;
 }) {
   const data = useLiveQuery(async () => {
-    const context = contextType === 'series' ? await db.series.get(id) : await db.universe.get(id);
+    const graph = await readRelationships();
+    const context = contextType === 'series' ? graph.seriesById.get(id) : graph.worldsById.get(id);
     if (!context) return null;
     const orders = await db.readingOrder
       .where('[contextType+contextId]')
@@ -40,27 +42,35 @@ export function ReadingOrderEditor({
       .toArray();
     const localCandidates: Candidate[] =
       contextType === 'series'
-        ? (await db.work.where('seriesId').equals(id).toArray())
-            .filter((work) => !work.deletedAt)
-            .sort(
-              (left, right) =>
-                (left.seriesPosition ?? Number.POSITIVE_INFINITY) -
-                  (right.seriesPosition ?? Number.POSITIVE_INFINITY) ||
-                left.sortTitle.localeCompare(right.sortTitle),
-            )
-            .map((work) => ({
-              key: `work:${work.id}`,
-              entry: {
-                kind: 'work' as const,
-                label: work.title,
-                workId: work.id,
-                corpusId: work.corpusId,
-              },
-            }))
-        : (await db.series.where('universeId').equals(id).sortBy('sortName')).map((series) => ({
-            key: `series:${series.id}`,
-            entry: { kind: 'series' as const, label: series.name, seriesId: series.id },
-          }));
+        ? graph.seriesWorks(id).map((work) => ({
+            key: `work:${work.id}`,
+            entry: {
+              kind: 'work' as const,
+              label: work.title,
+              workId: work.id,
+              corpusId: work.corpusId,
+            },
+          }))
+        : [
+            ...graph.series
+              .filter((series) => series.universeId === id)
+              .map((series) => ({
+                key: `series:${series.id}`,
+                entry: { kind: 'series' as const, label: series.name, seriesId: series.id },
+              })),
+            ...graph
+              .worldWorks(id)
+              .filter((work) => !work.seriesId)
+              .map((work) => ({
+                key: `work:${work.id}`,
+                entry: {
+                  kind: 'work' as const,
+                  label: work.title,
+                  workId: work.id,
+                  corpusId: work.corpusId,
+                },
+              })),
+          ];
     const candidates = uniqueCandidates([
       ...localCandidates,
       ...storedEntries.map((entry) => ({

@@ -96,7 +96,7 @@ export interface Work {
   coverSource: CoverSource;
   coverPath?: string;
   coverRemoteUrl?: string;
-  /** '#RRGGBB'. Feeds both the tinted detail header and spine view. */
+  /** '#RRGGBB'. Feeds the cover fallback and detail treatment. */
   coverDominantColor?: string;
   coverTextColor?: TextColor;
 
@@ -266,6 +266,7 @@ export interface ReadingSession {
   at: string;
 }
 
+/** Legacy backup values. Migration and restore normalize all formats to list. */
 export type ViewMode = 'list' | 'spine';
 export type ThemeChoice = 'light' | 'dark' | 'system';
 export type GenreFilterMode = 'any' | 'all';

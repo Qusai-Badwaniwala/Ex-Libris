@@ -7,5 +7,6 @@ coverage/
 test-results/
 playwright-report/
 .impeccable/
+.astra/
 pipeline/.cache/
 public/corpus/

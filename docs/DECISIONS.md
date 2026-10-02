@@ -855,3 +855,50 @@ the exact licensed production catalogue is stored as its existing 4-MiB
 checksummed chunks. The Pages workflow reassembles and verifies all 273,784,832
 bytes and the whole SHA-256 before upload. The AniList/MangaDex fixture remains
 ignored and cannot enter the Pages artifact.
+
+## Reading Room adoption · 2026-09-20
+
+**E-106 · Adopt the approved alternative without publishing it yet.** The owner
+approved the complete production-candidate plan on `astra/frontend-redesign`.
+This supersedes the historical visual freeze in that isolated checkout only.
+Keep the approved light compositions; use near-black dark surfaces and the
+original slate accent centred on `#8FA3C4`. No prescriptive design skills.
+Canonical runtime tokens are consolidated; historical assets remain immutable.
+
+**E-107 · Index by default, optional Codex.** Remove Spine rendering and width
+preferences. A lazy, MIT-licensed Three.js 0.186.0 cabinet supports DOM book
+controls and native vertical scrolling. Series remain continuous sections,
+worlds group sections, standalone works group by format. Wishlist and catalogue
+ghosts stay outside owned shelves. GPU failure keeps the same navigable 2D view.
+
+**E-108 · One shared interpretation of relationships.** A work has one primary
+series and inherits its world. Standalone work membership is direct. Keep
+conflicting historical values for explicit review; retain IDs. Order numbers
+and optional named reading orders are separate. Organiser writes are atomic,
+reject stale memberships, preserve Trash and preview consequential changes.
+Group deletion preserves works and removes references to the deleted group.
+
+**E-109 · Safe candidate upgrade.** Append Dexie v3 to retire only old view
+preferences; preserve backup schema 2. Destructive group changes and replacement
+restore require a newly read-back-verified ZIP, including user covers. Session
+logging commits reading history and progress together. Settings become visible
+after successful persistence. A waiting-worker offer defers activation during
+drafts, active writes, automatic snapshots, restore and catalogue installation.
+
+**E-110 · Release data and authority.** Preserve deployed data only. Test-mode
+sample/engineering fixture code must not enter a normal build. Keep original
+Ex Libris installation identity, project path, icons and share contract. No
+commit, push or deployment is authorised by candidate approval. Q-028 remains
+unpassed. Reread history remains deferred; clearer empty-match explanations,
+replayable introduction and duplicate-group reconciliation are approved here.
+
+**E-111 · Publish the adopted frontend (2026-09-21).** The owner explicitly
+authorised committing and pushing the new design to GitHub so it is usable on
+their phone. This supersedes E-106/E-110's no-publication boundary. Finish the
+usable candidate, run the required gate, then publish through the existing
+master/Pages workflow and verify the deployed build. Retain the same origin and
+installation identity; never import localhost evaluation records. The owner
+also requested reachable onboarding controls and unmistakable selected choices:
+the tour card is viewport-bounded with a fixed action row, and segmented choices
+use the active theme accent plus a non-colour checkmark and arrow-key operation.
+No other light-theme reinterpretation is authorised or needed.

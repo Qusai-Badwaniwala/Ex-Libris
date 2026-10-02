@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../../router/router';
 import { caption, displayM, displayS, label, resetButton, tabular } from '../styles';
-import { Check, ChevronRight, Menu } from '../icons';
+import { Check, ChevronRight } from '../icons';
 import { Field } from '../components';
 import { storageUsage, type StorageUsage } from '../../storage/opfs';
 import { exportManualBackup } from '../../data-safety/backup';
 import { APP_VERSION, useTrash } from '../store';
 import { localDay } from '../../db/dates';
-import type { Format, Settings as SettingsRow, ThemeChoice, ViewMode } from '../../db/schema';
+import type { Settings as SettingsRow, ThemeChoice } from '../../db/schema';
 import { applyTheme } from '../theme';
 import { withInteractionFeedback } from '../interaction-feedback';
 import { closeInstallInstructions, requestPwaInstall, usePwaInstall } from '../../pwa/install';
@@ -32,12 +32,6 @@ import { closeInstallInstructions, requestPwaInstall, usePwaInstall } from '../.
  * The "Ask a model" row is absent entirely rather than shown inert — a switch
  * that changes nothing is worse than an absent feature (Q-014).
  */
-
-const SHELVES: { key: Format; label: string }[] = [
-  { key: 'book', label: 'Books' },
-  { key: 'novel', label: 'Novels' },
-  { key: 'manhwa', label: 'Manhwa' },
-];
 
 export function Settings({
   settings,
@@ -88,21 +82,6 @@ export function Settings({
           marginBottom: 'var(--space-5)',
         }}
       >
-        <button
-          aria-label="Menu"
-          onClick={() => nav.open({ kind: 'drawer' })}
-          style={{
-            ...resetButton,
-            width: 44,
-            height: 44,
-            marginLeft: -10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Menu />
-        </button>
         <h1 style={{ ...displayM, flex: 1, margin: 0 }}>Settings</h1>
       </div>
 
@@ -240,29 +219,13 @@ export function Settings({
         ) : null}
       </Group>
 
-      <Group heading="Default views">
-        {SHELVES.map((s) => (
-          <Row key={s.key} label={s.label}>
-            <Pill<ViewMode>
-              value={settings.defaultView[s.key]}
-              options={[
-                { value: 'list', label: 'List' },
-                { value: 'spine', label: 'Spines' },
-              ]}
-              onChange={(v) =>
-                void persist({ defaultView: { ...settings.defaultView, [s.key]: v } })
-              }
-              ariaLabel={`Default view for ${s.label}`}
-            />
-          </Row>
-        ))}
-        <Row label="Series sections start open">
-          <Switch
-            on={settings.seriesSectionsDefaultOpen}
-            onChange={(v) => void persist({ seriesSectionsDefaultOpen: v })}
-            ariaLabel="Series sections start open"
-          />
-        </Row>
+      <Group heading="Find your way">
+        <button className="room-text" onClick={() => nav.push({ screen: 'welcome' })}>
+          Replay introduction
+        </button>
+        <p style={caption}>
+          Revisit the welcome and guided tour. Your library and bookplate stay as they are.
+        </p>
       </Group>
 
       <Group heading="Your data">

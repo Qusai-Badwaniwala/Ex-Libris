@@ -630,13 +630,32 @@ export async function linkSeriesToUniverse(
       throw new Error(`Universe ${universeId} does not exist.`);
     }
     await db.series.update(seriesId, { universeId, updatedAt: nowIso() });
-    await db.work.where('seriesId').equals(seriesId).modify({ universeId, updatedAt: nowIso() });
+    // Clear only the old mirrored value. A contradictory historical value is
+    // retained for review, never silently overwritten by moving the series.
+    await db.work
+      .where('seriesId')
+      .equals(seriesId)
+      .modify((work) => {
+        if (!work.universeId || work.universeId === series.universeId) work.universeId = undefined;
+        work.updatedAt = nowIso();
+      });
     return (await db.series.get(seriesId))!;
   });
 }
 
-export function setUniverse(id: string, universeId: string | undefined): Promise<Work> {
-  return patch(id, { universeId });
+export async function setUniverse(id: string, universeId: string | undefined): Promise<Work> {
+  return db.transaction('rw', db.work, db.series, db.universe, async () => {
+    const work = await db.work.get(id);
+    if (!work) throw new Error('This work no longer exists.');
+    if (universeId && !(await db.universe.get(universeId)))
+      throw new Error('That world no longer exists.');
+    const series = work.seriesId ? await db.series.get(work.seriesId) : undefined;
+    if (series && universeId !== series.universeId)
+      throw new Error(
+        'Change the series world in the organiser, or remove this work from its series first.',
+      );
+    return patch(id, { universeId: series ? undefined : universeId });
+  });
 }
 
 /**
@@ -931,11 +950,23 @@ export async function setSeries(
   id: string,
   series: { seriesId?: string; seriesPosition?: number },
 ): Promise<Work> {
-  // Clearing the series must clear the position with it. A position with no
-  // series renders as "#3" of nothing.
-  return series.seriesId
-    ? patch(id, series)
-    : patch(id, { seriesId: undefined, seriesPosition: undefined });
+  return db.transaction('rw', db.work, db.series, async () => {
+    const work = await db.work.get(id);
+    if (!work) throw new Error('This work no longer exists.');
+    const previous = work.seriesId ? await db.series.get(work.seriesId) : undefined;
+    const next = series.seriesId ? await db.series.get(series.seriesId) : undefined;
+    if (series.seriesId && !next) throw new Error('That series no longer exists.');
+    if (
+      series.seriesPosition !== undefined &&
+      (!Number.isFinite(series.seriesPosition) || series.seriesPosition <= 0)
+    )
+      throw new Error('Entry numbers must be positive.');
+    return patch(id, {
+      seriesId: next?.id,
+      seriesPosition: next ? series.seriesPosition : undefined,
+      universeId: next ? undefined : (work.universeId ?? previous?.universeId),
+    });
+  });
 }
 
 export async function deleteSeries(id: string): Promise<void> {
@@ -946,7 +977,8 @@ export async function deleteSeries(id: string): Promise<void> {
     db.readingOrder,
     db.readingOrderEntry,
     async () => {
-      if (!(await db.series.get(id))) return;
+      const removedSeries = await db.series.get(id);
+      if (!removedSeries) return;
       const contextOrders = await db.readingOrder
         .where('[contextType+contextId]')
         .equals(['series', id])
@@ -955,11 +987,22 @@ export async function deleteSeries(id: string): Promise<void> {
       for (const orderId of orderIds)
         await db.readingOrderEntry.where('orderId').equals(orderId).delete();
       await db.readingOrder.bulkDelete(orderIds);
-      await db.readingOrderEntry.where('seriesId').equals(id).modify({ seriesId: undefined });
+      const references = await db.readingOrderEntry.where('seriesId').equals(id).toArray();
+      await db.readingOrderEntry.bulkDelete(references.map((entry) => entry.id));
+      for (const orderId of new Set(references.map((entry) => entry.orderId))) {
+        const remaining = await db.readingOrderEntry
+          .where('orderId')
+          .equals(orderId)
+          .sortBy('position');
+        for (const [index, entry] of remaining.entries())
+          await db.readingOrderEntry.update(entry.id, { position: index + 1 });
+        await db.readingOrder.update(orderId, { updatedAt: nowIso() });
+      }
       await db.work
         .where('seriesId')
         .equals(id)
         .modify((work) => {
+          work.universeId ??= removedSeries.universeId;
           work.seriesId = undefined;
           work.seriesPosition = undefined;
           work.updatedAt = nowIso();
@@ -1384,44 +1427,50 @@ export interface SessionResult {
 }
 
 export async function logSession(id: string, to: number): Promise<SessionResult> {
-  const w = await db.work.get(id);
-  if (!w) throw new Error(`No work ${id}.`);
+  if (!Number.isFinite(to) || to < 0)
+    throw new Error('Enter a finite, non-negative reading position.');
+  return db.transaction('rw', db.work, db.readingSession, db.axisRating, async () => {
+    const w = await db.work.get(id);
+    if (!w) throw new Error(`No work ${id}.`);
 
-  const from = w.progressCurrent;
-  const target = Math.floor(to);
-  if (target <= from) return { work: w, finished: false, atPublishedEdge: false };
+    const from = w.progressCurrent;
+    const target = Math.floor(to);
+    if (target <= from) return { work: w, finished: false, atPublishedEdge: false };
 
-  const session: ReadingSession = {
-    id: newId(),
-    workId: id,
-    from,
-    to: target,
-    delta: target - from,
-    unit: w.progressUnit,
-    at: nowIso(),
-  };
-  await db.readingSession.add(session);
+    const session: ReadingSession = {
+      id: newId(),
+      workId: id,
+      from,
+      to: target,
+      delta: target - from,
+      unit: w.progressUnit,
+      at: nowIso(),
+    };
+    await db.readingSession.add(session);
 
-  // D-105: for an ongoing work the total is how much has been RELEASED, not a
-  // ceiling. Reaching it means caught up, and finishing an unfinished serial is
-  // not something the app may claim on the reader's behalf.
-  const reachedEnd =
-    w.progressTotal !== undefined && target >= w.progressTotal && w.publicationStatus !== 'ongoing';
+    // D-105: for an ongoing work the total is how much has been RELEASED, not a
+    // ceiling. Reaching it means caught up, and finishing an unfinished serial is
+    // not something the app may claim on the reader's behalf.
+    const reachedEnd =
+      w.progressTotal !== undefined &&
+      target >= w.progressTotal &&
+      w.publicationStatus !== 'ongoing';
 
-  // The offer only makes sense while the reader is still marked Reading. A
-  // work already Caught up needs nothing said, and one that is Dropped is not
-  // waiting for chapters.
-  const atPublishedEdge =
-    w.publicationStatus === 'ongoing' &&
-    w.progressTotal !== undefined &&
-    target >= w.progressTotal &&
-    w.status === 'reading';
+    // The offer only makes sense while the reader is still marked Reading. A
+    // work already Caught up needs nothing said, and one that is Dropped is not
+    // waiting for chapters.
+    const atPublishedEdge =
+      w.publicationStatus === 'ongoing' &&
+      w.progressTotal !== undefined &&
+      target >= w.progressTotal &&
+      w.status === 'reading';
 
-  const work = await patch(id, { progressCurrent: target });
-  if (reachedEnd) {
-    return { work: await setStatus(id, 'finished'), finished: true, atPublishedEdge: false };
-  }
-  return { work, finished: false, atPublishedEdge };
+    const work = await patch(id, { progressCurrent: target });
+    if (reachedEnd) {
+      return { work: await setStatus(id, 'finished'), finished: true, atPublishedEdge: false };
+    }
+    return { work, finished: false, atPublishedEdge };
+  });
 }
 
 export async function chaptersRead(): Promise<number> {

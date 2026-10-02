@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nav, useTopOverlay } from '../../router/router';
-import { caption, displayM, displayS, resetButton, tabular } from '../styles';
-import { Close, Menu } from '../icons';
+import { caption, displayS, resetButton } from '../styles';
+import { Close } from '../icons';
 import { Cover, EmptyState } from '../components';
 import { PUBLICATION_LABEL } from '../../db/derive';
 import { useWishlist } from '../store';
@@ -26,6 +26,7 @@ import { withInteractionFeedback } from '../interaction-feedback';
  */
 export function Wishlist() {
   const rows = useWishlist();
+  const [error, setError] = useState('');
   /**
    * The dealt card is an OVERLAY, not local state.
    *
@@ -61,74 +62,21 @@ export function Wishlist() {
   };
 
   return (
-    <div
-      className="exl-scroll"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        overflowY: 'auto',
-        padding: 'calc(var(--space-5) + var(--safe-top)) var(--page-gutter) 104px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-2)',
-        }}
-      >
-        <button
-          aria-label="Menu"
-          onClick={() => nav.open({ kind: 'drawer' })}
-          style={{
-            ...resetButton,
-            width: 44,
-            height: 44,
-            marginLeft: -10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Menu />
-        </button>
-        <div style={{ ...displayM, flex: 1 }}>Wishlist</div>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-5)',
-        }}
-      >
-        <span style={{ ...caption, color: 'var(--text-secondary)', ...tabular }}>{count}</span>
-        <span style={{ flex: 1 }} />
-        <button
-          data-hover="accent-deep"
-          disabled={items.length === 0}
-          onClick={roll}
-          style={{
-            ...resetButton,
-            height: 32,
-            padding: '0 14px',
-            lineHeight: '32px',
-            borderRadius: 'var(--radius-pill)',
-            border: `var(--hairline-width) solid ${
-              items.length ? 'var(--accent)' : 'var(--hairline)'
-            }`,
-            color: items.length ? 'var(--accent-text)' : 'var(--text-faint)',
-            cursor: items.length ? 'pointer' : 'default',
-            ...caption,
-          }}
-        >
-          Surprise me
-        </button>
-      </div>
-
-      {rows === undefined ? null : items.length === 0 ? (
+    <main className="room-page room-wishlist exl-scroll">
+      <header className="room-wishlist-heading">
+        <p className="room-eyebrow">For another day</p>
+        <h1>Wishlist</h1>
+        <div className="room-section-heading">
+          <p>{count}</p>
+          <button className="room-text" disabled={!items.length} onClick={roll}>
+            Surprise me ↗
+          </button>
+        </div>
+      </header>
+      {error && <p role="alert">{error}</p>}
+      {rows === undefined ? (
+        <p role="status">Opening your wishlist…</p>
+      ) : !items.length ? (
         <EmptyState
           art="cherry-blossom-cuate"
           artWidth="78%"
@@ -136,143 +84,59 @@ export function Wishlist() {
           body="Put things here when you hear about them. Surprise me picks one once there is something to pick."
         />
       ) : (
-        items.map(({ work, authorName }) => (
-          <div
-            key={work.id}
-            data-work={work.id}
-            style={{
-              display: 'flex',
-              gap: 'var(--space-3)',
-              alignItems: 'center',
-              padding: 'var(--space-3) 0',
-              borderTop: 'var(--hairline-width) solid var(--hairline)',
-            }}
-          >
-            <button
-              onClick={() => nav.push({ screen: 'detail', id: work.id })}
-              style={{
-                ...resetButton,
-                display: 'flex',
-                gap: 'var(--space-3)',
-                alignItems: 'center',
-                flex: 1,
-                minWidth: 0,
-                textAlign: 'left',
-              }}
-            >
-              <Cover
-                color={work.coverDominantColor ?? 'var(--cover-fallback)'}
-                path={work.coverPath}
-                width={36}
-                height={54}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 'var(--size-body)',
-                    lineHeight: 'var(--lh-body)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {work.title}
-                </div>
-                {/* Parts divided by a hairline rule, never a middle dot (D-007). */}
-                <MetaLine
-                  parts={[
-                    authorName,
-                    work.publicationStatus === 'unknown'
-                      ? undefined
-                      : PUBLICATION_LABEL[work.publicationStatus],
-                    `On the list since ${localDay(work.dateAdded)}`,
-                  ].filter((p): p is string => !!p)}
+        <div className="room-wishlist-grid">
+          {items.map(({ work, authorName }) => (
+            <article className="room-wish" key={work.id} data-work={work.id}>
+              <button
+                className="room-wish-open"
+                onClick={() => nav.push({ screen: 'detail', id: work.id })}
+              >
+                <Cover
+                  color={work.coverDominantColor ?? 'var(--cover-fallback)'}
+                  path={work.coverPath}
+                  width={112}
+                  height={168}
+                  title={work.title}
                 />
+                <span>
+                  <h2>{work.title}</h2>
+                  <p>{authorName ?? 'Author unknown'}</p>
+                  <small>
+                    {work.publicationStatus === 'unknown'
+                      ? 'Publication unknown'
+                      : PUBLICATION_LABEL[work.publicationStatus]}
+                  </small>
+                </span>
+              </button>
+              <div className="room-wish-actions">
+                <button
+                  className="room-primary"
+                  onClick={() =>
+                    void withInteractionFeedback('Moving the work to Reading…', () =>
+                      repo.setStatus(work.id, 'reading'),
+                    ).catch(() => setError('This work could not be moved to Reading. Try again.'))
+                  }
+                >
+                  Start reading ↗
+                </button>
+                <button
+                  className="room-icon"
+                  aria-label={`Remove ${work.title} from the wishlist`}
+                  onClick={() =>
+                    void withInteractionFeedback('Removing the wishlist entry…', () =>
+                      repo.purgeWork(work.id),
+                    ).catch(() => setError('This wishlist entry could not be removed. Try again.'))
+                  }
+                >
+                  <Close />
+                </button>
               </div>
-            </button>
-            <button
-              data-hover="ink"
-              onClick={() =>
-                void withInteractionFeedback('Moving the work to Reading…', () =>
-                  repo.setStatus(work.id, 'reading'),
-                )
-              }
-              style={{
-                ...resetButton,
-                height: 32,
-                padding: '0 12px',
-                lineHeight: '32px',
-                borderRadius: 'var(--radius-pill)',
-                border: 'var(--hairline-width) solid var(--hairline-strong)',
-                color: 'var(--text-secondary)',
-                ...caption,
-                flex: 'none',
-              }}
-            >
-              Start
-            </button>
-            <button
-              title="Remove from the wishlist"
-              aria-label={`Remove ${work.title} from the wishlist`}
-              onClick={() => {
-                // Never in the library, so nothing is destroyed and nothing
-                // goes to the trash. This is the only × in the app.
-                void withInteractionFeedback('Removing the wishlist entry…', () =>
-                  repo.purgeWork(work.id),
-                );
-              }}
-              style={{
-                ...resetButton,
-                width: 44,
-                height: 44,
-                marginRight: -8,
-                flex: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-              }}
-              data-hover="danger-ink"
-            >
-              <Close size={13} />
-            </button>
-          </div>
-        ))
+            </article>
+          ))}
+        </div>
       )}
-
       {pick ? <SurpriseCard pick={pick} onRoll={roll} onClose={() => nav.close()} /> : null}
-    </div>
-  );
-}
-
-function MetaLine({ parts }: { parts: string[] }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: 6,
-        ...caption,
-        color: 'var(--text-secondary)',
-      }}
-    >
-      {parts.map((text, i) => (
-        <span
-          key={text}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
-        >
-          <span>{text}</span>
-          {/* The rule TRAILS its word rather than leading the next one, so a
-              wrapped line never begins with an orphaned separator. The design
-              solved this for the axis line (D-010) and the same shape applies
-              to every hairline-divided meta string. */}
-          {i < parts.length - 1 ? (
-            <span style={{ width: 0.5, height: 11, background: 'var(--hairline-strong)' }} />
-          ) : null}
-        </span>
-      ))}
-    </div>
+    </main>
   );
 }
 
@@ -291,13 +155,43 @@ function SurpriseCard({
   onClose: () => void;
 }) {
   const card = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const controls = () =>
+      Array.from(card.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? []);
+    const frame = requestAnimationFrame(() => controls()[0]?.focus());
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+      if (e.key === 'Tab') {
+        const buttons = controls();
+        const first = buttons[0];
+        const last = buttons.at(-1);
+        if (
+          e.shiftKey &&
+          (document.activeElement === first || !card.current?.contains(document.activeElement))
+        ) {
+          e.preventDefault();
+          last?.focus();
+        } else if (
+          !e.shiftKey &&
+          (document.activeElement === last || !card.current?.contains(document.activeElement))
+        ) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', onKey);
+      if (previous?.isConnected) previous.focus();
+    };
   }, [onClose]);
 
   useEffect(() => {
@@ -393,7 +287,9 @@ function SurpriseCard({
             onClick={() => {
               void withInteractionFeedback('Moving the work to Reading…', () =>
                 repo.setStatus(work.id, 'reading'),
-              ).then(() => nav.closeAndPush({ screen: 'detail', id: work.id }));
+              )
+                .then(() => nav.closeAndPush({ screen: 'detail', id: work.id }))
+                .catch(() => setError('This work could not be moved to Reading. Try again.'));
             }}
             style={{
               ...resetButton,
@@ -410,6 +306,7 @@ function SurpriseCard({
           >
             Start reading it
           </button>
+          {error && <p role="alert">{error}</p>}
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button
               data-hover="ink"

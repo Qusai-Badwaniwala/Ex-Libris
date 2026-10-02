@@ -1,143 +1,82 @@
-# Ex Libris handoff
+# Ex Libris — Reading Room release preparation
 
-**Last updated:** 2026-09-13
+Updated 2026-10-02. Active checkout: `H:\Ex libris Project\Astra-Redesign`,
+branch `astra/frontend-redesign`. The owner explicitly authorised commit, push
+and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
+and subtle Add by hand selection. This supersedes earlier no-publication notes.
+No prescriptive design skills. Preserve deployed data only; never import samples.
 
-**Repository:** `H:\Ex libris Project\Website`
+## Implemented
 
-**Active checkpoint:** Phase 10 accepted; the production PWA is published on
-GitHub Pages
+Approved light Reading Room design retained; near-black/slate dark mode;
+all thirteen illustration derivatives corrected; consolidated runtime tokens and
+two self-hosted fonts; optional Three.js Codex; Spines retired. Central relationship
+queries, series/world pages and a transactional organiser separate membership
+from optional named reading orders. Legacy conflicts remain for reader review.
 
-Read `OPEN-QUESTIONS.md`, `EXECUTION-PLAN.md`, and `DESIGN-STATE.md` before
-changing anything. The immutable Claude package under `design/`, frozen
-`src/styles/tokens.css`, and frozen `src/data/taxonomy.json` remain untouched.
+Replayable introduction, bounded tour controls, accent/checkmark selections and
+keyboard segments are complete. Notes/organisation protect dirty drafts.
+Session logging is atomic and serialized; settings publish after commit.
+Destructive group operations and replacement restore require a complete newly
+verified safety ZIP with covers. Waiting-worker updates defer during editing,
+writes, background backup and catalogue installation.
 
-## Roadmap checkpoint
+Append-only DB migration 3 retires view preferences only. Existing IDs, library,
+onboarding completion, OPFS covers and backup schema 2 remain compatible.
+Original origin, /Ex-Libris/ path, icons, install/share contracts are preserved.
+Normal output excludes all evaluation seed data and engineering test bridges.
 
-| Phase                    | State                   | Durable truth                                                                                                                            |
-| ------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 0–4                      | Complete for sequencing | Phase 3's physical Android worker/OPFS latency gate remains deferred as Q-028, not passed.                                               |
-| 5 · Series and universes | Accepted                | Confirmation-only relationships, named orders, starting point, feedback, gate, and exact-title Wishlist preflight passed.                |
-| 6 · Axes and matching    | Accepted                | Seven-step editing, Finished-only ending, finish paths, Detail profile, explainable six-axis matching, gate, and review passed.          |
-| 7 · Notes                | Accepted                | Multi-work links, tags, pinning, cross-search, Detail notes, reversible deletion, themed illustrations, gate, and review passed.         |
-| 8 · Data safety          | Accepted                | Automatic snapshots, complete ZIP export/restore, paste/CSV import, share target, gate, and review passed.                               |
-| 9 · Stats and spine view | Accepted                | Truthful Stats, adaptive/fixed widths, row virtualization, 500-work performance, gate, and visual review passed.                         |
-| **10 · Final polish**    | **Accepted and live**   | Original 207/46 gate plus the owner-approved icon/install/publication extension, definitive 207/47 gate, and public verification passed. |
+## Verification checkpoint
 
-There is no Phase 11. The current work is a bounded public-release extension,
-not a new product phase.
+The final `npm run gate` passed on 2026-09-21 (exec 69374): formatting, lint,
+strict types, frozen-source integrity, all 218 unit tests, all 58 browser journeys
+and the final normal build. Earlier focused runs verified migration/old backup,
+failed writes, legacy conflicts, organiser, both-theme forms, all-artwork loads,
+500-work Codex, idle/GPU-loss fallback, scroll restoration and enlarged text.
 
-## Phone-release extension delivered
+The tour regression measured controls at 948.7px in a 640px viewport before the
+fix; it passes all six steps after correction. Restoring the old unmarked selected
+style failed the new selection assertion; restored source hash matches the gate
+(components.tsx SHA256 C1E09FEC4D35F449E3A24EF6A2E225DC9D59E27E7687ECC1FA65948B2EF4CDE9).
+Session transaction, stale/Trash
+membership and settings-held-write regressions were observed failing with their
+defects restored and passing with the fixes. Three.js optimisation improved the
+same desktop-emulated 500-work sweep from 22.7 to approximately 57–60fps with at
+most five mounted rows. This is not physical Android evidence.
 
-- Q-018 is resolved. The owner-supplied reader-circle logo is now the release
-  icon, with separate full-bleed and maskable masters and deterministic 192px,
-  512px, and maskable outputs.
-- Settings has one real `Install Ex Libris` section. It opens the native browser
-  prompt when available, gives iOS or generic browser menu instructions when it
-  is not, keeps dismissal retryable, and displays a green tick plus `Installed`
-  for a standalone launch or an accepted current prompt.
-- First-run onboarding has a sixth and final spotlight. It navigates from Home
-  to the real Settings installation row and invokes that same installation
-  path; no duplicate or ornamental install control exists.
-- All runtime public paths support the GitHub Pages project base
-  `/Ex-Libris/`, including the manifest, icons, service worker, illustrations,
-  share target, route fallback, and optional catalogue download.
-- `.github/workflows/pages.yml` builds the project site on `master`. The ignored
-  261.1-MiB production SQLite file is represented by 66 checked 4-MiB-or-smaller
-  parts under `deployment/corpus/`; CI reassembles and verifies the exact
-  273,784,832 bytes before upload. The AniList/MangaDex fixture remains ignored
-  and cannot ship.
-- `README.md` is a concise first-person project introduction, install note,
-  privacy/backups warning, local setup, and acknowledgements. It does not claim
-  the software was authored by an automated system.
-- The owner enabled GitHub Pages, trigger commit `f64901a` was pushed, and
-  workflow run `34747574260` deployed the production app successfully at
-  `https://qusai-badwaniwala.github.io/Ex-Libris/`.
+## Environment and next actions
 
-No dependency, Dexie migration, corpus row/source/licence change, immutable
-design edit, speculative feature, or unrelated refactor was added.
+The exact normal Pages-path build was inspected on 2026-10-02 at 360x640 and
+390x844: first-run Bookplate/tour, all six tour steps including the scrolled
+install target, light replay, explicit manual selections, saved record,
+Collection/Codex in both themes, and Codex-to-record navigation. No captured
+runtime errors. Local review records are disposable and never exported to Pages.
 
-## Verification evidence
+Final Pages-path build: main JS 602.94kB / 179.72kB gzip; lazy Codex JS 526.45kB /
+132.65kB gzip; CSS 39.48kB / 8.77kB gzip; two font files total 138.82kB. The
+49-entry offline shell precache is 15871.51KiB, excluding the catalogue. Codex
+code is parsed on demand but precached for offline use. These are build sizes,
+not phone timings. Evaluation launcher and test bridges are absent from runtime
+JS. The production catalogue assembled with full checksum verification:
+438,584 works, 273,784,832 bytes, SHA256
+1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7.
 
-- Focused strict TypeScript and production Pixel 7 install journeys passed.
-  Native-prompt acceptance, Installed status, completed-tour persistence, and
-  manual fallback are covered.
-- Explicitly inspected `.impeccable/review/release-install-*.png` in warm light
-  and blue-grey dark, including the spotlight, native state, manual instructions,
-  and green Installed state. The 192px regular and 512px maskable icons were
-  also inspected after generation.
-- A local `/Ex-Libris/` production build and preview returned HTTP 200 for the
-  app, web manifest, and catalogue manifest. The assembled catalogue was
-  273,784,832 bytes and matched SHA-256
-  `1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7`.
-- Definitive `npm run gate` passed on 2026-09-13: formatting, lint, strict
-  TypeScript, frozen token/taxonomy checks across 96 source files, 207/207 unit
-  tests in 20 files, 47/47 production Pixel 7 E2E tests, and the production PWA
-  build.
-- Final local application JS is `index-BNZBCYIL.js`, 621.67 kB raw / 180.73 kB
-  gzip; CSS is `index-DXm9LgQ2.css`, 24.18 kB / 4.87 kB gzip; worker JS is
-  77.68 kB; FTS5 WASM is 842.76 kB / 411.47 kB gzip. Workbox precaches 82
-  entries / 15,784.70 KiB and excludes catalogue bytes.
-- Public-file audit found zero high-confidence credentials in the current tree
-  and existing Git history. `.env`, local databases, pipeline cache, test output,
-  and visual-review captures are ignored. Broad matches were only deliberate
-  fake values in backup tests that prove keys are excluded.
-- Q-028 remains deferred and explicitly unpassed. Pixel 7 emulation does not
-  measure physical Android storage or CPU.
-- Commit `b41ac679f9527cc5a47799852a889c4297c7e3ca` is pushed to
-  `origin/master` at the public
-  `https://github.com/Qusai-Badwaniwala/Ex-Libris` repository. Its author and
-  committer use GitHub's verified-format no-reply address; the first rejected
-  attempt published nothing and the private email is absent from Git history.
-- GitHub Actions run `34747574260` completed checkout, dependency installation,
-  exact catalogue reconstruction, build, artifact upload, and Pages deployment.
-- Live network verification returned the app, manifest, regular icon, service
-  worker, and catalogue manifest successfully. The manifest uses start URL and
-  scope `/Ex-Libris/`; the public catalogue declares 273,784,832 bytes and the
-  expected SHA-256. A byte-range request returned HTTP 206 and the SQLite header.
-  The service worker does not precache catalogue bytes. The `/share` deep link
-  serves the app shell through GitHub Pages' custom-404 fallback and is handled
-  as navigation once the installed service worker controls the app.
-- The public URL was opened at Pixel 7 dimensions and reached the real first-run
-  Welcome screen with the privacy promise and working `Open the library` action.
+1. Format changed docs, stage reviewed named files and commit.
+   Production checkout ../Website is clean at a218b8a; verify
+   origin/master again before a normal fast-forward push through existing Pages.
+2. Monitor deployment and verify the public assets/manifest/UI.
+3. Record the release SHA/run URL in the handoff and publication log.
 
-## Still open
+Normal production preview: http://127.0.0.1:4275/Ex-Libris/ (exec 67419).
+Set VITE_BASE_PATH=/Ex-Libris/ for both build and preview; omitting it from
+preview serves HTML for nested JS URLs. CUA browser 1/tab 1 has a disposable
+local review record. Stop preview before building. Older localhost tabs may have
+stale workers. No phone data has been read, exported or altered.
+The latest published Pages run is 34747574260, before adoption.
 
-- Q-028 is the deferred physical mid-range Android input-to-painted catalogue
-  result.
-- Q-029 is an unapproved, unimplemented empty `More Like This` explanation.
-- Q-013 re-reads remain deferred and undesigned.
-
-## Next three actions
-
-1. Owner opens the live URL on the phone, completes onboarding, and installs it
-   from the final Settings spotlight or the browser's Add to Home Screen menu.
-2. After adding real library data, owner exports a ZIP to storage outside the
-   browser; automatic snapshots remain on-device and are not protection against
-   a lost phone or cleared site data.
-3. Resume Q-028 only when the owner wants the deferred physical mid-range
-   Android catalogue-latency measurement. Do not invent Phase 11.
-
-## Environment and repository hazards
-
-- Commit `b41ac67` contains the complete Phase 2–10 implementation as one
-  audited public release unit. Do not reset, clean, discard, or rewrite its
-  history.
-- The release is live at `https://qusai-badwaniwala.github.io/Ex-Libris/`.
-  Future pushes to `master` without `[skip ci]` can publish a new Pages build;
-  run the full gate before changing the shipped application.
-- Run Git, npm, and tests from `H:\Ex libris Project\Website`.
-- Ports 5173 and 4173 are stopped. Never build while either serves this
-  repository; the public Pages deployment now hosts the verified release.
-- `public/corpus/` and `pipeline/.cache/` are deliberately ignored. Only the
-  production checksummed parts in `deployment/corpus/` belong in Git.
-- Existing Vite warnings about the main chunk size and mixed static/dynamic
-  `dates.ts` import are non-blocking and unchanged in kind.
-- The optional local `impeccable` engine binary is absent. The release review
-  used its complete documented manual criteria; do not install it without owner
-  instruction.
-
-```text
-npm run gate
-$env:VITE_BASE_PATH='/Ex-Libris/'; npm run build
-npm run pages:corpus:assemble
-```
+See [adoption](astra/ADOPTION.md), [audit](astra/AUDIT.md),
+[comparison](astra/COMPARISON.md), [upgrade/rollback](astra/RELEASE.md).
+Historical prototype docs are marked as such. A presentation rollback must
+retain DB-v3 compatibility; do not simply redeploy the DB-v2 binary.
+Q-028 physical Android catalogue latency and physical TalkBack review remain
+unpassed. Development-only Vitest/mocker advisories are recorded in RELEASE.

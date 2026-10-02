@@ -29,9 +29,10 @@ test('Settings gives honest manual installation steps when no browser prompt is 
   await page.getByRole('button', { name: 'Open the library' }).click();
   await page.getByRole('button', { name: 'Skip' }).click();
 
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await page
-    .getByRole('navigation', { name: 'Sections' })
-    .getByRole('button', { name: 'Settings' })
+    .getByRole('dialog', { name: 'Menu' })
+    .getByRole('button', { name: /^Settings/ })
     .click();
   await page.getByRole('button', { name: 'Install' }).click();
 
@@ -41,7 +42,7 @@ test('Settings gives honest manual installation steps when no browser prompt is 
     ),
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Hide the steps' })).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/release-install-fallback-light.png' });
+  await page.screenshot({ path: '.astra/review/release-install-fallback-light.png' });
 
   await page.getByRole('button', { name: 'Hide the steps' }).click();
   await expect(page.getByText('Open your browser menu')).toHaveCount(0);

@@ -99,7 +99,11 @@ if (tableRows.length !== 12) {
 
 /* ── 3 · nothing in src hardcodes a value that lives in tokens.css ─────── */
 
-const SKIP_FILES = new Set(['src/styles/tokens.css', 'src/data/taxonomy.json']);
+const SKIP_FILES = new Set([
+  'src/styles/tokens.css',
+  'src/styles/reading-room-tokens.css',
+  'src/data/taxonomy.json',
+]);
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
 const DURATION = /\b\d+ms\b/g;
 const ALLOW = /tokens-allow/;

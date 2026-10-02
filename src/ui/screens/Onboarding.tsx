@@ -1,8 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Constellation } from '../constellation';
-import { caption, displayL, displayS, label, resetButton } from '../styles';
+import { displayS, resetButton } from '../styles';
 import { prefersReducedMotion } from '../theme';
-import { TOUR_SCRIM, WELCOME_ART_MS, WELCOME_BEATS } from '../design-literals';
+import { TOUR_SCRIM } from '../design-literals';
 import { Illustration } from '../illustration';
 import { requestPwaInstall, usePwaInstall } from '../../pwa/install';
 
@@ -20,89 +19,27 @@ import { requestPwaInstall, usePwaInstall } from '../../pwa/install';
  * layout or hardcoded target geometry.
  */
 
-function beat(i: number) {
-  if (prefersReducedMotion()) return undefined;
-  return {
-    animation: `exl-welcome var(--duration-fluid) var(--ease-fluid-out) ${WELCOME_BEATS[i]} both`,
-  };
-}
-
 export function Welcome({ onNext }: { onNext: () => void }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          animation: prefersReducedMotion()
-            ? undefined
-            : `exl-art-in ${WELCOME_ART_MS} var(--ease-fluid-out) both`,
-        }}
-      >
-        <Constellation />
+    <main className="room-welcome exl-scroll">
+      <div className="room-welcome-art">
+        <Illustration name="magic-tree-cuate" style={{ width: '100%', maxWidth: 300 }} />
       </div>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: 'var(--space-7) var(--space-6)',
-          gap: 'var(--space-3)',
-        }}
-      >
-        <div style={{ ...label, ...beat(0) }}>Welcome to</div>
-        <div style={{ ...displayL, fontSize: '52px', lineHeight: '56px', ...beat(1) }}>
-          Ex Libris
-        </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '19px',
-            lineHeight: 'var(--lh-body-l)',
-            color: 'var(--text-secondary)',
-            textWrap: 'pretty',
-            ...beat(2),
-          }}
-        >
-          A private record of what you have read — books, web novels and manhwa, on one shelf.
-        </div>
-        <div
-          style={{
-            height: 'var(--hairline-width)',
-            background: 'var(--hairline-strong)',
-            transformOrigin: 'left',
-            animation: prefersReducedMotion()
-              ? undefined
-              : `exl-rule var(--duration-fluid) var(--ease-fluid-out) ${WELCOME_BEATS[3]} both`,
-            margin: 'var(--space-2) 0',
-          }}
-        />
-        <div style={{ ...caption, color: 'var(--text-secondary)', ...beat(4) }}>
-          It works with no signal, has no account, and nothing you write ever leaves this device.
-        </div>
-        <button
-          data-active="accent"
-          onClick={onNext}
-          style={{
-            ...resetButton,
-            marginTop: 'var(--space-4)',
-            height: 52,
-            lineHeight: '52px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            background: 'var(--accent)',
-            color: 'var(--on-accent)',
-            fontSize: 'var(--size-body)',
-            fontWeight: 500,
-            ...beat(5),
-          }}
-        >
-          Open the library
+      <div className="room-welcome-copy">
+        <p className="room-eyebrow">A place for what you read</p>
+        <h1>Ex Libris</h1>
+        <p className="room-welcome-intro">
+          A private reading room.
+          <br />
+          Entirely your own.
+        </p>
+        <p>Books, web novels and manhwa, together with the thoughts they leave behind.</p>
+        <button className="room-primary" onClick={onNext}>
+          Open the library <span aria-hidden="true">↗</span>
         </button>
+        <small>No account. No signal needed. Your library stays on this device.</small>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -140,8 +77,8 @@ const TOUR_STEPS: readonly TourStep[] = [
     target: 'drawer',
     radius: '10px',
     pad: 6,
-    head: 'Notes, trash and backups',
-    body: 'Notes live alongside the books they belong to. Nothing you delete is really gone for thirty days.',
+    head: 'Your room, your settings',
+    body: 'Settings, the optional catalogue, backups and Trash live here. Notes have their own tab at the bottom.',
   },
   {
     target: 'everything',
@@ -186,6 +123,7 @@ export function SpotlightTour({
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState<TourRect | null>(null);
+  const [cardHeight, setCardHeight] = useState(280);
   const layerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
@@ -196,6 +134,15 @@ export function SpotlightTour({
   const step = TOUR_STEPS[stepIndex]!;
   const reduceMotion = prefersReducedMotion();
   const install = usePwaInstall();
+  const visible = rect !== null;
+
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const observer = new ResizeObserver(() => setCardHeight(card.getBoundingClientRect().height));
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [visible]);
 
   useEffect(() => {
     returnFocus.current =
@@ -262,7 +209,7 @@ export function SpotlightTour({
         top: targetRect.top - frameRect.top - pad,
         width: targetRect.width + pad * 2,
         height: targetRect.height + pad * 2,
-        frameHeight: frameRect.height,
+        frameHeight: Math.min(frameRect.height, window.visualViewport?.height ?? frameRect.height),
       };
       setRect((current) =>
         current &&
@@ -279,6 +226,7 @@ export function SpotlightTour({
     measure();
     if (target) retry = window.requestAnimationFrame(measure);
     window.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('resize', measure);
     if (typeof ResizeObserver !== 'undefined') {
       frameObserver = new ResizeObserver(measure);
       frameObserver.observe(frame);
@@ -291,6 +239,7 @@ export function SpotlightTour({
     return () => {
       if (retry !== null) window.cancelAnimationFrame(retry);
       window.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
       frameObserver?.disconnect();
       targetObserver?.disconnect();
     };
@@ -299,7 +248,7 @@ export function SpotlightTour({
   useEffect(() => {
     if (!rect || focusedStep.current === stepIndex) return;
     focusedStep.current = stepIndex;
-    nextRef.current?.focus();
+    nextRef.current?.focus({ preventScroll: true });
   }, [rect, stepIndex]);
 
   const finish = () => onDone();
@@ -335,7 +284,6 @@ export function SpotlightTour({
 
   // The rect half of the gate prevents a 0 × 0 ring at the frame origin before
   // the first live measurement. It is deliberately not cleared between steps.
-  const visible = rect !== null;
   const target = visible
     ? layerRef.current?.parentElement?.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
     : null;
@@ -357,6 +305,17 @@ export function SpotlightTour({
     };
   }
   const cardBelow = rect ? rect.top < rect.frameHeight * 0.45 : true;
+  // A large highlighted record and enlarged text must never push the escape
+  // controls off-screen. Only the explanatory copy scrolls inside the card.
+  const cardTop = rect
+    ? Math.max(
+        16,
+        Math.min(
+          cardBelow ? rect.top + rect.height + 16 : rect.top - cardHeight - 16,
+          rect.frameHeight - cardHeight - 16,
+        ),
+      )
+    : 16;
 
   return (
     <div
@@ -372,7 +331,7 @@ export function SpotlightTour({
         inset: 0,
         zIndex: 'var(--z-overlay)' as unknown as number,
         pointerEvents: visible ? 'auto' : 'none',
-        touchAction: 'none',
+        touchAction: 'pan-y',
         visibility: visible ? 'visible' : 'hidden',
         animation:
           visible && !reduceMotion
@@ -405,8 +364,9 @@ export function SpotlightTour({
               position: 'absolute',
               left: 'var(--space-4)',
               right: 'var(--space-4)',
-              top: cardBelow ? rect.top + rect.height + 16 : 'auto',
-              bottom: cardBelow ? 'auto' : rect.frameHeight - rect.top + 16,
+              top: cardTop,
+              maxHeight: rect.frameHeight - 32,
+              boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column',
               gap: 'var(--space-3)',
@@ -420,46 +380,38 @@ export function SpotlightTour({
                 : 'top var(--duration-fluid) var(--ease-fluid-out), bottom var(--duration-fluid) var(--ease-fluid-out)',
             }}
           >
-            <div id={headingId} style={displayS}>
-              {copy.head}
-            </div>
             <div
-              id={bodyId}
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--size-body)',
-                lineHeight: 'var(--lh-body)',
-                color: 'var(--text-secondary)',
-                textWrap: 'pretty',
-              }}
+              style={{ overflowY: 'auto', minHeight: 0, display: 'grid', gap: 'var(--space-3)' }}
             >
-              {copy.body}
+              <span style={{ fontSize: 'var(--size-caption)', color: 'var(--text-secondary)' }}>
+                {stepIndex + 1} / {TOUR_STEPS.length}
+              </span>
+              <div id={headingId} style={displayS}>
+                {copy.head}
+              </div>
+              <div
+                id={bodyId}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--size-body)',
+                  lineHeight: 'var(--lh-body)',
+                  color: 'var(--text-secondary)',
+                  textWrap: 'pretty',
+                }}
+              >
+                {copy.body}
+              </div>
             </div>
             <div
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'auto minmax(0, 1fr)',
                 alignItems: 'center',
                 gap: 'var(--space-3)',
                 marginTop: 4,
+                flexShrink: 0,
               }}
             >
-              <div aria-hidden="true" style={{ display: 'flex', gap: 6 }}>
-                {TOUR_STEPS.map((tourStep, index) => (
-                  <span
-                    key={tourStep.target}
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 'var(--radius-pill)',
-                      background: index === stepIndex ? 'var(--accent)' : 'var(--hairline-strong)',
-                    }}
-                  />
-                ))}
-              </div>
-              <span className="exl-sr">
-                Step {stepIndex + 1} of {TOUR_STEPS.length}
-              </span>
-              <span style={{ flex: 1 }} />
               <button
                 onClick={finish}
                 style={{
@@ -479,9 +431,9 @@ export function SpotlightTour({
                 onClick={next}
                 style={{
                   ...resetButton,
-                  padding: '0 22px',
-                  height: 'var(--touch-min)',
-                  lineHeight: 'var(--touch-min)',
+                  padding: 'var(--space-2) var(--space-3)',
+                  minHeight: 'var(--touch-min)',
+                  lineHeight: 'var(--lh-body)',
                   borderRadius: 'var(--radius-button)',
                   background: 'var(--accent)',
                   color: 'var(--on-accent)',
@@ -523,173 +475,39 @@ export function Bookplate({
 }) {
   const [name, setName] = useState(initial);
   const ok = name.trim().length > 0;
-
   return (
-    <div
-      className="exl-scroll"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'calc(var(--space-6) + var(--safe-top)) var(--space-5) var(--space-6)',
-        gap: 'var(--space-5)',
-      }}
-    >
-      <div style={{ position: 'relative', width: '100%', maxWidth: 320, aspectRatio: '300 / 420' }}>
-        {/* The engraved frame: three nested rules, a corner diamond on each
-            side, four tick marks where the band rules meet the frame. */}
-        <svg
-          viewBox="0 0 300 420"
-          fill="none"
-          aria-hidden="true"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        >
-          <rect
-            x="6"
-            y="6"
-            width="288"
-            height="408"
-            rx="3"
-            stroke="var(--text-faint)"
-            strokeWidth="1"
-          />
-          <rect
-            x="16"
-            y="16"
-            width="268"
-            height="388"
-            rx="2"
-            stroke="var(--accent)"
-            strokeWidth="0.75"
-          />
-          <rect
-            x="21"
-            y="21"
-            width="258"
-            height="378"
-            rx="2"
-            stroke="var(--accent)"
-            strokeWidth="0.75"
-          />
-          <path d="M21 104 L279 104 M21 300 L279 300" stroke="var(--accent)" strokeWidth="0.75" />
-          <path d="M150 8 L156 16 L150 24 L144 16 Z" fill="var(--accent)" />
-          <path d="M150 396 L156 404 L150 412 L144 404 Z" fill="var(--accent)" />
-          <path d="M8 210 L16 204 L24 210 L16 216 Z" fill="var(--accent)" />
-          <path d="M292 210 L284 204 L276 210 L284 216 Z" fill="var(--accent)" />
-          <path
-            d="M46 104 L46 96 M254 104 L254 96 M46 300 L46 308 M254 300 L254 308"
-            stroke="var(--accent)"
-            strokeWidth="0.75"
-          />
-        </svg>
-        <div
-          style={{
-            position: 'absolute',
-            left: '10%',
-            right: '10%',
-            top: '4%',
-            height: '20%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ ...displayL, fontWeight: 400 }}>Ex Libris</div>
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            left: '16%',
-            right: '16%',
-            top: '27%',
-            height: '41%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Illustration name="magic-tree-cuate" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            left: '12%',
-            right: '12%',
-            top: '75%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <div style={label}>From the books of</div>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="your name"
-            aria-label="Your name"
-            data-focus="accent"
-            style={{
-              width: '100%',
-              height: 40,
-              textAlign: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: 'var(--hairline-width) solid var(--hairline-strong)',
-              color: 'var(--text-primary)',
-              ...displayS,
-              outline: 'none',
-            }}
-          />
-        </div>
-      </div>
-
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 320,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-2)',
+    <main className="room-bookplate exl-scroll">
+      <p className="room-eyebrow">This library belongs to</p>
+      <Illustration name="magic-tree-cuate" style={{ width: 200, maxWidth: '60%' }} />
+      <h1>
+        A reader.
+        <br />
+        With a name.
+      </h1>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (ok) onDone(name.trim());
         }}
       >
-        <button
-          data-active="accent"
-          onClick={() => ok && onDone(name.trim())}
-          style={{
-            ...resetButton,
-            width: '100%',
-            textAlign: 'center',
-            height: 52,
-            lineHeight: '52px',
-            borderRadius: 'var(--radius-button)',
-            background: ok ? 'var(--accent)' : 'var(--surface-raised)',
-            color: ok ? 'var(--on-accent)' : 'var(--text-secondary)',
-            cursor: ok ? 'pointer' : 'default',
-            fontSize: 'var(--size-body)',
-            fontWeight: 500,
-          }}
-        >
-          {heading}
-        </button>
-        <div
-          style={{
-            ...caption,
-            color: 'var(--text-secondary)',
-            textAlign: 'center',
-            padding: '6px 12px',
-          }}
-        >
+        <label htmlFor="bookplate-name">From the books of</label>
+        <input
+          id="bookplate-name"
+          aria-label="Your name"
+          placeholder="your name"
+          autoComplete="given-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <p>
           {ok
             ? 'It goes on the bookplate, and nowhere else.'
             : 'The bookplate needs a name before the library opens.'}
-        </div>
-      </div>
-    </div>
+        </p>
+        <button className="room-primary" disabled={!ok}>
+          {heading} <span aria-hidden="true">↗</span>
+        </button>
+      </form>
+    </main>
   );
 }

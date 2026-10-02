@@ -4,9 +4,8 @@ import { purgeExpired } from '../db/repo';
 import { requestPersistence } from '../storage/persist';
 import { applyTheme, watchSystemTheme } from './theme';
 import { APP_VERSION, useSettings } from './store';
-import { Drawer, Fab, FabMenu, NavBar } from './chrome';
+import { Drawer, Fab, FabMenu, NavBar, RoomToolbar } from './chrome';
 import { Home } from './screens/Home';
-import { Format } from './screens/Format';
 import { Detail } from './screens/Detail';
 import { Trash } from './screens/Trash';
 import { Wishlist } from './screens/Wishlist';
@@ -17,9 +16,8 @@ import { Bookplate, SpotlightTour, Welcome } from './screens/Onboarding';
 import { Everything } from './screens/Everything';
 import { SearchScreen } from './screens/Search';
 import { Corpus } from './screens/Corpus';
-import { Spine } from './screens/Spine';
-import { SeriesScreen } from './screens/Series';
-import { UniverseScreen } from './screens/Universe';
+import { GroupScreen } from './screens/Group';
+import { GroupOrganiser } from './group-organiser';
 import { AxisScreen } from './screens/Axis';
 import { Finish } from './screens/Finish';
 import { Notes } from './screens/Notes';
@@ -37,6 +35,7 @@ import { Splash } from './splash';
 import { displayS, label, resetButton } from './styles';
 import type { Format as FormatKey, Settings as SettingsRow, ThemeChoice } from '../db/schema';
 import { maybeCreateAutomaticBackup } from '../data-safety/backup';
+import { UpdateOffer } from '../pwa/update';
 
 /**
  * The shell.
@@ -55,6 +54,8 @@ export function App() {
   const overlay = overlays[overlays.length - 1] ?? null;
   const noteEditorOverlay = [...overlays].reverse().find((layer) => layer.kind === 'noteEditor');
   const [booted, setBooted] = useState(false);
+  const [replayInstallStep, setReplayInstallStep] = useState(false);
+  const replaying = route.screen === 'bookplate' || replayInstallStep;
   const shareHandled = useRef(false);
   const basePath = import.meta.env.BASE_URL;
   const sharePath = `${basePath.replace(/\/$/, '')}/share`;
@@ -146,24 +147,39 @@ export function App() {
 
   return (
     <Frame>
-      {underRoute ? (
-        <>
-          <div aria-hidden="true" inert style={{ position: 'absolute', inset: 0 }}>
-            {renderScreen(underRoute.screen, underRoute, theme, setTheme, settings, update)}
-          </div>
-          {renderScreen(route.screen, route, theme, setTheme, settings, update)}
-        </>
-      ) : (
-        renderScreen(route.screen, route, theme, setTheme, settings, update)
-      )}
+      <RoomToolbar theme={theme} onTheme={setTheme} />
+      <div className="room-stage" data-screen={route.screen}>
+        {underRoute ? (
+          <>
+            <div aria-hidden="true" inert style={{ position: 'absolute', inset: 0 }}>
+              {renderScreen(underRoute.screen, underRoute, theme, setTheme, settings, update)}
+            </div>
+            {renderScreen(route.screen, route, theme, setTheme, settings, update)}
+          </>
+        ) : (
+          renderScreen(route.screen, route, theme, setTheme, settings, update)
+        )}
+      </div>
 
-      <NavBar screen={route.screen} />
-      <Fab screen={route.screen} onOpen={() => nav.open({ kind: 'fabMenu' })} />
+      <NavBar screen={route.screen === 'bookplate' ? 'home' : route.screen} />
+      <Fab
+        screen={route.screen === 'bookplate' ? 'home' : route.screen}
+        onOpen={() => nav.open({ kind: 'fabMenu' })}
+      />
 
-      {!settings.tourCompletedAt && (route.screen === 'home' || route.screen === 'settings') ? (
+      {replaying ||
+      (!settings.tourCompletedAt && (route.screen === 'home' || route.screen === 'settings')) ? (
         <SpotlightTour
-          onDone={() => void update({ tourCompletedAt: new Date().toISOString() })}
-          onShowSettings={() => nav.reset({ screen: 'settings' })}
+          onDone={() => {
+            if (replaying) {
+              setReplayInstallStep(false);
+              nav.reset({ screen: 'home' });
+            } else void update({ tourCompletedAt: new Date().toISOString() });
+          }}
+          onShowSettings={() => {
+            if (replaying) setReplayInstallStep(true);
+            nav.reset({ screen: 'settings' });
+          }}
         />
       ) : null}
 
@@ -180,6 +196,9 @@ export function App() {
         />
       ) : null}
       {overlay?.kind === 'catalogue' ? <CatalogueSheet initialQuery={overlay.query} /> : null}
+      {overlay?.kind === 'groupOrganiser' && overlay.id && overlay.contextType ? (
+        <GroupOrganiser id={overlay.id} kind={overlay.contextType} />
+      ) : null}
       {overlay?.kind === 'byHand' ? (
         <ByHandSheet
           candidate={overlay.candidate}
@@ -240,34 +259,42 @@ function renderScreen(
     suggestRelationships?: boolean;
     axis?: import('../axes/axes').AxisKey;
   },
-  theme: 'light' | 'dark',
-  setTheme: (t: ThemeChoice) => void,
+  _theme: 'light' | 'dark',
+  _setTheme: (t: ThemeChoice) => void,
   settings: SettingsRow,
   updateSettings: (patch: Partial<SettingsRow>) => Promise<boolean>,
 ) {
   switch (screen) {
+    case 'welcome':
+      return <Welcome onNext={() => nav.push({ screen: 'bookplate' })} />;
+    case 'bookplate':
+      return <Home />;
     case 'home':
-      return <Home theme={theme} onTheme={setTheme} />;
+      return <Home />;
     case 'format':
-      return <Format format={route.format ?? 'novel'} />;
+      return <Everything key={route.format} initialFormat={route.format ?? 'novel'} />;
     case 'detail':
       return route.id ? (
-        <Detail id={route.id} suggestRelationships={route.suggestRelationships} />
+        <Detail key={route.id} id={route.id} suggestRelationships={route.suggestRelationships} />
       ) : (
-        <NotBuilt screen="Detail" phase="1" />
+        <MissingRoute />
       );
     case 'series':
-      return route.id ? <SeriesScreen id={route.id} /> : <NotBuilt screen="Series" phase="5" />;
-    case 'universe':
-      return route.id ? <UniverseScreen id={route.id} /> : <NotBuilt screen="Universe" phase="5" />;
-    case 'axis':
       return route.id ? (
-        <AxisScreen id={route.id} initialKey={route.axis} />
+        <GroupScreen key={route.id} id={route.id} kind="series" />
       ) : (
-        <NotBuilt screen="Axes" phase="6" />
+        <MissingRoute />
       );
+    case 'universe':
+      return route.id ? (
+        <GroupScreen key={route.id} id={route.id} kind="universe" />
+      ) : (
+        <MissingRoute />
+      );
+    case 'axis':
+      return route.id ? <AxisScreen id={route.id} initialKey={route.axis} /> : <MissingRoute />;
     case 'finish':
-      return route.id ? <Finish id={route.id} /> : <NotBuilt screen="Finished" phase="6" />;
+      return route.id ? <Finish id={route.id} /> : <MissingRoute />;
     case 'trash':
       return <Trash />;
     case 'wishlist':
@@ -279,7 +306,8 @@ function renderScreen(
     case 'everything':
       return <Everything initialGenre={route.genre} />;
     case 'spine':
-      return <Spine format={route.format ?? 'novel'} />;
+      // Historical navigation entries remain safe after an installed-app upgrade.
+      return <Everything initialFormat={route.format} />;
     case 'stats':
       return <Stats />;
     case 'notes':
@@ -293,7 +321,7 @@ function renderScreen(
     case 'tags':
       return <Tags />;
     default:
-      return <NotBuilt screen={screen} phase="1" />;
+      return <MissingRoute />;
   }
 }
 
@@ -339,19 +367,13 @@ function Frame({ children }: { children: ReactNode }) {
       {children}
       <ConnectionStatus />
       <InteractionFeedback />
+      <UpdateOffer />
     </div>
   );
 }
 
-/**
- * A screen that has a route but no implementation yet.
- *
- * Written in the mono developer voice the design package uses for its own
- * scaffolding, and it names the phase. The alternative — a plausible-looking
- * empty state — would be indistinguishable from a screen whose data failed to
- * load, and the app would be quietly lying about what it can do.
- */
-function NotBuilt({ screen, phase }: { screen: string; phase: string }) {
+/** A malformed or obsolete navigation entry must offer a real way home. */
+function MissingRoute() {
   return (
     <div
       style={{
@@ -366,10 +388,8 @@ function NotBuilt({ screen, phase }: { screen: string; phase: string }) {
         textAlign: 'center',
       }}
     >
-      <div style={displayS}>{screen}</div>
-      <div style={{ ...label, fontFamily: 'var(--font-mono)' }}>
-        not built yet · phase {phase} · v{APP_VERSION}
-      </div>
+      <h1 style={displayS}>This page could not open</h1>
+      <p style={label}>Return to your library and open the record again.</p>
       <button
         onClick={() => nav.reset({ screen: 'home' })}
         style={{

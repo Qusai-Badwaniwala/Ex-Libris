@@ -64,6 +64,19 @@ export const MIGRATIONS: Migration[] = [
       readingOrderEntry: 'id, orderId, [orderId+position], workId, seriesId, corpusId',
     },
   },
+  {
+    version: 3,
+    stores: {},
+    upgrade: async (tx) => {
+      await tx
+        .table('settings')
+        .toCollection()
+        .modify((settings: Settings) => {
+          settings.defaultView = { book: 'list', novel: 'list', manhwa: 'list' };
+          delete settings.spineWidthProfile;
+        });
+    },
+  },
 ];
 
 export class ExLibrisDB extends Dexie {

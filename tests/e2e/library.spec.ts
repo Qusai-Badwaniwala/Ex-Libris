@@ -41,7 +41,8 @@ async function openLibrary(page: Page, name = 'Qusai') {
   await page.getByRole('button', { name: 'Open the library' }).click();
   await expect(page.getByRole('dialog', { name: 'Search only what you own' })).toBeVisible();
   await page.getByRole('button', { name: 'Skip' }).click();
-  await expect(page.getByText('Shelves')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Search only what you own' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Your shelves' })).toBeVisible();
 }
 
 async function addByHand(page: Page, title: string) {
@@ -49,9 +50,7 @@ async function addByHand(page: Page, title: string) {
   await page.getByRole('button', { name: 'Add by hand' }).click();
   await page.getByLabel('Title').fill(title);
   await page.getByRole('button', { name: 'Put it on the shelf' }).click();
-  await expect(
-    page.getByRole('heading', { level: 1 }).or(page.getByText(title).first()),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: title, exact: true })).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -65,7 +64,7 @@ test('first run requires a name, then teaches the real Home and install controls
   // D-042 closed Q-003: the name is required, the button stays inert rather
   // than hidden, and the line under it says why.
   await expect(page.getByText('The bookplate needs a name before the library opens')).toBeVisible();
-  await page.getByRole('button', { name: 'Open the library' }).click();
+  await expect(page.getByRole('button', { name: 'Open the library' })).toBeDisabled();
   await expect(page.getByText('From the books of')).toBeVisible();
 
   await page.getByLabel('Your name').fill('Qusai');
@@ -95,7 +94,7 @@ test('first run requires a name, then teaches the real Home and install controls
   await tour.getByRole('button', { name: 'Next' }).click();
   await expect(tour).toHaveAccessibleName('Begin with anything');
   await tour.getByRole('button', { name: 'Next' }).click();
-  await expect(tour).toHaveAccessibleName('Notes, trash and backups');
+  await expect(tour).toHaveAccessibleName('Your room, your settings');
   await tour.getByRole('button', { name: 'Next' }).click();
   await expect(tour).toHaveAccessibleName('Everything, filtered');
   await tour.getByRole('button', { name: 'Next' }).click();
@@ -115,14 +114,14 @@ test('first run requires a name, then teaches the real Home and install controls
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await expect(tour).toHaveAccessibleName('Keep Ex Libris on this phone');
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-  await page.screenshot({ path: '.impeccable/review/release-install-tour-light.png' });
+  await page.screenshot({ path: '.astra/review/release-install-tour-light.png' });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-  await page.screenshot({ path: '.impeccable/review/release-install-tour-dark.png' });
+  await page.screenshot({ path: '.astra/review/release-install-tour-dark.png' });
   await tour.getByRole('button', { name: 'Install Ex Libris' }).click();
   await expect(tour).toHaveCount(0);
   await expect(page.getByText('Installed', { exact: true })).toBeVisible();
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-  await page.screenshot({ path: '.impeccable/review/release-installed-settings-dark.png' });
+  await page.screenshot({ path: '.astra/review/release-installed-settings-dark.png' });
   await expect
     .poll(() =>
       page.evaluate(
@@ -135,7 +134,7 @@ test('first run requires a name, then teaches the real Home and install controls
 
   await page.reload();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByText('Shelves')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your shelves' })).toBeVisible();
 });
 
 test('the library opens empty, and says so honestly', async ({ page }) => {
@@ -146,7 +145,7 @@ test('the library opens empty, and says so honestly', async ({ page }) => {
   // Never inflate: no sample data, and the three figures are all zero rather
   // than absent.
   await expect(page.getByText('Continue')).toHaveCount(0);
-  await expect(page.getByText('in the library')).toBeVisible();
+  await expect(page.getByText('Your library begins here')).toBeVisible();
 });
 
 test('a work added by hand can then have everything about it changed', async ({ page }) => {
@@ -174,7 +173,7 @@ test('a work added by hand can then have everything about it changed', async ({ 
   await page.getByLabel('Released so far').fill('2334');
   await page.getByRole('button', { name: 'Save' }).click();
 
-  await expect(page.getByText('Reverend Insanity 蛊真人')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reverend Insanity 蛊真人' })).toBeVisible();
   await expect(page.getByText('Gu Zhen Ren')).toBeVisible();
 
   // Now that it is ongoing, caught up IS offered — the two facts are
@@ -249,11 +248,11 @@ test('removing a work sends it to the trash, and it comes back whole', async ({ 
   await addByHand(page, 'Kill the Sun');
 
   await page.getByRole('button', { name: 'Remove from the library' }).click();
-  await expect(page.getByText('Shelves')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your shelves' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('button', { name: 'Trash' }).click();
-  await expect(page.getByText('Kill the Sun')).toBeVisible();
+  await expect(page.getByText('Kill the Sun', { exact: true })).toBeVisible();
   await expect(page.getByText('30 days left')).toBeVisible();
 
   await page.getByRole('button', { name: 'Restore' }).click();
@@ -275,7 +274,7 @@ test('the back gesture closes a sheet before it changes screen', async ({ page }
   await expect(page.getByText('Edit this work')).toHaveCount(0);
   // Still on the work. A back gesture that skipped the open sheet would read
   // as the app losing your place.
-  await expect(page.getByText('The Verdigris Ledger')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The Verdigris Ledger' })).toBeVisible();
 });
 
 test('the whole app loads with a clean console', async ({ page }) => {
@@ -347,7 +346,7 @@ test('adding from the Wishlist adds to the wishlist', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Wishlist/ }).first()).toBeVisible();
 
   await tab(page, 'Wishlist').click();
-  await expect(page.getByText('Kill the Sun')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Kill the Sun' })).toBeVisible();
 });
 
 test('adding from a shelf adds to that shelf, with its unit', async ({ page }) => {
@@ -355,7 +354,9 @@ test('adding from a shelf adds to that shelf, with its unit', async ({ page }) =
   await page.getByRole('button', { name: /^Books/ }).click();
   await page.getByRole('button', { name: 'Add to the library' }).click();
   await page.getByRole('button', { name: 'Add by hand' }).click();
-  await expect(page.getByRole('radio', { name: 'Books' })).toBeChecked();
+  await expect(
+    page.getByRole('dialog', { name: 'Add by hand' }).getByRole('radio', { name: 'Books' }),
+  ).toBeChecked();
   // A book is counted in pages. Carrying the chapter default onto the Books
   // shelf is the same quiet mismatch as changing the unit on a shelf move.
   await expect(page.getByRole('radio', { name: 'Pages' })).toBeChecked();
@@ -455,7 +456,7 @@ test('Phase 3 library search stays local and opens its matching work', async ({ 
   await tab(page, 'Library').click();
   const remote: string[] = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).origin !== 'http://localhost:4173') remote.push(request.url());
+    if (new URL(request.url()).origin !== 'http://localhost:4284') remote.push(request.url());
   });
   await page.getByRole('button', { name: 'Search your library' }).click();
   await page.getByRole('searchbox', { name: 'Search your library' }).fill('private');
@@ -464,21 +465,14 @@ test('Phase 3 library search stays local and opens its matching work', async ({ 
   expect(remote).toEqual([]);
 });
 
-test('the FAB stays above its menu and becomes the acquisition sheet', async ({ page }) => {
+test('Add opens a dismissible choice sheet and transitions into acquisition', async ({ page }) => {
   await openLibrary(page);
   await page.getByRole('button', { name: 'Add to the library' }).click();
-  const closeMenu = page.getByRole('button', { name: 'Close add menu' });
+  const closeMenu = page
+    .getByRole('dialog', { name: 'Add to your library' })
+    .getByRole('button', { name: 'Close', exact: true });
   await expect(closeMenu).toBeVisible();
-  await expect(closeMenu).toHaveAttribute('aria-expanded', 'true');
-  const layers = await page.evaluate(() => {
-    const fab = document.querySelector<HTMLElement>('[aria-label="Close add menu"]');
-    const menu = document.querySelector<HTMLElement>('[aria-label="Close"]')?.parentElement;
-    return {
-      fab: fab ? Number(getComputedStyle(fab).zIndex) : 0,
-      menu: menu ? Number(getComputedStyle(menu).zIndex) : 0,
-    };
-  });
-  expect(layers.fab).toBeGreaterThan(layers.menu);
+  await expect(page.getByRole('button', { name: 'Add to the library' })).toBeHidden();
 
   await page.getByRole('button', { name: 'Search the catalogue' }).click();
   const dialog = page.getByRole('dialog', { name: 'The catalogue' });
@@ -591,7 +585,7 @@ test('Phase 3 catalogue UI installs, confirms format and status, and survives of
   // Wait for actual precaching, then cold-load the shell and WASM with no network.
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
   await page.reload();
-  await expect(page.getByText('Shelves')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your shelves' })).toBeVisible();
   // Chromium's emulated network can stay offline while a new SW-controlled
   // document reports navigator.onLine=true (observed in this test). Pin the
   // status input separately; context.setOffline still proves real fetch failure.
@@ -638,7 +632,7 @@ test('Phase 3 online search only sends an explicit lookup and cancels stale resu
   const field = page.getByRole('searchbox', { name: 'Search the catalogue' });
   await field.fill('synthetic');
   expect(calls).toBe(0);
-  await page.getByRole('button', { name: 'Search online', exact: true }).click();
+  await page.getByRole('button', { name: 'Search MangaDex comics', exact: true }).click();
   await expect(page.getByText('A synthetic comic')).toBeVisible();
   expect(calls).toBe(1);
   await expect(
@@ -693,6 +687,10 @@ test('a service-worker upgrade preserves local data and the downloaded catalogue
   expect(cached.some((url) => url.endsWith('.wasm'))).toBe(true);
   expect(cached.some((url) => new URL(url).pathname.startsWith('/corpus/'))).toBe(false);
 
+  await page.getByRole('button', { name: 'Add to the library' }).click();
+  await page.getByRole('button', { name: 'Add by hand' }).click();
+  await page.getByLabel('Title', { exact: true }).fill('Unsaved draft during upgrade');
+
   // Supply the same generated worker with one changed byte. This reproduces a
   // real release without maintaining a second fake worker in the product.
   await context.route('**/sw.js?phase3-upgrade=1', async (route) => {
@@ -726,13 +724,24 @@ test('a service-worker upgrade preserves local data and the downloaded catalogue
     return registration.waiting?.scriptURL ?? '';
   });
   expect(waitingUrl).toContain('phase3-upgrade=1');
+  const offer = page.getByRole('complementary', { name: 'App update' });
+  await expect(offer).toBeVisible();
+  await expect(offer.getByRole('button', { name: 'Update', exact: true })).toBeDisabled();
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(offer.getByRole('button', { name: 'Update', exact: true })).toBeEnabled();
+  await offer.getByRole('button', { name: 'Update', exact: true }).click();
+  await page.waitForFunction(() =>
+    navigator.serviceWorker.controller?.scriptURL.includes('phase3-upgrade=1'),
+  );
+  await expect(page.getByText('Still here after the upgrade').first()).toBeVisible();
 
   await page.close();
   const relaunched = await context.newPage();
   await relaunched.goto('/');
-  await relaunched.waitForFunction(() =>
-    navigator.serviceWorker.controller?.scriptURL.includes('phase3-upgrade=1'),
-  );
+  // The real update button already activated the replacement above. On a new
+  // launch the app registers its canonical URL again; either controlled worker
+  // must preserve the same local data and offline shell.
+  await relaunched.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
   await expect(relaunched.getByText('Still here after the upgrade').first()).toBeVisible();
 
   await context.setOffline(true);

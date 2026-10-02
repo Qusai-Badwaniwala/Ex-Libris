@@ -1,458 +1,169 @@
 import { nav } from '../../router/router';
-import { displayS, label, resetButton, tabular } from '../styles';
-import { ChevronRight, Menu, Moon, Search, Sun } from '../icons';
-import { Cover, EmptyState, ProgressBar, ShelfMarker } from '../components';
+import { Cover, EmptyState, ProgressBar } from '../components';
 import { displayWork } from '../../db/derive';
 import { useContinuing, useHomeFigures, useLibrary, useShelfCounts } from '../store';
-import type { Format, ThemeChoice } from '../../db/schema';
-import { Constellation } from '../constellation';
+import type { Format } from '../../db/schema';
 
-/**
- * Home. Ported from design/Ex Libris.dc.html.
- *
- * No wordmark: the app name is on the splash, the bookplate, the drawer head
- * and About, and none of those is the top of the screen you look at forty times
- * a day (D-054). Search shares the row with the drawer button, and the two
- * theme glyphs sit to its right (D-082).
- */
-
-const SHELVES: { key: Format; label: string }[] = [
-  { key: 'book', label: 'Books' },
-  { key: 'novel', label: 'Novels' },
-  { key: 'manhwa', label: 'Manhwa' },
-];
-
-export function Home({
-  theme,
-  onTheme,
-}: {
-  theme: 'light' | 'dark';
-  onTheme: (t: ThemeChoice) => void;
-}) {
+export function Home() {
   const continuing = useContinuing();
-  const counts = useShelfCounts();
-  const figures = useHomeFigures();
   const library = useLibrary();
-
-  const reading = continuing ?? [];
-  const lead = reading[0];
-  const peek = reading.slice(1, 3);
-
-  /** Real cover colours replace, but never remove, the shelf's three spines. */
-  const shelfColors = (format: Format) =>
-    (library ?? [])
-      .filter((x) => x.work.format === format)
-      .slice(0, 3)
-      .map((x) => x.work.coverDominantColor ?? 'var(--cover-fallback)');
-
+  const figures = useHomeFigures();
+  const counts = useShelfCounts();
+  const lead = continuing?.[0];
+  const rest = continuing?.slice(1) ?? [];
+  const shelves: { key: Format; label: string }[] = [
+    { key: 'book', label: 'Books' },
+    { key: 'novel', label: 'Novels' },
+    { key: 'manhwa', label: 'Manhwa' },
+  ];
   return (
-    <div style={{ position: 'absolute', inset: 0 }}>
-      <Constellation full />
-      <div
-        className="exl-scroll"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          overflowY: 'auto',
-          padding: 'calc(var(--space-5) + var(--safe-top)) var(--page-gutter) 104px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            marginBottom: 'var(--space-6)',
-          }}
-        >
-          <button
-            data-tour="drawer"
-            aria-label="Menu"
-            onClick={() => nav.open({ kind: 'drawer' })}
-            style={{
-              ...resetButton,
-              width: 40,
-              height: 44,
-              flex: 'none',
-              marginLeft: -10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Menu />
-          </button>
-          <button
-            data-tour="search"
-            data-hover="hairline"
-            onClick={() => nav.push({ screen: 'search' })}
-            style={{
-              ...resetButton,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-              flex: 1,
-              minWidth: 0,
-              height: 44,
-              padding: '0 14px',
-              background: 'var(--surface-sunken)',
-              border: 'var(--hairline-width) solid var(--hairline)',
-              borderRadius: 'var(--radius-pill)',
-            }}
-          >
-            <Search />
-            <span style={{ fontSize: 'var(--size-body)', color: 'var(--text-secondary)' }}>
-              Search your library
-            </span>
-          </button>
-          {/* The selected state is a raised pill plus full-strength ink, not
-              accent ink: --accent-text against --text-muted measures 1.14:1 in
-              the dark theme, so the two glyphs were indistinguishable (D-082). */}
-          <div style={{ display: 'flex', flex: 'none', gap: 6 }}>
-            {(
-              [
-                { key: 'light', title: 'Light', Icon: Sun },
-                { key: 'dark', title: 'Dark', Icon: Moon },
-              ] as const
-            ).map(({ key, title, Icon }) => {
-              const on = theme === key;
-              return (
+    <main className="room-page room-reading exl-scroll">
+      <div className="room-view-tabs" aria-label="Library view">
+        <button aria-current="page">Reading</button>
+        <button data-tour="everything" onClick={() => nav.push({ screen: 'everything' })}>
+          Collection <span>{figures?.libraryTotal ?? '—'}</span>
+        </button>
+      </div>
+      {library === undefined ? (
+        <p role="status">Opening your library…</p>
+      ) : lead ? (
+        (() => {
+          const d = displayWork(lead.work, lead.authorName);
+          return (
+            <section className="room-current" data-tour="continue">
+              <div className="room-current-title">
+                <p className="room-eyebrow">Back to your book</p>
                 <button
-                  key={key}
-                  title={title}
-                  aria-label={`${title} theme`}
-                  aria-pressed={on}
-                  onClick={() => onTheme(key)}
-                  style={{
-                    ...resetButton,
-                    // --touch-min is 44 and two small targets that flip the
-                    // whole app's appearance are the worst place to shave it.
-                    width: 'var(--touch-min)',
-                    height: 'var(--touch-min)',
-                    borderRadius: 'var(--radius-pill)',
-                    background: on ? 'var(--surface-raised)' : 'transparent',
-                    color: on ? 'var(--text-primary)' : 'var(--text-faint)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Icon />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {lead ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-4)',
-              marginBottom: 'var(--space-7)',
-            }}
-          >
-            <div style={displayS}>Continue</div>
-            {(() => {
-              const d = displayWork(lead.work, lead.authorName);
-              return (
-                <button
-                  data-tour="continue"
+                  className="room-title-link"
                   data-work={d.id}
                   onClick={() => nav.push({ screen: 'detail', id: d.id })}
-                  style={{
-                    ...resetButton,
-                    width: '100%',
-                    display: 'flex',
-                    gap: 'var(--space-4)',
-                    alignItems: 'center',
-                    padding: 'var(--space-4)',
-                    borderRadius: 'var(--radius-card)',
-                    border: 'var(--hairline-width) solid var(--hairline)',
-                    background: 'var(--surface-raised)',
-                  }}
-                  data-hover="hairline"
+                >
+                  <h1>{d.title}</h1>
+                </button>
+                <p className="room-author">{d.authorLine}</p>
+              </div>
+              <div className="room-current-body">
+                <button
+                  className="room-cover-link"
+                  data-work={d.id}
+                  aria-label={`Open ${d.title}`}
+                  onClick={() => nav.push({ screen: 'detail', id: d.id })}
                 >
                   <Cover
                     color={d.coverColor}
                     ink={d.coverInk}
                     path={lead.work.coverPath}
-                    width={132}
-                    height={198}
+                    width={148}
+                    height={222}
                     title={d.title}
                   />
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'var(--space-2)',
-                      paddingTop: 'var(--space-1)',
-                      minWidth: 0,
-                      textAlign: 'left',
-                      flex: 1,
-                    }}
-                  >
-                    <div style={displayS}>{d.title}</div>
-                    <div
-                      style={{
-                        fontSize: 'var(--size-caption)',
-                        lineHeight: 'var(--lh-caption)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      {d.authorLine}
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        marginTop: 'var(--space-2)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 'var(--size-caption)',
-                          lineHeight: 'var(--lh-caption)',
-                          color: 'var(--text-secondary)',
-                          ...tabular,
-                        }}
-                      >
-                        {d.progressLabel}
-                      </div>
-                      {d.showBar ? (
-                        <ProgressBar
-                          width={d.barWidth}
-                          track={d.trackBackground}
-                          fill={d.fillBackground}
-                        />
-                      ) : null}
-                    </div>
-                    <div
-                      style={{
-                        ...label,
-                        color: 'var(--accent-text)',
-                        marginTop: 'var(--space-2)',
-                      }}
-                    >
-                      Open this record
-                    </div>
-                  </div>
                 </button>
-              );
-            })()}
-
-            {peek.length ? (
-              <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                {peek.map(({ work, authorName }) => {
-                  const d = displayWork(work, authorName);
-                  return (
-                    <button
-                      key={d.id}
-                      data-work={d.id}
-                      data-hover="hairline"
-                      onClick={() => nav.push({ screen: 'detail', id: d.id })}
-                      style={{
-                        ...resetButton,
-                        display: 'flex',
-                        gap: 10,
-                        alignItems: 'center',
-                        flex: 1,
-                        minWidth: 0,
-                        padding: 'var(--space-2)',
-                        borderRadius: 'var(--radius-button)',
-                        border: 'var(--hairline-width) solid var(--hairline)',
-                      }}
-                    >
-                      <Cover color={d.coverColor} path={work.coverPath} width={32} height={48} />
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 2,
-                          minWidth: 0,
-                          textAlign: 'left',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 'var(--size-caption)',
-                            lineHeight: 'var(--lh-caption)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {d.title}
-                        </div>
-                        <div style={{ ...label, ...tabular }}>{d.shortProgress}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+                <div className="room-current-progress">
+                  <p className="room-eyebrow">Where you left off</p>
+                  <p className="room-position">{d.progressLabel}</p>
+                  {d.showBar && (
+                    <ProgressBar
+                      width={d.barWidth}
+                      track={d.trackBackground}
+                      fill={d.fillBackground}
+                    />
+                  )}
+                  <button
+                    className="room-primary"
+                    onClick={() => nav.open({ kind: 'session', id: d.id })}
+                  >
+                    Log a session <span aria-hidden="true">↗</span>
+                  </button>
+                  <button
+                    className="room-text"
+                    onClick={() => nav.push({ screen: 'detail', id: d.id })}
+                  >
+                    Open this record →
+                  </button>
+                </div>
               </div>
-            ) : null}
+            </section>
+          );
+        })()
+      ) : (
+        <section data-tour="continue" data-tour-state="empty" className="room-reading-empty">
+          <EmptyState
+            art="dragon-rafiki"
+            artWidth="72%"
+            head={library.length ? 'Room for your next read' : 'Your library begins here'}
+            body={
+              library.length
+                ? 'Choose a work from your collection and mark it as reading.'
+                : 'Books, web novels and manhwa. Keep the things you read, and the thoughts you want to return to.'
+            }
+            cta={library.length ? 'Open your collection' : 'Add a work'}
+            onCta={() =>
+              library.length ? nav.push({ screen: 'everything' }) : nav.open({ kind: 'byHand' })
+            }
+          />
+        </section>
+      )}
+      <div className="room-reading-lower">
+        {!!rest.length && (
+          <section>
+            <div className="room-section-heading">
+              <h2>Also on your mind</h2>
+              <span>{rest.length}</span>
+            </div>
+            <div className="room-active-list">
+              {rest.map(({ work, authorName }) => {
+                const d = displayWork(work, authorName);
+                return (
+                  <button
+                    className="room-book-row"
+                    key={work.id}
+                    data-work={work.id}
+                    onClick={() => nav.push({ screen: 'detail', id: work.id })}
+                  >
+                    <Cover color={d.coverColor} path={work.coverPath} width={48} height={72} />
+                    <span>
+                      <strong>{work.title}</strong>
+                      <small>{d.shortProgress}</small>
+                    </span>
+                    <span aria-hidden="true">↗</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+        <section className="room-shelves">
+          <div className="room-section-heading">
+            <h2>Your shelves</h2>
+            <button className="room-text" onClick={() => nav.push({ screen: 'everything' })}>
+              See all →
+            </button>
           </div>
-        ) : library !== undefined ? (
-          <div
-            data-tour="continue"
-            data-tour-state="empty"
-            style={{
-              display: 'flex',
-              minHeight: library.length === 0 ? '52vh' : undefined,
-              marginBottom: 'var(--space-7)',
-            }}
-          >
-            {library.length === 0 ? (
-              <EmptyState
-                art="dragon-rafiki"
-                artWidth="84%"
-                head="Your library begins here"
-                body="Add a work by hand, or search the catalogue when it is installed. Your library stays on this device."
-                cta="Add a work"
-                onCta={() => nav.open({ kind: 'byHand' })}
-              />
-            ) : (
-              <button
-                data-hover="hairline"
-                onClick={() => nav.push({ screen: 'everything' })}
-                style={{
-                  ...resetButton,
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-4)',
-                  padding: 'var(--space-4)',
-                  borderRadius: 'var(--radius-card)',
-                  border: 'var(--hairline-width) solid var(--hairline)',
-                  background: 'var(--surface-raised)',
-                  textAlign: 'left',
-                }}
-              >
-                <ShelfMarker
-                  colors={(library ?? [])
-                    .slice(0, 3)
-                    .map((row) => row.work.coverDominantColor ?? 'var(--cover-fallback)')}
-                />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                  <span style={displayS}>Choose what comes next</span>
-                  <span style={{ fontSize: 'var(--size-caption)', color: 'var(--text-secondary)' }}>
-                    Open your library and mark a work as reading.
-                  </span>
-                </span>
-              </button>
-            )}
-          </div>
-        ) : null}
-
-        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-7)' }}>
-          <div style={{ ...displayS, marginBottom: 'var(--space-4)' }}>Shelves</div>
-          {SHELVES.map((s) => (
+          {shelves.map((shelf) => (
             <button
-              key={s.key}
-              data-hover="raised"
-              onClick={() => nav.push({ screen: 'format', format: s.key })}
-              style={{
-                ...resetButton,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-4)',
-                height: 64,
-                borderTop: 'var(--hairline-width) solid var(--hairline)',
-              }}
+              key={shelf.key}
+              className="room-shelf-row"
+              onClick={() =>
+                nav.push({
+                  screen: 'format',
+                  format: shelf.key,
+                })
+              }
             >
-              <ShelfMarker colors={shelfColors(s.key)} compact />
-              <div style={{ ...displayS, flex: 1, textAlign: 'left' }}>{s.label}</div>
-              <div
-                style={{
-                  fontSize: 'var(--size-body)',
-                  color: 'var(--text-secondary)',
-                  ...tabular,
-                }}
-              >
-                {counts?.[s.key] ?? 0}
-              </div>
-              <ChevronRight />
+              <span>{shelf.label}</span>
+              <span>
+                {counts?.[shelf.key] ?? '—'} <span aria-hidden="true">↗</span>
+              </span>
             </button>
           ))}
-          {/* Everything is the last row of Shelves. Three grey slivers instead
-              of cover colours, because it is not a shelf — it is all of them
-              (D-069). */}
-          <button
-            data-tour="everything"
-            data-hover="raised"
-            onClick={() => nav.push({ screen: 'everything' })}
-            style={{
-              ...resetButton,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-4)',
-              height: 64,
-              borderTop: 'var(--hairline-width) solid var(--hairline)',
-            }}
-          >
-            <ShelfMarker
-              colors={['var(--text-faint)', 'var(--text-muted)', 'var(--text-secondary)']}
-              compact
-            />
-            <div style={{ ...displayS, flex: 1, textAlign: 'left' }}>Everything</div>
-            <span
-              style={{
-                fontSize: 'var(--size-caption)',
-                lineHeight: 'var(--lh-caption)',
-                color: 'var(--text-secondary)',
-                ...tabular,
-              }}
-            >
-              {figures?.libraryTotal ?? 0}
-            </span>
-            <ChevronRight />
-          </button>
-          <div style={{ borderTop: 'var(--hairline-width) solid var(--hairline)' }} />
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            border: 'var(--hairline-width) solid var(--hairline)',
-            borderRadius: 'var(--radius-card)',
-            overflow: 'hidden',
-          }}
-        >
-          {[
-            { n: figures?.finishedThisYear, text: `finished in ${new Date().getFullYear()}` },
-            { n: figures?.readingNow, text: 'reading now' },
-            { n: figures?.libraryTotal, text: 'in the library' },
-          ].map((f, i) => (
-            <div key={f.text} style={{ display: 'contents' }}>
-              {i > 0 ? <div style={{ width: 0.5, background: 'var(--hairline)' }} /> : null}
-              <div
-                style={{
-                  flex: 1,
-                  padding: '16px 12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-1)',
-                  alignItems: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    ...displayS,
-                    fontSize: 'var(--size-display-m)',
-                    lineHeight: 'var(--lh-display-m)',
-                    ...tabular,
-                  }}
-                >
-                  {f.n ?? 0}
-                </div>
-                <div style={{ ...label, textAlign: 'center' }}>{f.text}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        </section>
       </div>
-    </div>
+      <button className="room-reading-summary" onClick={() => nav.reset({ screen: 'stats' })}>
+        <span>
+          <strong>{figures?.finishedThisYear ?? '—'}</strong> finished in {new Date().getFullYear()}
+        </span>
+        <span>See your reading life →</span>
+      </button>
+    </main>
   );
 }

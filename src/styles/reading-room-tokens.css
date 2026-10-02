@@ -1,0 +1,219 @@
+/* Canonical Reading Room values. Approved adoption, 2026-09-20. */
+:root {
+  color-scheme: light;
+  --surface-sunken: #eaeae3;
+  --surface-base: #f4f3ed;
+  --surface-raised: #fcfcf8;
+  --surface-overlay: #fcfcf8;
+  --text-primary: #202e2a;
+  --text-secondary: #58615a;
+  --text-muted: #69716a;
+  --text-faint: #909790;
+  --hairline: #d7dbd2;
+  --hairline-strong: #a1aaa0;
+  --hairline-width: 1px;
+  --accent-deep: #f1e2db;
+  --accent-muted: #e4c1b6;
+  --accent: #ab3927;
+  --accent-bright: #bd422d;
+  --on-accent: #fffaf4;
+  --accent-text: #a33323;
+  --status-reading: #a33323;
+  --status-caughtup: #596749;
+  --status-finished: #35624e;
+  --status-dropped: #65615e;
+  --status-wishlist: #596749;
+  --danger: #a22e32;
+  --danger-soft: #f3e1df;
+  --danger-text: #942b30;
+  --genre-0: #b5705a;
+  --genre-1: #c8873f;
+  --genre-2: #a8904a;
+  --genre-3: #6b8f5e;
+  --genre-4: #4f8a73;
+  --genre-5: #4e7a82;
+  --genre-6: #5a7184;
+  --genre-7: #6a6b96;
+  --genre-8: #9c5a72;
+  --genre-9: #b0707a;
+  --genre-10: #8a6a50;
+  --genre-11: #7e7a72;
+  --genre-fill-alpha: 0.14;
+  --genre-border-alpha: 0.34;
+  --genre-ink: #0a0e15;
+  --genre-ink-amt: 0%;
+  --cover-inset: inset 0 0 0 0.5px rgba(0, 0, 0, 0);
+  --cover-radius: var(--radius-card);
+  --cover-fallback: #373f4e;
+  --cover-tint-amt: 22%;
+  --font-display: 'Literata Variable', Georgia, serif;
+  --display-vf: 500;
+  --display-vf-sm: 500;
+  --display-vf-xs: 400;
+  --font-ui: 'Source Sans 3 Variable', system-ui, sans-serif;
+  --font-body: 'Literata Variable', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --size-display-l: clamp(2.35rem, 5vw, 3.4rem);
+  --lh-display-l: 1.12;
+  --size-display-m: 2rem;
+  --lh-display-m: 1.2;
+  --size-display-s: 1.4rem;
+  --lh-display-s: 1.3;
+  --size-body-l: 1.125rem;
+  --lh-body-l: 1.7;
+  --size-body: 1rem;
+  --lh-body: 1.5;
+  --size-caption: 0.875rem;
+  --lh-caption: 1.4;
+  --size-label: 0.8125rem;
+  --lh-label: 1.35;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semi: 600;
+  --tracking-display: -0.035em;
+  --tracking-body: 0;
+  --tracking-label: 0.01em;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 64px;
+  --radius-chip: 3px;
+  --radius-button: 6px;
+  --radius-card: 6px;
+  --radius-sheet: 18px;
+  --radius-pill: 6px;
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 240ms;
+  --ease-fluid-out: cubic-bezier(0.1, 0.76, 0.55, 0.94);
+  --ease-spring-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-micro: 120ms;
+  --duration-medium: 220ms;
+  --duration-fluid: 260ms;
+  --duration-drawer: 260ms;
+  --press-scale: 0.985;
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --haptic-tick: 12;
+  --touch-min: 44px;
+  --nav-height: 56px;
+  --nav-inset: 12px;
+  --nav-lift: 10px;
+  --glass-fill: color-mix(in oklab, var(--surface-overlay) 88%, transparent);
+  --art-line: rgba(224, 228, 235, 0.055);
+  --art-dot: rgba(224, 228, 235, 0.085);
+  --glass-blur: none;
+  --glass-sheen: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.04) 42%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  --glass-ring: none;
+  --shadow-nav: none;
+  --fab-size: 56px;
+  --page-gutter: 24px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --z-content: 0;
+  --z-nav: 40;
+  --z-fab: 50;
+  --z-sheet: 60;
+  --z-overlay: 70;
+  --shadow-fab: none;
+  --shadow-sheet: 0 -12px 48px rgb(27 40 32 / 16%);
+  --il-accent: var(--accent);
+  --il-accent-deep: var(--accent-muted);
+  --il-ink: var(--text-primary);
+  --il-ink-soft: var(--text-secondary);
+  --il-paper: var(--surface-raised);
+  --il-paper-soft: var(--surface-overlay);
+  --il-skin: var(--accent-bright);
+  --il-skin-deep: var(--accent-muted);
+  --il-wood: var(--accent-deep);
+  --il-wood-soft: var(--accent-muted);
+  --focus-ring: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent-bright);
+  --shadow-cover: 3px 6px 12px rgb(27 40 32 / 15%);
+  --wood: #775137;
+  --wood-edge: #a07850;
+  --wood-recess: #453326;
+  --wood-text: #f5e8d4;
+  --wood-muted: #dac4a6;
+}
+:root[data-theme='light'] {
+  --genre-ink-amt: 46%;
+  --cover-inset: inset 0 0 0 0.5px rgba(28, 24, 20, 0.14);
+  --cover-fallback: #e3d2b6;
+  --cover-tint-amt: 10%;
+  --glass-fill: color-mix(in oklab, var(--surface-raised) 84%, transparent);
+  --art-line: rgba(52, 21, 15, 0.085);
+  --art-dot: rgba(52, 21, 15, 0.13);
+  --glass-sheen: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  --focus-ring: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent);
+}
+:root:not([data-theme='light']) {
+  color-scheme: dark;
+  --surface-sunken: #0b0c0e;
+  --surface-base: #111214;
+  --surface-raised: #1a1c20;
+  --surface-overlay: #22252a;
+  --text-primary: #eeeef0;
+  --text-secondary: #bec2c9;
+  --text-muted: #9ca3af;
+  --text-faint: #737d8d;
+  --hairline: #32363e;
+  --hairline-strong: #697588;
+  --accent-deep: #242b36;
+  --accent-muted: #4e576a;
+  --accent: #8fa3c4;
+  --accent-bright: #c5d1e6;
+  --on-accent: #101722;
+  --accent-text: #b3c2dc;
+  --status-reading: #b3c2dc;
+  --status-caughtup: #c0c5a0;
+  --status-finished: #a6c1a4;
+  --status-dropped: #b6b6a8;
+  --status-wishlist: #c0c5a0;
+  --danger: #f0a0a0;
+  --danger-soft: #492f2d;
+  --danger-text: #f4adad;
+  --cover-fallback: #30394a;
+  --shadow-sheet: 0 -12px 48px rgb(0 0 0 / 30%);
+  --shadow-cover: 3px 8px 16px rgb(0 0 0 / 30%);
+  --wood: #342c27;
+  --wood-edge: #65584b;
+  --wood-recess: #1c1a18;
+  --wood-text: #e7e2d9;
+  --wood-muted: #b4b6be;
+  --cover-ink-dark: #eeeef0;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --ease-snap: linear;
+    --ease-spring: linear;
+    --ease-settle: linear;
+    --duration-micro: 0ms;
+    --duration-medium: 0ms;
+    --duration-fluid: 0ms;
+    --duration-drawer: 0ms;
+    --ease-fluid-out: linear;
+    --ease-spring-back: linear;
+    --press-scale: 1;
+  }
+}

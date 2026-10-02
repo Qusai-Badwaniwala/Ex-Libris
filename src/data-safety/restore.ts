@@ -3,7 +3,7 @@ import { db, defaultSettings } from '../db/db';
 import { SCHEMA_VERSION, type Settings, type Tag, type Work } from '../db/schema';
 import { normalizeTag, newId } from '../db/keys';
 import { deleteFile, opfsAvailable, writeFile } from '../storage/opfs';
-import { maybeCreateAutomaticBackup, type BackupManifest } from './backup';
+import { createSafetyBackup, type BackupManifest } from './backup';
 import { readZip } from './zip';
 
 const decoder = new TextDecoder();
@@ -199,12 +199,9 @@ function restoredSettings(
     ...(mode === 'merge' ? (current ?? {}) : {}),
     id: 'singleton',
     appVersion,
-    defaultView: {
-      ...defaults.defaultView,
-      ...(imported?.defaultView ?? {}),
-      ...(mode === 'merge' ? (current?.defaultView ?? {}) : {}),
-    },
+    defaultView: { book: 'list', novel: 'list', manhwa: 'list' },
   };
+  delete settings.spineWidthProfile;
   // These describe bytes or secrets on this device, not portable library
   // data. Importing their flags without their OPFS files or credential would
   // make the restored Settings screen claim resources that are not present.
@@ -258,13 +255,7 @@ export async function restoreBackup(
     )
   ).some((count) => count > 0);
   if (mode === 'replace' && hasCurrentData) {
-    const safety = await maybeCreateAutomaticBackup(
-      appVersion,
-      currentSettings?.lastAutoBackupAt,
-      true,
-    );
-    if (!safety)
-      throw new Error('A safety snapshot could not be created, so nothing was replaced.');
+    await createSafetyBackup(appVersion);
     currentSettings = await db.settings.get('singleton');
   }
   if (prepared.coverBytes.size && !(await opfsAvailable())) {

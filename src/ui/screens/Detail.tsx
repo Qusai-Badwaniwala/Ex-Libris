@@ -14,6 +14,7 @@ import { withInteractionFeedback } from '../interaction-feedback';
 import { AxisProfile } from '../axis-profile';
 import { matchedAxesSentence, moreLikeThis } from '../../axes/axes';
 import { NoteCard } from '../note-card';
+import { readRelationships } from '../../relationships/library';
 
 /**
  * Book detail. The landing site of the cover flight.
@@ -43,11 +44,7 @@ export function Detail({
   const relationship = useLiveQuery(async () => {
     const work = await db.work.get(id);
     if (!work) return null;
-    const [series, universe] = await Promise.all([
-      work.seriesId ? db.series.get(work.seriesId) : undefined,
-      work.universeId ? db.universe.get(work.universeId) : undefined,
-    ]);
-    return { series, universe };
+    return (await readRelationships()).relation(work);
   }, [id]);
   const axisRating = useLiveQuery(() => db.axisRating.get(id), [id]);
   const recommendations = useLiveQuery(async () => {
@@ -84,7 +81,12 @@ export function Detail({
   const [mutationError, setMutationError] = useState('');
   const [busyAction, setBusyAction] = useState<'remove' | 'restore'>();
 
-  if (row === undefined) return null;
+  if (row === undefined)
+    return (
+      <p role="status" className="room-page">
+        Opening this record…
+      </p>
+    );
   if (row === null) {
     // Reachable: open a work, delete it from the trash on another screen, come
     // back through history. Better a plain sentence than a blank screen.
@@ -111,12 +113,110 @@ export function Detail({
       // (COMPONENTS, DetailHeader).
       'var(--surface-base)';
 
+  const readingControls = (
+    <div
+      className="room-detail-progress"
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
+    >
+      <div
+        style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}
+      >
+        {/* A1. In the design this pill has no handler at all. */}
+        <button
+          data-hover="accent-border"
+          onClick={() => nav.open({ kind: 'statusPicker', id })}
+          style={{
+            ...resetButton,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            height: 36,
+            padding: '0 14px',
+            borderRadius: 'var(--radius-pill)',
+            border: 'var(--hairline-width) solid var(--hairline-strong)',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 999,
+              background: d.statusColor,
+            }}
+          />
+          <span style={caption}>{d.statusLabel}</span>
+        </button>
+        <button
+          data-hover="hairline"
+          onClick={() => nav.open({ kind: 'editWork', id })}
+          style={{
+            ...resetButton,
+            display: 'flex',
+            alignItems: 'center',
+            height: 36,
+            padding: '0 14px',
+            borderRadius: 'var(--radius-pill)',
+            border: 'var(--hairline-width) solid var(--hairline)',
+          }}
+        >
+          <span style={{ ...caption, color: 'var(--text-secondary)' }}>{d.publicationLabel}</span>
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 10,
+            ...caption,
+            color: 'var(--text-secondary)',
+            ...tabular,
+          }}
+        >
+          <span>{d.progressLabel}</span>
+          <span style={{ flex: 1 }} />
+          {d.canLogSession && !deleted ? (
+            <button
+              data-ripple
+              data-hover="accent-deep"
+              onClick={() => {
+                setBarMotion(true);
+                nav.open({ kind: 'session', id });
+              }}
+              style={{
+                ...resetButton,
+                padding: '4px 8px',
+                margin: '-4px 0',
+                borderRadius: 'var(--radius-chip)',
+                ...caption,
+                color: 'var(--accent-text)',
+              }}
+            >
+              {d.sessionCta}
+            </button>
+          ) : null}
+          <span>{d.percentLabel}</span>
+        </div>
+        {d.showBar ? (
+          <ProgressBar
+            width={d.barWidth}
+            track={d.trackBackground}
+            fill={d.fillBackground}
+            animate={barMotion}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <div
-      className="exl-scroll"
+      className="exl-scroll room-detail"
       style={{ position: 'absolute', inset: 0, overflowY: 'auto', paddingBottom: 104 }}
     >
       <div
+        className="room-detail-hero"
         style={{
           position: 'relative',
           padding: 'calc(var(--space-5) + var(--safe-top)) var(--page-gutter) var(--space-5)',
@@ -163,6 +263,7 @@ export function Detail({
         {/* Bottom-aligned, so the title sits on the cover's baseline rather than
             floating beside its middle (COMPONENTS, DetailHeader). */}
         <div
+          className="room-detail-cover-title"
           style={{
             display: 'flex',
             gap: 'var(--space-4)',
@@ -176,6 +277,8 @@ export function Detail({
               path={work.coverPath}
               width={116}
               height={174}
+              title={work.title}
+              ink={d.coverInk}
               flightName="work-cover"
             />
             {!deleted ? (
@@ -202,7 +305,7 @@ export function Detail({
               paddingBottom: 'var(--space-1)',
             }}
           >
-            <div style={displayM}>{work.title}</div>
+            <h1 style={{ ...displayM, margin: 0 }}>{work.title}</h1>
             {/* On detail, unlike in a list, a manual entry may legitimately show
                 a title and nothing else. */}
             {d.hasAuthor ? (
@@ -218,9 +321,11 @@ export function Detail({
             ) : null}
           </div>
         </div>
+        {readingControls}
       </div>
 
       <div
+        className="room-detail-content"
         style={{
           padding: 'var(--space-5) var(--page-gutter)',
           display: 'flex',
@@ -250,98 +355,6 @@ export function Detail({
         ) : null}
 
         {suggestRelationships && !deleted ? <RelationshipOffer workId={id} /> : null}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            {/* A1. In the design this pill has no handler at all. */}
-            <button
-              data-hover="accent-border"
-              onClick={() => nav.open({ kind: 'statusPicker', id })}
-              style={{
-                ...resetButton,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                height: 36,
-                padding: '0 14px',
-                borderRadius: 'var(--radius-pill)',
-                border: 'var(--hairline-width) solid var(--hairline-strong)',
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: d.statusColor,
-                }}
-              />
-              <span style={caption}>{d.statusLabel}</span>
-            </button>
-            <button
-              data-hover="hairline"
-              onClick={() => nav.open({ kind: 'editWork', id })}
-              style={{
-                ...resetButton,
-                display: 'flex',
-                alignItems: 'center',
-                height: 36,
-                padding: '0 14px',
-                borderRadius: 'var(--radius-pill)',
-                border: 'var(--hairline-width) solid var(--hairline)',
-              }}
-            >
-              <span style={{ ...caption, color: 'var(--text-secondary)' }}>
-                {d.publicationLabel}
-              </span>
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 10,
-                ...caption,
-                color: 'var(--text-secondary)',
-                ...tabular,
-              }}
-            >
-              <span>{d.progressLabel}</span>
-              <span style={{ flex: 1 }} />
-              {d.canLogSession && !deleted ? (
-                <button
-                  data-ripple
-                  data-hover="accent-deep"
-                  onClick={() => {
-                    setBarMotion(true);
-                    nav.open({ kind: 'session', id });
-                  }}
-                  style={{
-                    ...resetButton,
-                    padding: '4px 8px',
-                    margin: '-4px 0',
-                    borderRadius: 'var(--radius-chip)',
-                    ...caption,
-                    color: 'var(--accent-text)',
-                  }}
-                >
-                  {d.sessionCta}
-                </button>
-              ) : null}
-              <span>{d.percentLabel}</span>
-            </div>
-            {d.showBar ? (
-              <ProgressBar
-                width={d.barWidth}
-                track={d.trackBackground}
-                fill={d.fillBackground}
-                animate={barMotion}
-              />
-            ) : null}
-          </div>
-        </div>
 
         <section aria-labelledby="axes-heading">
           <div id="axes-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
@@ -380,7 +393,7 @@ export function Detail({
           />
           {relationship?.universe ? (
             <LedgerRow
-              label="Universe"
+              label="World"
               value={relationship.universe.name}
               onClick={() => nav.push({ screen: 'universe', id: relationship.universe!.id })}
               chevron
@@ -397,7 +410,7 @@ export function Detail({
                 textAlign: 'left',
               }}
             >
-              Edit series and universe
+              Organise series and world
             </button>
           ) : null}
           <LedgerRow label="Added" value={localDay(work.dateAdded)} />
@@ -447,6 +460,16 @@ export function Detail({
           ) : null}
         </div>
 
+        {recommendations?.length === 0 && axisRating && (
+          <details className="room-match-explanation">
+            <summary>Why no similar works yet?</summary>
+            <p>
+              Matches come only from this library. Another work needs at least three shared profile
+              axes and one exact match. Describe more works or fill in their profiles to give the
+              comparison more to work with.
+            </p>
+          </details>
+        )}
         {recommendations?.length ? (
           <section aria-labelledby="more-like-this-heading">
             <h2 id="more-like-this-heading" style={{ ...displayS, margin: `0 0 var(--space-2)` }}>

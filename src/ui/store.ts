@@ -5,7 +5,6 @@ import * as repo from '../db/repo';
 import type { NoteContext } from '../db/repo';
 import { GENRES, isWarningOnly } from '../data/taxonomy';
 import type { Author, Format, GenreIndex, Note, Settings, Tag, Work } from '../db/schema';
-import { createSpineWidthProfile, type SpineWidthProfile } from '../spine/layout';
 
 export const APP_VERSION = '0.1.0';
 const PRIMARY_SEARCH_LIMIT = 20;
@@ -209,32 +208,6 @@ export function useShelfCounts(): Record<Format, number> | undefined {
   return useLiveQuery(() => repo.countsByFormat(), []);
 }
 
-export function useSpineWidthProfile(): SpineWidthProfile | undefined {
-  const state = useLiveQuery(
-    () =>
-      db.transaction('r', db.work, db.settings, async () => {
-        const [works, settings] = await Promise.all([
-          repo.listLibrary(),
-          db.settings.get('singleton'),
-        ]);
-        const cached = settings?.spineWidthProfile;
-        const profile = createSpineWidthProfile(works, cached);
-        return { profile, needsSave: profile !== cached };
-      }),
-    [],
-  );
-
-  useEffect(() => {
-    if (!state?.needsSave) return;
-    // This is a derived cache, not a user write. If persistence is unavailable
-    // the in-memory profile remains truthful for this render and will simply be
-    // derived again on the next open.
-    void saveSettings({ spineWidthProfile: state.profile }).catch(() => {});
-  }, [state]);
-
-  return state?.profile;
-}
-
 export function useLibraryStats(): repo.LibraryStats | undefined {
   return useLiveQuery(() => repo.libraryStats(), []);
 }
@@ -277,6 +250,7 @@ export function useHomeFigures():
  */
 export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const storedSettings = useLiveQuery(() => db.settings.get('singleton'), []);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -295,19 +269,19 @@ export function useSettings() {
 
   const update = useCallback(
     async (patch: Partial<Settings>) => {
-      if (!settings) return false;
-      const before = settings;
-      setSettings({ ...settings, ...patch });
+      if (!settings && !storedSettings) return false;
       try {
         await saveSettings(patch);
+        // Onboarding must not disappear before its completion flag is durable.
+        // Functional merging also preserves independent simultaneous changes.
+        setSettings((current) => (current ? { ...current, ...patch } : current));
         return true;
       } catch {
-        setSettings(before);
         return false;
       }
     },
-    [settings],
+    [settings, storedSettings],
   );
 
-  return { settings, update, loadError };
+  return { settings: storedSettings ?? settings, update, loadError };
 }

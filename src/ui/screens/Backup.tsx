@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { catalogue } from '../../catalogue/client';
 import { openInstalledCatalogue } from '../../catalogue/install';
 import { nav } from '../../router/router';
 import {
   exportManualBackup,
+  automaticBackupStore,
   inspectAutomaticBackups,
   type BackupHistoryItem,
 } from '../../data-safety/backup';
@@ -40,6 +41,10 @@ const dateTime = new Intl.DateTimeFormat(undefined, {
 });
 
 export function Backup() {
+  const automatic = useSyncExternalStore(
+    automaticBackupStore.subscribe,
+    automaticBackupStore.getSnapshot,
+  );
   const { settings } = useSettings();
   const [view, setView] = useState<View>('home');
   const [history, setHistory] = useState<BackupHistoryItem[] | null>(null);
@@ -240,6 +245,12 @@ export function Backup() {
           {message}
         </div>
       ) : null}
+      {automatic.error && (
+        <p role="alert">
+          Automatic backup failed: {automatic.error} Your existing snapshots remain available.
+          Export a fresh copy below.
+        </p>
+      )}
 
       {view === 'home' ? (
         <HomeView

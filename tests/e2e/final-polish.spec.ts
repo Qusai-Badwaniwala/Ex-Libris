@@ -18,7 +18,9 @@ async function freshLibrary(page: Page) {
   await page.getByLabel('Your name').fill('Qusai');
   await page.getByRole('button', { name: 'Open the library' }).click();
   const skip = page.getByRole('button', { name: 'Skip' });
-  if (await skip.isVisible()) await skip.click();
+  await expect(skip).toBeVisible();
+  await skip.click();
+  await expect(skip).toHaveCount(0);
   await page.waitForFunction(() => Boolean(window.__EXL_PHASE10_TEST__));
 }
 
@@ -32,9 +34,9 @@ test('Settings saves and rolls back honest controls with full touch targets', as
 
   await page.getByRole('radio', { name: 'Light' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.screenshot({ path: '.impeccable/review/phase10-settings-top-light.png' });
+  await page.screenshot({ path: '.astra/review/phase10-settings-top-light.png' });
   await page.getByRole('button', { name: 'About' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: '.impeccable/review/phase10-settings-bottom-light.png' });
+  await page.screenshot({ path: '.astra/review/phase10-settings-bottom-light.png' });
   await page.getByRole('heading', { name: 'Settings' }).scrollIntoViewIfNeeded();
 
   const themeButtons = page.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio');
@@ -68,28 +70,28 @@ test('Settings saves and rolls back honest controls with full touch targets', as
   await owner.fill('Qusai of the Very Long Marginal Archive');
   await page.getByRole('button', { name: 'Save the name' }).click();
   await expect(page.getByRole('button', { name: 'Save the name' })).toHaveCount(0);
-  await page.screenshot({ path: '.impeccable/review/phase10-settings-top-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase10-settings-top-dark.png' });
 
   await page.getByRole('button', { name: 'About' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: '.impeccable/review/phase10-settings-bottom-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase10-settings-bottom-dark.png' });
   await page.getByRole('button', { name: 'About' }).click();
   await expect(page.getByRole('heading', { name: 'Ex Libris' })).toBeVisible();
   await expect(page.getByText('Qusai of the Very Long Marginal Archive')).toBeVisible();
   await expect(
     page.locator('img[data-illustration-theme="dark"][src$="magic-tree-cuate.svg"]'),
   ).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase10-about-dark.png', fullPage: true });
+  await page.screenshot({ path: '.astra/review/phase10-about-dark.png', fullPage: true });
   const aboutScroller = page.locator('.exl-scroll');
   await aboutScroller.evaluate((element) => element.scrollTo(0, element.scrollHeight));
-  await page.screenshot({ path: '.impeccable/review/phase10-about-bottom-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase10-about-bottom-dark.png' });
   await page.getByRole('heading', { name: 'Ex Libris' }).scrollIntoViewIfNeeded();
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await expect(
     page.locator('img[data-illustration-theme="light"][src$="magic-tree-cuate.svg"]'),
   ).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase10-about-light.png', fullPage: true });
+  await page.screenshot({ path: '.astra/review/phase10-about-light.png', fullPage: true });
   await aboutScroller.evaluate((element) => element.scrollTo(0, element.scrollHeight));
-  await page.screenshot({ path: '.impeccable/review/phase10-about-bottom-light.png' });
+  await page.screenshot({ path: '.astra/review/phase10-about-bottom-light.png' });
 });
 
 test('tag maintenance renames, explicitly merges, and removes only unused tags', async ({
@@ -103,7 +105,7 @@ test('tag maintenance renames, explicitly merges, and removes only unused tags',
   await page.getByRole('button', { name: 'Tidy up the tags' }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'Tidy up the tags' }).click();
   await expect(page.getByRole('heading', { name: 'Tidy up the tags' })).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase10-tags-light.png', fullPage: true });
+  await page.screenshot({ path: '.astra/review/phase10-tags-light.png', fullPage: true });
 
   await page.getByRole('button', { name: 'Edit Dark fantasy' }).press('Enter');
   const name = page.getByLabel('Tag name');
@@ -135,7 +137,7 @@ test('tag maintenance renames, explicitly merges, and removes only unused tags',
   await expect(page.getByText('Unused label', { exact: true })).toHaveCount(0);
 
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-  await page.screenshot({ path: '.impeccable/review/phase10-tags-dark.png', fullPage: true });
+  await page.screenshot({ path: '.astra/review/phase10-tags-dark.png', fullPage: true });
   await page.evaluate(() => window.__EXL_PHASE10_TEST__!.clearTags());
   await expect(
     page.getByText('No tags yet. Tags appear here after they are used on a work or note.'),

@@ -2,6 +2,33 @@
 
 **Version 2 · 2026-09-07**
 
+## Adoption contract · 2026-09-20
+
+Dexie version **3** appends a preference-only migration: all retired `spine`
+default views become `list`, and the derived `spineWidthProfile` is removed.
+No works, relationships, notes, sessions, covers or onboarding fields are changed
+by this upgrade. JSON backup schema remains **2**; restore normalizes the same
+retired preferences. Existing group and work IDs remain stable.
+
+The compatible internal name `universe` is presented as **World**. Effective
+membership is centralized in `src/relationships/library.ts`: a series member
+inherits its series world; a standalone work uses its own `universeId`.
+Contradictory historical direct membership remains stored and is flagged for
+explicit review. Ordinary sequence editing must not erase it. Leaving or deleting
+a series retains its inherited world as direct membership. Group deletion keeps
+works, notes and progress. Series merge keeps work/order IDs, clears an unverified
+combined catalogue total and preserves contradictory historical worlds.
+
+Group edits are one transaction, reject a stale organisation snapshot and avoid
+editing Trash membership implicitly. Destructive group operations and replacement
+restore first require a newly written, byte-for-byte read-back-verified ZIP with
+all referenced user covers. Missing cover bytes block the operation. Catalogue
+files and credentials remain excluded from backup. Session progress and its
+reading-session row now commit in one serialized transaction.
+
+An older DB-v2 application cannot simply reopen the upgraded database. A code
+rollback must retain migration 3; see [rollback instructions](astra/RELEASE.md).
+
 ## Where the contract actually lives
 
 **[`src/db/schema.ts`](../src/db/schema.ts) is the contract.** It is TypeScript,

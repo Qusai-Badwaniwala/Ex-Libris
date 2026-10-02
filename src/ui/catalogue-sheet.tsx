@@ -234,7 +234,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
           onClick={() => void searchOnline()}
           style={quietButton}
         >
-          Search online
+          Search MangaDex comics
         </button>
         <a
           href="https://mangadex.org"

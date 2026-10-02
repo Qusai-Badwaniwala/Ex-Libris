@@ -57,7 +57,9 @@ export function StatusPicker({
         <div style={{ ...caption, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
           {offered.includes('caught_up')
             ? 'It is still being published, so you can be caught up with it.'
-            : 'It is finished being published, so there is nothing to be caught up with.'}
+            : work.publicationStatus === 'unknown'
+              ? 'Publication is unknown. Set it to ongoing or hiatus to make Caught up available.'
+              : 'Publication has ended, so Caught up does not apply.'}
         </div>
       </div>
 
@@ -392,6 +394,9 @@ export function SessionSheet({
 }) {
   const row = useWork(id);
   const [to, setTo] = useState<number | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
   /**
    * Q-022. Reaching the last chapter released so far is the moment the progress
    * row starts saying "published" while the status pill still says Reading —
@@ -413,8 +418,10 @@ export function SessionSheet({
   const unit = work.progressUnit === 'page' ? 'page' : 'chapter';
   const n = (v: number) => v.toLocaleString('en-US');
 
-  const move = (by: number) =>
+  const move = (by: number) => {
+    setDestination(null);
     setTo((prev) => Math.max(from, Math.min(ceiling, (prev ?? from) + by)));
+  };
 
   const willFinish =
     work.publicationStatus !== 'ongoing' &&
@@ -502,17 +509,21 @@ export function SessionSheet({
           onClick={() => move(-1)}
         />
         <div style={{ textAlign: 'center', minWidth: 96 }}>
-          <div
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 'var(--display-vf)' as unknown as number,
-              fontSize: 'var(--size-display-l)',
-              lineHeight: 'var(--lh-display-l)',
-              ...tabular,
+          <input
+            className="room-session-number"
+            aria-label="Session destination"
+            inputMode="numeric"
+            type="text"
+            value={destination ?? String(at)}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (!/^\d*$/.test(value)) return;
+              setDestination(value);
+              const next = Number(value);
+              setTo(Number.isSafeInteger(next) ? Math.max(from, Math.min(ceiling, next)) : from);
             }}
-          >
-            {n(at)}
-          </div>
+            onBlur={() => setDestination(null)}
+          />
           <div style={label}>{unit}</div>
         </div>
         <Stepper
@@ -559,17 +570,27 @@ export function SessionSheet({
       <button
         data-ripple
         data-active="accent"
-        disabled={delta === 0}
+        disabled={delta === 0 || saving}
         onClick={() => {
+          if (saving) return;
+          setSaving(true);
+          setSaveError('');
           void withInteractionFeedback('Registering the reading session…', () =>
             repo.logSession(id, at),
-          ).then(({ finished, atPublishedEdge }) => {
-            if (finished) {
-              tick();
-              onFinished();
-            } else if (atPublishedEdge) setOfferCaughtUp(true);
-            else onClose();
-          });
+          )
+            .then(({ finished, atPublishedEdge }) => {
+              if (finished) {
+                tick();
+                onFinished();
+              } else if (atPublishedEdge) setOfferCaughtUp(true);
+              else onClose();
+            })
+            .catch(() =>
+              setSaveError(
+                'This session could not be saved. Your destination is still here; try again.',
+              ),
+            )
+            .finally(() => setSaving(false));
         }}
         style={{
           ...resetButton,
@@ -585,8 +606,13 @@ export function SessionSheet({
           fontWeight: 500,
         }}
       >
-        {delta === 0 ? 'Log a session' : willFinish ? 'Finish it' : 'Log it'}
+        {saving ? 'Saving…' : delta === 0 ? 'Log a session' : willFinish ? 'Finish it' : 'Log it'}
       </button>
+      {saveError && (
+        <p role="alert" style={{ ...caption, color: 'var(--danger-text)' }}>
+          {saveError}
+        </p>
+      )}
     </Sheet>
   );
 }

@@ -128,14 +128,6 @@ export function ListView({ color = 'var(--text-primary)' }: IconProps) {
   );
 }
 
-export function SpineView({ color = 'var(--text-faint)' }: IconProps) {
-  return (
-    <svg width={14} height={12} viewBox="0 0 14 12" stroke={color} aria-hidden="true" {...stroke}>
-      <path d="M1 1v10M5 1v10M9 1v10M13 1v10" />
-    </svg>
-  );
-}
-
 export function NoteIcon({ size = 16, color = 'var(--text-secondary)' }: IconProps) {
   return (
     <svg

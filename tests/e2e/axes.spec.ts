@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
 test('finishing offers the moment, seven optional axes, and explained local matches', async ({
   page,
 }) => {
-  await page.getByLabel('Dark theme').click();
+  if (await page.getByLabel('Dark theme').isVisible()) await page.getByLabel('Dark theme').click();
   const fixture = await page.evaluate(() => window.__EXL_PHASE6_TEST__!.seed());
   await page.evaluate((id) => window.__EXL_PHASE6_TEST__!.openDetail(id), fixture.targetId);
 
@@ -37,12 +37,12 @@ test('finishing offers the moment, seven optional axes, and explained local matc
   await page.getByRole('button', { name: /Finished/ }).click();
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible();
   await expect(page.getByText('The Night Archive', { exact: true })).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase6-finish-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase6-finish-dark.png' });
 
   await page.getByRole('button', { name: 'Set the axes' }).click();
   const slider = page.getByRole('slider');
   await expect(page.getByRole('dialog', { name: 'Protagonist axis' })).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase6-axis-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase6-axis-dark.png' });
   await slider.press('End');
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByRole('dialog', { name: 'Power system axis' })).toBeVisible();
@@ -73,8 +73,8 @@ test('finishing offers the moment, seven optional axes, and explained local matc
   await expect(page.getByText('Matched on Monstrous, Rigorous and Merciless.')).toBeVisible();
 
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-  await page.screenshot({ path: '.impeccable/review/phase6-profile-light.png', fullPage: true });
-  await page.getByRole('button', { name: 'Edit translation axis: Fluent' }).click();
+  await page.screenshot({ path: '.astra/review/phase6-profile-light.png', fullPage: true });
+  await page.getByRole('button', { name: 'Edit Translation axis: Fluent' }).click();
   await expect(page.getByRole('dialog', { name: 'Translation axis' })).toBeVisible();
 });
 
@@ -84,7 +84,7 @@ test('the ending stays locked before Finished and a failed write keeps the draft
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const fixture = await page.evaluate(() => window.__EXL_PHASE6_TEST__!.seed());
   await page.evaluate((id) => window.__EXL_PHASE6_TEST__!.openDetail(id), fixture.targetId);
-  await page.getByRole('button', { name: 'Set axes' }).click();
+  await page.getByRole('button', { name: 'Edit Protagonist axis: Not set' }).click();
 
   const protagonist = page.getByRole('slider');
   const bounds = await protagonist.boundingBox();

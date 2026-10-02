@@ -20,6 +20,9 @@ function subscribe(listener: () => void) {
 }
 
 const getSnapshot = () => entries.at(-1) ?? null;
+export function usePendingInteraction() {
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
 
 /**
  * Marks only work whose completion is genuinely asynchronous. The visual mark

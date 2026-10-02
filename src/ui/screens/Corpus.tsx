@@ -1,7 +1,11 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, saveSettings } from '../../db/db';
-import { catalogueInstallStore, installCatalogue } from '../../catalogue/install';
+import {
+  catalogueInstallStore,
+  fetchCorpusManifest,
+  installCatalogue,
+} from '../../catalogue/install';
 import { nav } from '../../router/router';
 import {
   body,
@@ -17,6 +21,18 @@ import { Illustration } from '../illustration';
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 export function Corpus() {
+  const [size, setSize] = useState<number>();
+  useEffect(() => {
+    let active = true;
+    void fetchCorpusManifest()
+      .then((manifest) => {
+        if (active) setSize(manifest.bytes);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const state = useSyncExternalStore(
     catalogueInstallStore.subscribe,
     catalogueInstallStore.getSnapshot,
@@ -48,6 +64,13 @@ export function Corpus() {
         <p style={{ ...body, margin: 0, color: 'var(--text-secondary)' }}>
           Nothing in your library changes. Only what search can find changes.
         </p>
+        {!installed && !busy && (
+          <p className="room-catalogue-size">
+            {size
+              ? `${mb(size)} download · stored only on this device`
+              : 'Download size is unavailable until the catalogue can be reached.'}
+          </p>
+        )}
         {state.phase === 'checking' && (
           <p role="status" style={caption}>
             Checking the index and this device…

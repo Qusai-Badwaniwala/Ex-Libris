@@ -5,19 +5,12 @@ import { createRoot } from 'react-dom/client';
 // that fetches its own typefaces over the network renders in a fallback face
 // the first time it is opened without signal, which is exactly when it matters.
 // Weights are the ones tokens.css names and no others.
-import '@fontsource/sansita/400.css';
-import '@fontsource/sansita/700.css';
-import '@fontsource/sansita/800.css';
-import '@fontsource/montserrat-alternates/400.css';
-import '@fontsource/montserrat-alternates/500.css';
-import '@fontsource/montserrat-alternates/600.css';
-import '@fontsource/taviraj/300.css';
-import '@fontsource/taviraj/400.css';
-import '@fontsource/taviraj/500.css';
+import './styles/astra-fonts.css';
 
-import './styles/tokens.css';
+import './styles/reading-room-tokens.css';
 import './styles/base.css';
 import './styles/app.css';
+import './styles/astra.css';
 
 import { App } from './ui/App';
 import { installHistory } from './router/router';
@@ -40,8 +33,24 @@ if (import.meta.env.MODE === 'test') {
 const el = document.getElementById('root');
 if (!el) throw new Error('#root is missing from index.html');
 
-createRoot(el).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+const root = createRoot(el);
+const openApp = () =>
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+// Sample records belong solely to the explicit engineering test build. Vite
+// eliminates this import and its data from every production bundle.
+if (import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('evaluate')) {
+  void import('./ui/astra-evaluation').then(({ Evaluation }) => {
+    root.render(
+      <Evaluation
+        onDone={() => {
+          history.replaceState(history.state, '', import.meta.env.BASE_URL);
+          openApp();
+        }}
+      />,
+    );
+  });
+} else openApp();

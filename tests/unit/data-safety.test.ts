@@ -42,6 +42,7 @@ vi.mock('../../src/storage/opfs', () => ({
 
 import {
   buildBackupArchive,
+  createSafetyBackup,
   inspectAutomaticBackups,
   maybeCreateAutomaticBackup,
 } from '../../src/data-safety/backup';
@@ -54,6 +55,7 @@ import {
 } from '../../src/data-safety/import';
 import { readBackupFile, restoreBackup } from '../../src/data-safety/restore';
 import { createZip, readZip } from '../../src/data-safety/zip';
+import { readFile } from '../../src/storage/opfs';
 
 beforeEach(async () => {
   await db.open();
@@ -63,7 +65,10 @@ beforeEach(async () => {
   await loadSettings('0.0.0');
 });
 
-afterEach(() => db.close());
+afterEach(() => {
+  vi.restoreAllMocks();
+  db.close();
+});
 
 function inMemoryFile(name: string, bytes: Uint8Array | ArrayBuffer, type: string): File {
   const buffer =
@@ -90,6 +95,33 @@ describe('the Ex Libris ZIP', () => {
 });
 
 describe('complete backups', () => {
+  it('refuses a destructive restore when its safety archive cannot be read back intact', async () => {
+    const work = await repo.createWork({
+      title: 'Keep this book',
+      format: 'book',
+      status: 'reading',
+    });
+    const archive = await buildBackupArchive('test');
+    const prepared = await readBackupFile(
+      inMemoryFile('backup.zip', archive.bytes, 'application/zip'),
+    );
+    vi.mocked(readFile).mockResolvedValueOnce(
+      inMemoryFile('broken.zip', new Uint8Array([1, 2]), 'application/zip'),
+    );
+    await expect(restoreBackup(prepared, 'replace', 'test')).rejects.toThrow('verification failed');
+    expect((await db.work.get(work.id))?.title).toBe('Keep this book');
+  });
+
+  it('does not approve a safety backup when user cover bytes are missing', async () => {
+    const work = await repo.createWork({
+      title: 'Private cover',
+      format: 'book',
+      status: 'reading',
+    });
+    await db.work.update(work.id, { coverSource: 'user', coverPath: 'covers/user/missing.webp' });
+    await expect(createSafetyBackup('test')).rejects.toThrow('missing');
+    expect([...opfs.files.keys()].filter((path) => path.startsWith('backups/'))).toHaveLength(0);
+  });
   it('includes user covers, excludes replaceable API bytes, and restores the user cover', async () => {
     const user = await repo.createWork({
       title: 'The Irreplaceable Cover',

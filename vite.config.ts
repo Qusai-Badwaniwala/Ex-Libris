@@ -95,13 +95,13 @@ export default defineConfig(({ mode, command }) => ({
       manifest: {
         name: 'Ex Libris',
         short_name: 'Ex Libris',
-        description: 'A private archive of what you have read.',
+        description: 'A private reading room. Entirely your own.',
         start_url: basePath,
         scope: basePath,
         display: 'standalone',
-        orientation: 'portrait',
-        background_color: '#212631',
-        theme_color: '#212631',
+        orientation: 'any',
+        background_color: '#111214',
+        theme_color: '#111214',
         icons: [
           { src: `${basePath}icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
           { src: `${basePath}icons/icon-512.png`, sizes: '512x512', type: 'image/png' },

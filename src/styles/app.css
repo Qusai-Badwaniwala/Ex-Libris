@@ -46,19 +46,6 @@
   [data-hover='danger-ink']:hover {
     color: var(--danger);
   }
-  .exl-spine:hover {
-    transform: translateY(-6px);
-  }
-}
-
-.exl-spine {
-  transition: transform var(--dur-fast) var(--ease-snap);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .exl-spine {
-    transition: none;
-  }
 }
 
 /* The approved axis gesture briefly yields the word while the thumb catches

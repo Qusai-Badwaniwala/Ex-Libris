@@ -65,6 +65,7 @@ export type OverlayKind =
   | 'surprise'
   | 'statusPicker'
   | 'seriesPicker'
+  | 'groupOrganiser'
   | 'readingOrderEditor'
   | 'coverPicker'
   | 'sortSheet';
@@ -104,6 +105,15 @@ const HOME: Route = { screen: 'home' };
 
 let state: NavState = { screens: [HOME], overlays: [] };
 const listeners = new Set<Listener>();
+
+// Presentation-only guard. The browser entry is restored when a draft remains open.
+const dismissGuards = new Map<OverlayKind, () => boolean>();
+export function guardOverlayDismiss(kind: OverlayKind, guard: () => boolean) {
+  dismissGuards.set(kind, guard);
+  return () => {
+    if (dismissGuards.get(kind) === guard) dismissGuards.delete(kind);
+  };
+}
 
 function emit(next: NavState) {
   state = next;
@@ -332,6 +342,11 @@ export function installHistory() {
   history.replaceState({ exl: 1 }, '');
   const onPop = () => {
     if (state.overlays.length > 0) {
+      const kind = state.overlays.at(-1)!.kind;
+      if (dismissGuards.get(kind)?.() === false) {
+        pushHistory();
+        return;
+      }
       const next = { ...state, overlays: state.overlays.slice(0, -1) };
       if (isAddSurface(state.overlays.at(-1)?.kind)) emitAddTransition(next, true);
       else emit(next);

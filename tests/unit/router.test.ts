@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { nav, installHistory, __resetNav } from '../../src/router/router';
+import { nav, installHistory, __resetNav, guardOverlayDismiss } from '../../src/router/router';
 
 /**
  * The back gesture. This is the one Phase 0 behaviour a person would notice
@@ -21,6 +21,23 @@ beforeEach(() => {
 });
 
 describe('back', () => {
+  it('keeps an unsaved editor mounted until its dismissal guard permits leaving', () => {
+    nav.push({ screen: 'notes' });
+    nav.open({ kind: 'noteEditor' });
+    let mayLeave = false;
+    const release = guardOverlayDismiss('noteEditor', () => mayLeave);
+    try {
+      pressBack();
+      expect(nav.state.overlays.at(-1)?.kind).toBe('noteEditor');
+      expect(nav.state.screens.at(-1)?.screen).toBe('notes');
+      mayLeave = true;
+      pressBack();
+      expect(nav.state.overlays).toHaveLength(0);
+    } finally {
+      release();
+    }
+  });
+
   it('closes the topmost sheet before touching the screen underneath', () => {
     nav.push({ screen: 'detail', id: 'w1' });
     nav.open({ kind: 'session' });

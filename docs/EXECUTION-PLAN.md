@@ -1,5 +1,12 @@
 # Ex Libris approved execution plan
 
+**2026-09-20 superseding instruction:** Phases 0–10 below remain release history.
+The owner approved the complete Reading Room adoption in an isolated branch,
+covering production identity/themes/artwork, relationships, optional Codex and
+data/PWA hardening. Complete the candidate without arbitrary phase approval
+stops. On 2026-09-21 the owner authorised commit, push and publication of the
+verified usable app (E-111). [Active record](astra/ADOPTION.md).
+
 Approved by the owner on 2026-09-06. This is the durable Phase 3–10 sequence.
 It evolves the current PWA; it is not permission to rebuild or reinterpret the
 approved Claude Design. `HANDOFF.md` records live status, `DECISIONS.md` records

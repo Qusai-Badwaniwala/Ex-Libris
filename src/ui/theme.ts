@@ -28,6 +28,8 @@ export function applyTheme(choice: ThemeChoice): 'light' | 'dark' {
   // express the same state, and one of them would eventually go stale.
   if (resolved === 'light') root.setAttribute('data-theme', 'light');
   else root.removeAttribute('data-theme');
+  const colour = getComputedStyle(root).getPropertyValue('--surface-base').trim();
+  if (colour) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colour);
   return resolved;
 }
 

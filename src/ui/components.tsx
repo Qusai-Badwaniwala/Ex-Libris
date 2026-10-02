@@ -3,7 +3,6 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { GENRE_NAMES, isWarningOnly } from '../data/taxonomy';
 import type { GenreIndex } from '../db/schema';
 import { caption, coverRadius, displayS, label, resetButton, tabular } from './styles';
-import { prefersReducedMotion } from './theme';
 import { coverService } from '../covers';
 import { Illustration, type IllustrationName } from './illustration';
 
@@ -35,7 +34,7 @@ export function Cover({
   /** Set for the duration of the shared-element flight, and only then. */
   flightName?: string;
 }) {
-  const showTitle = !!title && width >= 132;
+  const showTitle = !!title && width >= 100;
   const [imageUrl, setImageUrl] = useState<string>();
 
   useEffect(() => {
@@ -62,6 +61,7 @@ export function Cover({
   return (
     <div
       data-cover
+      data-cover-placeholder={!imageUrl || undefined}
       style={{
         width,
         height,
@@ -84,6 +84,7 @@ export function Cover({
         />
       ) : showTitle ? (
         <span
+          aria-hidden="true"
           style={{
             fontFamily: 'var(--font-display)',
             fontWeight: 'var(--display-vf-sm)' as unknown as number,
@@ -314,30 +315,20 @@ export function Sheet({
   title,
   maxHeight = '92%',
   transitionName,
+  footer,
 }: {
   children: ReactNode;
   onClose: () => void;
   title?: string;
   maxHeight?: string;
   transitionName?: 'add-surface';
+  footer?: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   useEffect(() => {
     close.current = onClose;
   }, [onClose]);
-
-  useEffect(() => {
-    const el = panel.current;
-    if (!el || prefersReducedMotion()) return;
-    el.style.transition = 'none';
-    el.style.transform = 'translateY(100%)';
-    // Force the reflow before the transition is armed, or the browser
-    // coalesces the two writes and nothing animates.
-    void el.offsetWidth;
-    el.style.transition = 'transform var(--dur-base) var(--ease-spring)';
-    el.style.transform = 'translateY(0)';
-  }, []);
 
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -352,6 +343,9 @@ export function Sheet({
       (targets().find((target) => target.tagName === 'INPUT') ?? targets()[0])?.focus();
     });
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      if (dialogs.item(dialogs.length - 1) !== element?.parentElement) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         close.current();
@@ -389,6 +383,7 @@ export function Sheet({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      className="room-sheet"
     >
       <button
         onClick={onClose}
@@ -406,6 +401,7 @@ export function Sheet({
       />
       <div
         ref={panel}
+        className="room-sheet-panel"
         style={{
           position: 'absolute',
           left: 0,
@@ -432,7 +428,7 @@ export function Sheet({
           />
         </div>
         <div
-          className="exl-scroll"
+          className="exl-scroll room-sheet-content"
           style={{
             overflowY: 'auto',
             padding: '8px var(--space-4) calc(var(--space-5) + var(--safe-bottom))',
@@ -443,6 +439,7 @@ export function Sheet({
         >
           {children}
         </div>
+        {footer && <div className="room-sheet-footer">{footer}</div>}
       </div>
     </div>
   );
@@ -450,11 +447,7 @@ export function Sheet({
 
 /* ── Segmented control ──────────────────────────────────────────────────── */
 
-/**
- * Not accent-coloured. Three accents per screen is the budget and none of them
- * should be spent on a control that is merely selected rather than primary
- * (COMPONENTS, SegmentedPill).
- */
+/** Selection needs a visible mark as well as colour, including in dark mode. */
 export function Segmented<T extends string>({
   options,
   value,
@@ -477,25 +470,57 @@ export function Segmented<T extends string>({
         overflow: 'hidden',
       }}
     >
-      {options.map((o) => {
+      {options.map((o, index) => {
         const on = o.value === value;
         return (
           <button
             key={o.value}
             role="radio"
             aria-checked={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => onChange(o.value)}
+            onKeyDown={(event) => {
+              const offset =
+                event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                  ? 1
+                  : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                    ? -1
+                    : 0;
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? options.length - 1
+                    : offset
+                      ? (index + offset + options.length) % options.length
+                      : -1;
+              if (next < 0) return;
+              event.preventDefault();
+              onChange(options[next]!.value);
+              const controls =
+                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                  '[role="radio"]',
+                );
+              controls?.[next]?.focus();
+            }}
             style={{
               ...resetButton,
               flex: 1,
-              height: 40,
-              lineHeight: '40px',
+              minWidth: 0,
+              minHeight: 'var(--touch-min)',
+              padding: 'var(--space-2) var(--space-1)',
               textAlign: 'center',
               ...caption,
-              background: on ? 'var(--surface-raised)' : 'transparent',
-              color: on ? 'var(--text-primary)' : 'var(--text-secondary)',
+              lineHeight: 'var(--lh-body)',
+              background: on ? 'var(--accent)' : 'transparent',
+              color: on ? 'var(--on-accent)' : 'var(--text-secondary)',
             }}
           >
+            {on && (
+              <span aria-hidden="true" data-selection-mark>
+                ✓{' '}
+              </span>
+            )}
             {o.label}
           </button>
         );

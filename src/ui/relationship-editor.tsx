@@ -5,9 +5,12 @@ import * as repo from '../db/repo';
 import { Field, Sheet } from './components';
 import { withInteractionFeedback } from './interaction-feedback';
 import { caption, displayS, label, resetButton } from './styles';
+import { organiseWork } from '../relationships/organise';
+import { membership, readRelationships } from '../relationships/library';
 
 export function RelationshipEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const data = useLiveQuery(async () => {
+    const graph = await readRelationships();
     const work = await db.work.get(id);
     if (!work) return null;
     const [series, universe, allSeries, allUniverses] = await Promise.all([
@@ -16,7 +19,18 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
       repo.listSeries(),
       repo.listUniverses(),
     ]);
-    return { work, series, universe, allSeries, allUniverses };
+    const inherited = series?.universeId ? await db.universe.get(series.universeId) : undefined;
+    const members = series ? await db.work.where('seriesId').equals(series.id).toArray() : [];
+    return {
+      graph,
+      work,
+      series,
+      universe: inherited ?? universe,
+      allSeries,
+      allUniverses,
+      members,
+      conflict: membership(work, series).conflict,
+    };
   }, [id]);
   const [seriesName, setSeriesName] = useState('');
   const [position, setPosition] = useState('');
@@ -24,6 +38,9 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [organisation, setOrganisation] = useState('');
+  useEffect(() => setReviewing(false), [seriesName, position, universeName]);
 
   useEffect(() => {
     if (!data || initialized) return;
@@ -31,6 +48,7 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
     setPosition(data.work.seriesPosition?.toString() ?? '');
     setUniverseName(data.universe?.name ?? '');
     setInitialized(true);
+    setOrganisation(data.graph.revision);
   }, [data, initialized]);
 
   if (!data) return null;
@@ -43,33 +61,39 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
     setError('');
     try {
       await withInteractionFeedback('Saving the relationships…', async () => {
-        const cleanSeries = seriesName.trim();
-        const cleanUniverse = universeName.trim();
-        const series = cleanSeries ? await repo.seriesByName(cleanSeries) : undefined;
-        const universe = cleanUniverse ? await repo.universeByName(cleanUniverse) : undefined;
-        await repo.setSeries(id, {
-          seriesId: series?.id,
-          seriesPosition: series && position.trim() ? Number(position) : undefined,
+        await organiseWork(id, {
+          seriesName,
+          worldName: universeName,
+          position: position.trim() ? Number(position) : undefined,
+          expectedOrganisation: organisation,
         });
-        await repo.setUniverse(id, universe?.id);
-        if (series) await repo.linkSeriesToUniverse(series.id, universe?.id);
       });
       onClose();
-    } catch {
-      setError('Those relationships could not be saved. Your entries are still here; try again.');
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Those relationships could not be saved. Your entries are still here; try again.',
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Sheet title="Series and universe" onClose={onClose}>
+    <Sheet title="Organise this work" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={displayS}>Series and universe</div>
+        <div style={displayS}>Series and world</div>
         <p style={{ ...caption, color: 'var(--text-secondary)', margin: 0 }}>
           Nothing is inferred here. Choose an existing name or write the relationship you know.
         </p>
       </div>
+      {data.conflict && (
+        <p role="status">
+          This work has a legacy world that differs from its series. Review the world below; saving
+          resolves the conflict for this work.
+        </p>
+      )}
       <Field
         label="Series"
         value={seriesName}
@@ -81,7 +105,14 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
           <span style={label}>Existing series</span>
           <select
             value=""
-            onChange={(event) => setSeriesName(event.target.value)}
+            onChange={(event) => {
+              setSeriesName(event.target.value);
+              const selected = data.allSeries.find((item) => item.name === event.target.value);
+              setUniverseName(
+                data.allUniverses.find((item) => item.id === selected?.universeId)?.name ?? '',
+              );
+              setReviewing(false);
+            }}
             style={selectStyle}
           >
             <option value="">Choose one</option>
@@ -105,15 +136,10 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
             : 'Use a positive number, or leave it empty.'
         }
       />
-      <Field
-        label="Universe or continuity"
-        value={universeName}
-        onChange={setUniverseName}
-        placeholder="Optional"
-      />
+      <Field label="World" value={universeName} onChange={setUniverseName} placeholder="Optional" />
       {data.allUniverses.length ? (
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={label}>Existing universes</span>
+          <span style={label}>Existing worlds</span>
           <select
             value=""
             onChange={(event) => setUniverseName(event.target.value)}
@@ -133,6 +159,39 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
           {error}
         </p>
       ) : null}
+      {reviewing && (
+        <div className="room-organise-preview" role="status">
+          <strong>{data.work.title}</strong>
+          <p>
+            {seriesName.trim()
+              ? `Series: ${seriesName.trim()}${position ? ` · entry ${position}` : ' · unnumbered'}`
+              : 'Standalone work'}
+            <br />
+            World: {universeName.trim() || 'None'}
+          </p>
+          {seriesName.trim() && (
+            <>
+              <p>
+                The world applies to the entire selected series. Its other members will inherit this
+                world. No reading progress, notes or books are removed.
+              </p>
+              <ul>
+                {data.graph
+                  .seriesWorks(
+                    data.allSeries.find(
+                      (series) =>
+                        series.name.toLocaleLowerCase() === seriesName.trim().toLocaleLowerCase(),
+                    )?.id ?? '',
+                  )
+                  .filter((work) => work.id !== id)
+                  .map((work) => (
+                    <li key={work.id}>{work.title}</li>
+                  ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
         <button
           onClick={onClose}
@@ -149,7 +208,7 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
         </button>
         <button
           disabled={!validPosition || saving}
-          onClick={() => void save()}
+          onClick={() => (reviewing ? void save() : setReviewing(true))}
           style={{
             ...resetButton,
             flex: 1,
@@ -159,7 +218,7 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
             color: validPosition && !saving ? 'var(--on-accent)' : 'var(--text-faint)',
           }}
         >
-          {saving ? 'Saving…' : 'Save relationships'}
+          {saving ? 'Saving…' : reviewing ? 'Confirm organisation' : 'Review changes'}
         </button>
       </div>
     </Sheet>

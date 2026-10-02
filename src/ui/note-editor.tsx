@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ALL_TAGS, TAG_GROUPS, visibleTags } from '../data/taxonomy';
 import * as repo from '../db/repo';
-import { nav } from '../router/router';
+import { guardOverlayDismiss, nav } from '../router/router';
 import { Cover, Sheet, TagPill } from './components';
 import { tick } from './haptics';
 import { ChevronLeft, Search, TrashIcon } from './icons';
@@ -34,6 +34,37 @@ export function NoteEditor({
   const [readyId, setReadyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const bypassGuard = useRef(false);
+  const dirty =
+    title !== (existing?.note.title ?? '') ||
+    body !== (existing?.note.body ?? '') ||
+    pinned !== (existing?.note.pinned ?? false) ||
+    JSON.stringify([...workIds].sort()) !==
+      JSON.stringify((existing?.works.map((work) => work.id) ?? []).sort()) ||
+    JSON.stringify([...tagNames].sort()) !==
+      JSON.stringify((existing?.tags.map((tag) => tag.name) ?? []).sort());
+  useEffect(
+    () =>
+      guardOverlayDismiss('noteEditor', () => {
+        if (bypassGuard.current || !dirty) return true;
+        setConfirmDiscard((value) => !value);
+        return false;
+      }),
+    [dirty],
+  );
+  useEffect(() => {
+    if (!dirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [dirty]);
+  useEffect(() => {
+    if (confirmDiscard) document.querySelector<HTMLButtonElement>('[data-keep-editing]')?.focus();
+  }, [confirmDiscard]);
   const canSave = (title.trim().length > 0 || body.trim().length > 0) && !saving;
 
   useEffect(() => {
@@ -66,6 +97,7 @@ export function NoteEditor({
           ? repo.updateNote(id, { title, body, pinned, tagNames, workIds })
           : repo.createNote({ title, body, pinned, tagNames, workIds }),
       );
+      bypassGuard.current = true;
       nav.close();
     } catch {
       setError('The note could not be saved. Your words and choices are still here; try again.');
@@ -80,6 +112,7 @@ export function NoteEditor({
     setError('');
     try {
       await withInteractionFeedback('Moving the note to Trash…', () => repo.softDeleteNote(id));
+      bypassGuard.current = true;
       nav.close();
     } catch {
       setError('The note could not be moved to Trash. Nothing was deleted.');
@@ -87,12 +120,52 @@ export function NoteEditor({
     }
   };
 
+  if (confirmDiscard)
+    return (
+      <Sheet title="Discard unsaved changes?" onClose={() => setConfirmDiscard(false)}>
+        <div className="room-sheet-title">
+          <h2>Keep this thought?</h2>
+          <p>Your changes have not been saved.</p>
+        </div>
+        <button className="room-primary" data-keep-editing onClick={() => setConfirmDiscard(false)}>
+          Keep editing
+        </button>
+        <button
+          className="room-text"
+          onClick={() => {
+            bypassGuard.current = true;
+            nav.close();
+          }}
+        >
+          Discard changes
+        </button>
+      </Sheet>
+    );
+
   return (
     <Sheet
       onClose={() => nav.close()}
       title={tagPickerOpen ? 'Note tags' : id ? 'Edit note' : 'New note'}
       maxHeight="94%"
       transitionName="add-surface"
+      footer={
+        tagPickerOpen ? undefined : (
+          <button
+            disabled={!canSave}
+            onClick={() => canSave && void save()}
+            style={{
+              ...resetButton,
+              color: canSave ? 'var(--accent-text)' : 'var(--text-faint)',
+              fontSize: 'var(--size-body)',
+              lineHeight: 'var(--lh-body)',
+              fontWeight: 500,
+              padding: 10,
+            }}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        )
+      }
     >
       {tagPickerOpen ? (
         <TagPicker
@@ -127,20 +200,6 @@ export function NoteEditor({
               }}
             >
               <TrashIcon color="currentColor" />
-            </button>
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && void save()}
-              style={{
-                ...resetButton,
-                color: canSave ? 'var(--accent-text)' : 'var(--text-faint)',
-                fontSize: 'var(--size-body)',
-                lineHeight: 'var(--lh-body)',
-                fontWeight: 500,
-                padding: 10,
-              }}
-            >
-              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
           <input

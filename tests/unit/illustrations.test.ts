@@ -75,10 +75,14 @@ describe('theme-aware illustrations', () => {
     }
   });
 
-  it('keeps the approved magic tree visually and byte-for-byte unchanged in both themes', () => {
+  it('art-directs the magic tree derivatives while retaining the source', () => {
     const source = readFileSync('public/illustrations/magic-tree-cuate.svg', 'utf8');
-    expect(readFileSync('public/illustrations/light/magic-tree-cuate.svg', 'utf8')).toBe(source);
-    expect(readFileSync('public/illustrations/dark/magic-tree-cuate.svg', 'utf8')).toBe(source);
+    expect(readFileSync('public/illustrations/light/magic-tree-cuate.svg', 'utf8')).toBe(
+      themedSvg(source, 'magic-tree-cuate', 'light'),
+    );
+    expect(readFileSync('public/illustrations/dark/magic-tree-cuate.svg', 'utf8')).toBe(
+      themedSvg(source, 'magic-tree-cuate', 'dark'),
+    );
   });
 
   it('selects explicit theme paths and never falls back to the source directory', () => {

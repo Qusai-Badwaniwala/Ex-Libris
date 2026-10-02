@@ -26,12 +26,19 @@ async function clearDevice(page: Page, path = '/') {
   await page.goto(path);
 }
 
-async function openLibrary(page: Page) {
+async function openLibrary(page: Page, shared = false) {
   await page.getByRole('button', { name: 'Open the library' }).click();
   await page.getByLabel('Your name').fill('Qusai');
   await page.getByRole('button', { name: 'Open the library' }).click();
-  const skip = page.getByRole('button', { name: 'Skip' });
-  if (await skip.isVisible()) await skip.click();
+  if (shared) {
+    // Shared titles intentionally take precedence over the Home-only tour.
+    await expect(page.getByRole('dialog', { name: 'The catalogue' })).toBeVisible();
+  } else {
+    const skip = page.getByRole('button', { name: 'Skip' });
+    await expect(skip).toBeVisible();
+    await skip.click();
+    await expect(skip).toHaveCount(0);
+  }
   await page.waitForFunction(() => Boolean(window.__EXL_PHASE8_TEST__));
 }
 
@@ -49,7 +56,7 @@ test('Backup shows honest empty and populated local states in both themes', asyn
   await expect(
     page.locator('img[data-illustration-theme="light"][src$="bibliophile-pana.svg"]'),
   ).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase8-backup-empty-light.png' });
+  await page.screenshot({ path: '.astra/review/phase8-backup-empty-light.png' });
 
   await page.evaluate(async () => {
     await window.__EXL_PHASE8_TEST__!.seed();
@@ -64,7 +71,7 @@ test('Backup shows honest empty and populated local states in both themes', asyn
   await expect(page.getByText('Backed up on this device')).toBeVisible();
   await expect(page.getByText('1 work').first()).toBeVisible();
   await expect(page.getByText('1 note').first()).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase8-backup-history-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase8-backup-history-dark.png' });
 });
 
 test('a downloaded ZIP is previewed before merge and retains current records', async ({ page }) => {
@@ -96,7 +103,7 @@ test('a downloaded ZIP is previewed before merge and retains current records', a
   await expect(page.getByRole('heading', { name: 'Restore preview' })).toBeVisible();
   await expect(page.getByRole('radio', { name: 'merge' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByText(/1 work, 1 note/)).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase8-restore-preview-light.png' });
+  await page.screenshot({ path: '.astra/review/phase8-restore-preview-light.png' });
   await page.getByRole('button', { name: 'Merge this backup' }).click();
   await expect(page.getByText('The library was restored in full.')).toBeVisible();
   await expect
@@ -118,7 +125,7 @@ test('paste and generic CSV imports require a visible review before one batch wr
   await expect(page.getByRole('heading', { name: 'Import preview' })).toBeVisible();
   await expect(page.getByText('no catalogue record selected')).toHaveCount(2);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
-  await page.screenshot({ path: '.impeccable/review/phase8-paste-preview-dark.png' });
+  await page.screenshot({ path: '.astra/review/phase8-paste-preview-dark.png' });
   await page.getByRole('button', { name: 'Import 2 works' }).click();
   await expect(page.getByText('2 works were imported together.')).toBeVisible();
 
@@ -135,7 +142,7 @@ test('paste and generic CSV imports require a visible review before one batch wr
   await expect(page.getByLabel('Author column')).toHaveValue('1');
   await expect(page.getByLabel('Rating column')).toHaveValue('4');
   await expect(page.getByRole('cell', { name: 'A, B' })).toBeVisible();
-  await page.screenshot({ path: '.impeccable/review/phase8-csv-map-light.png' });
+  await page.screenshot({ path: '.astra/review/phase8-csv-map-light.png' });
   await page.getByRole('button', { name: 'Review mapped rows' }).click();
   await expect(page.getByLabel('Title for row 1')).toHaveValue('A, B');
   await expect(page.getByText('12 of 40')).toBeVisible();
@@ -152,7 +159,7 @@ test('paste and generic CSV imports require a visible review before one batch wr
 
 test('a cold-start share target opens a prefilled Wishlist add flow', async ({ page }) => {
   await clearDevice(page, '/share?title=Piranesi');
-  await openLibrary(page);
+  await openLibrary(page, true);
   await expect(page.getByText('Wishlist', { exact: true }).first()).toBeVisible();
   const catalogue = page.getByRole('dialog', { name: 'The catalogue' });
   await expect(catalogue).toBeVisible();

@@ -1,5 +1,43 @@
 # Current design state
 
+## Reading Room adoption · 2026-09-20
+
+The owner approved the Astra Reading Room as the next Ex Libris frontend.
+This section supersedes the historical foundation below. On 2026-09-21 the
+owner authorised committing and publishing the verified adoption to GitHub
+Pages. Exact release status and evidence belong in HANDOFF.md.
+
+- Literata supplies display and reading voice; Source Sans 3 supplies controls.
+  The approved mineral-paper/vermilion light composition is retained.
+- Dark surfaces are near black (`#111214`) with charcoal separation. The original
+  blue-grey accent family, centred on `#8FA3C4`, replaces light mode's red role.
+  It is not the page background.
+- Reading opens first. Library, Wishlist, Notes and Stats form the primary dock;
+  a rail replaces it on wide screens. Settings and utilities remain in Menu.
+- Collection defaults to Index. Codex is an optional vertical wooden bookcase,
+  with readable covers, series sections and world grouping. Accessible DOM
+  controls own navigation; a separately loaded Three.js scene supplies the
+  cabinet. A two-dimensional fallback preserves the same content.
+- One primary series per work; series members inherit their world's membership.
+  Standalone works can belong directly to a world. Membership, numerical sequence,
+  and optional named reading orders are separate. The organiser previews changes.
+- All thirteen original illustrations remain immutable. Reproducible light/dark
+  derivatives retain perceptual shading and skin colours, including the formerly
+  exempt magic tree. Review lives in the adoption evidence, not the old package.
+- Existing sheet history, reduced motion, haptics, measured async feedback and
+  real onboarding remain. Replay introduction preserves the reader's data.
+- Tour actions remain within the viewport, including short screens and enlarged
+  text. Selected segmented choices use the theme accent and a checkmark, with
+  arrow-key navigation; this explicit owner-requested clarity change supersedes
+  the historical neutral-only segmented-control rule.
+- `reading-room-tokens.css` is the maintained runtime token system. The frozen
+  `tokens.css` and `design/` remain historical references and structural checks.
+
+See [adoption](astra/ADOPTION.md), [release boundary](astra/RELEASE.md) and
+[the original experiment](astra/DESIGN.md). No prescriptive design skill was used.
+
+## Historical production design (before adoption)
+
 Updated 2026-09-08. This mutable document records approved production evolution.
 The visual source of truth in `../design/` is immutable and must not be edited.
 

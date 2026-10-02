@@ -23,7 +23,7 @@ export default defineConfig({
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: 'http://localhost:4284',
     trace: 'on-first-retry',
   },
   projects: [
@@ -41,8 +41,8 @@ export default defineConfig({
     // the real worker/OPFS path can be exercised without touching the
     // production Open Library catalogue in public/corpus.
     command:
-      'npm run pipeline -- fixture-merge fixture-build && npm run build -- --mode test && npm run preview -- --port 4173',
-    url: 'http://localhost:4173',
+      'npm run pipeline -- fixture-merge fixture-build && npm run build -- --mode test && npm run preview -- --port 4284 --strictPort',
+    url: 'http://localhost:4284',
     // Reusing the owner's production preview would silently skip the test-mode
     // build and its test bridge. A busy port is therefore a loud failure.
     reuseExistingServer: false,
