@@ -1486,3 +1486,13 @@ the public 192px icon hash matched local. The public production catalogue
 manifest retained 438,584 works and the original SHA-256. In the live browser,
 the waiting update activated while the prior two records remained; a real
 Open Library search returned Piranesi results. No public data was modified.
+
+## 2026-10-02 — EX identity revision
+
+The owner rejected the folio logo and requested a minimally artistic `EX` with
+both theme accent families. Replaced both vector masters with a large custom
+vermilion-orange/slate monogram, regenerated the three launcher PNGs, and used
+the same mark in the toolbar and startup. Inspected native 192px and 512px
+maskable raster output, plus the 390px local app header in both themes. The
+light and dark screen palettes were untouched. Final gate and publication
+evidence belong in HANDOFF.

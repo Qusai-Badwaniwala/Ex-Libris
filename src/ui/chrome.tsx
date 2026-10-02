@@ -48,14 +48,7 @@ export function RoomToolbar({
         aria-label="Ex Libris, library"
       >
         <span className="room-seal" aria-hidden="true">
-          <svg viewBox="0 0 32 36" width="24" height="27" fill="none" aria-hidden="true">
-            <path d="M4 16v-5c0-6 4-8 12-8s12 2 12 8v5" stroke="currentColor" strokeWidth="2.8" />
-            <path
-              d="M3 16c5-2 9-1 13 2 4-3 8-4 13-2v13c-5-1-9 0-13 3-4-3-8-4-13-3V16Z"
-              fill="currentColor"
-            />
-            <path d="M16 18v14" stroke="var(--accent)" strokeWidth="2" />
-          </svg>
+          <img src={`${import.meta.env.BASE_URL}icons/reading-room-icon.svg`} alt="" />
         </span>
         <span>
           Ex Libris<small>A private reading room</small>

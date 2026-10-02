@@ -2,6 +2,13 @@
 
 ## Reading Room adoption · 2026-09-20
 
+**Logo revision, 2026-10-02.** The owner rejected the folio mark. A custom,
+large `EX` monogram now uses vermilion-orange for the `E` and the dark theme's
+blue-grey for the `X` on a near-black field. The two letterforms fill the
+ordinary launcher square; a separate maskable master scales the same mark only
+enough to protect it from Android cropping. The toolbar and transient startup
+use the same vector. Neither app theme's screen palette or composition changed.
+
 **Follow-up, 2026-10-02.** The launcher and toolbar use one readable folio-under-arch
 mark instead of the small reader-circle launcher and letter seal. Dark ink,
 cream pages and a restrained vermilion fold remain legible when the platform

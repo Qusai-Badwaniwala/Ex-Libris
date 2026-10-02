@@ -8,7 +8,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
   return (
     <div className="room-startup" role="status">
       <span className="room-seal" aria-hidden="true">
-        ex
+        <img src={`${import.meta.env.BASE_URL}icons/reading-room-icon.svg`} alt="" />
       </span>
       <span>Opening your reading room…</span>
     </div>

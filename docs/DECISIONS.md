@@ -929,3 +929,11 @@ suggested series. A series with no world offers one tap to create or join a
 same-named world; the interface says this name is the reader's choice, not
 verified catalogue evidence. These writes remain transactional and preserve
 work IDs and data. The production corpus still has no verified world rows.
+
+**E-115 · Replace the rejected folio with a two-colour EX mark (2026-10-02).**
+The owner rejected E-112's logo and asked for a minimally artistic, visibly
+larger `EX` using both Reading Room accent families. Use a custom geometric
+vermilion-orange `E` and blue-grey `X` on near-black, at generous scale for the
+ordinary launcher, with a separately scaled maskable master. The same mark
+appears in the toolbar and transient startup. Keep icon paths and installation
+identity stable; leave screen themes unchanged.

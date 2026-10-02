@@ -1,9 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ex Libris open book beneath an arch">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Ex Libris EX monogram">
   <rect width="512" height="512" fill="#20292b"/>
-  <g transform="translate(256 256) scale(.92) translate(-256 -256)">
-    <path d="M91 232V166C91 75 162 48 256 48s165 27 165 118v66" fill="none" stroke="#f5efe3" stroke-width="31" stroke-linecap="square"/>
-    <path d="M88 221c65-21 122-13 168 23 46-36 103-44 168-23v186c-68-13-124-4-168 31-44-35-100-44-168-31V221Z" fill="#f5efe3"/>
-    <path d="M256 244v194" fill="none" stroke="#a43e32" stroke-width="19"/>
-    <path d="M121 268c51-9 83-2 110 13M121 319c51-8 83-2 110 13M391 268c-51-9-83-2-110 13M391 319c-51-8-83-2-110 13" fill="none" stroke="#a43e32" stroke-opacity=".64" stroke-width="8" stroke-linecap="round"/>
+  <g transform="translate(256 256) scale(.82) translate(-256 -256)">
+    <g fill="#d4664b">
+      <path d="M84 94h48v324H84z"/>
+      <path d="M84 94h154v46H84z"/>
+      <path d="M84 233h138v44H84z"/>
+      <path d="M84 372h154v46H84z"/>
+    </g>
+    <g fill="none" stroke="#8fa3c4" stroke-width="44" stroke-linecap="square">
+      <path d="m288 123 134 266"/>
+      <path d="M422 123 288 389"/>
+    </g>
   </g>
 </svg>

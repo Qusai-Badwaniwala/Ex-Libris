@@ -1,4 +1,4 @@
-# Ex Libris — Reading Room live with new launcher, lookup and grouping
+# Ex Libris — Reading Room live; EX identity revision
 
 Updated 2026-10-02. Production checkout: `H:\Ex libris Project\Website`,
 branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
@@ -7,7 +7,34 @@ and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
 and subtle Add by hand selection. This supersedes earlier no-publication notes.
 No prescriptive design skills. Preserve deployed data only; never import samples.
 
-## Current follow-up release · 2026-10-02
+## EX identity revision · 2026-10-02
+
+The owner rejected the folio launcher and asked for a large, minimally artistic
+`EX` with both light and dark accent colours. The working tree now uses a custom
+vermilion-orange `E` and blue-grey `X` on a near-black square. Separate ordinary
+and maskable SVG masters generate the existing 192px/512px icon filenames; the
+toolbar and transient startup share the same vector. Light and dark screen
+palettes, data, routes and functionality are unchanged. Native raster icons and
+the local 390px header in both themes were visually inspected. The complete
+`npm run gate` passed: formatting, lint, strict types, frozen-source checks,
+220 unit tests, 60 browser journeys and normal build. The exact Pages-path
+build uses `index-pwWpQDW9.js`, keeps the installation identity and 438,584-work
+catalogue, and includes the header SVG in its 51-entry offline precache. The
+192px ordinary and 512px maskable PNGs in `dist/` match their reviewed sources;
+the ordinary icon SHA-256 is
+`fd058db3484e990c1edd29601582590f67964e30d6a555c7e28af72509da2741`.
+The Pages-path build was opened at 390x844 and the mark inspected in both
+themes after activating the local waiting worker. This is browser evidence,
+not physical Android launcher evidence. No library data was changed.
+
+Publication is pending. Next: commit named files, push normally under E-111,
+verify the Pages workflow, public JS and public icon hash, then record the
+observed result here. `http://127.0.0.1:4278/Ex-Libris/` currently hosts the
+exact candidate (preview session 80694); stop it before another build.
+
+The completed preceding release is recorded below.
+
+## Preceding follow-up release · 2026-10-02
 
 The owner showed that the Android launcher icon was too small and asked for a
 new mark, broader catalogue discovery, and one-click series/world grouping.
@@ -46,7 +73,7 @@ with the existing two library records intact. The new Open Library action
 returned real results for Piranesi and the new folio toolbar mark rendered.
 No public-origin records were added, removed or imported during verification.
 
-Next three actions:
+Actions recorded for that preceding release:
 
 1. On the phone, reopen Ex Libris online and accept the in-app update offer
    after any active edit is saved. Android may retain its old launcher artwork
@@ -58,8 +85,8 @@ Next three actions:
 3. Measure deferred Q-028 catalogue latency and TalkBack behavior on an
    available physical Android device. Both remain unpassed.
 
-Exact local release preview:
-`http://127.0.0.1:4278/Ex-Libris/` (session 60316). The preview must stop before
+Earlier local release preview:
+`http://127.0.0.1:4278/Ex-Libris/` (session 60316, stopped). A preview must stop before
 another build. A disposable first-run record exists only on the localhost
 browser origin. `npm run gate` starts its own test-mode preview and restores the
 ignored engineering fixture only inside that build; the normal release has no
