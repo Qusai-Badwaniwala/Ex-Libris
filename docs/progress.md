@@ -1496,3 +1496,12 @@ the same mark in the toolbar and startup. Inspected native 192px and 512px
 maskable raster output, plus the 390px local app header in both themes. The
 light and dark screen palettes were untouched. Final gate and publication
 evidence belong in HANDOFF.
+
+The final full gate passed (220 unit, 60 browser journeys), and the exact
+`/Ex-Libris/` build was inspected at 390x844 in both themes. Its header SVG is
+in the offline precache; generated PNGs matched the build copies. Committed
+`e46cd28` and pushed `master` normally. GitHub Pages run 36998803870 passed;
+public HTML served the reviewed `index-pwWpQDW9.js`, and the public 192px icon
+SHA-256 matched local. Activating the live waiting worker revealed the EX mark
+while preserving the existing two browser-origin records. The installed Android
+launcher itself was not inspected.

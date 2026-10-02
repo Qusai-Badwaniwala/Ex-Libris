@@ -10,7 +10,7 @@ No prescriptive design skills. Preserve deployed data only; never import samples
 ## EX identity revision · 2026-10-02
 
 The owner rejected the folio launcher and asked for a large, minimally artistic
-`EX` with both light and dark accent colours. The working tree now uses a custom
+`EX` with both light and dark accent colours. The release uses a custom
 vermilion-orange `E` and blue-grey `X` on a near-black square. Separate ordinary
 and maskable SVG masters generate the existing 192px/512px icon filenames; the
 toolbar and transient startup share the same vector. Light and dark screen
@@ -27,10 +27,28 @@ The Pages-path build was opened at 390x844 and the mark inspected in both
 themes after activating the local waiting worker. This is browser evidence,
 not physical Android launcher evidence. No library data was changed.
 
-Publication is pending. Next: commit named files, push normally under E-111,
-verify the Pages workflow, public JS and public icon hash, then record the
-observed result here. `http://127.0.0.1:4278/Ex-Libris/` currently hosts the
-exact candidate (preview session 80694); stop it before another build.
+Application commit `e46cd28529c346393f0a066e3f6dbf8a7d35d70b` was pushed
+normally to `master`. [Pages run 36998803870](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36998803870)
+completed successfully. Public HTML serves the exact `index-pwWpQDW9.js` build
+and the public 192px PNG hash matches the source above. In the live 390px
+browser, the waiting worker activated, the new EX toolbar mark loaded, and the
+pre-existing two library records remained. The public origin was not seeded or
+edited. The icon's appearance in the owner's Android launcher itself remains
+unverified; browser emulation cannot establish launcher refresh timing.
+
+Next three actions:
+
+1. On the phone, open Ex Libris online, accept the offered update after saving
+   any active edit, then reopen the installed app. Do not clear site data to
+   refresh its icon. If Android keeps a cached launcher image, make a complete
+   backup before considering a reinstall.
+2. If the owner dislikes the new mark on the physical launcher, compare an
+   actual phone screenshot before changing scale or artwork again.
+3. Measure deferred Q-028 catalogue latency and TalkBack behavior on an
+   available physical Android device; both remain unpassed.
+
+`http://127.0.0.1:4278/Ex-Libris/` currently hosts the exact release
+(preview session 80694); stop it before another build.
 
 The completed preceding release is recorded below.
 
