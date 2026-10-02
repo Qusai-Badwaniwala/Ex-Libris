@@ -1529,3 +1529,10 @@ that export's scale and centre, keeping the pen tip and feather tip within the
 Android safe circle. Inspected the revised 512px file, reran the complete gate
 (220 unit, 60 browser journeys), rebuilt at `/Ex-Libris/`, reassembled the
 verified 273,784,832-byte catalogue, and checked the final 390px local app.
+
+Committed the selected artwork as `9ad1246` and pushed `master` normally.
+GitHub Pages run 37048612948 completed successfully. Public HTML served the
+reviewed `index-BerBxkZz.js`; public ordinary and maskable icon SHA-256 values
+matched local. The live browser activated the waiting worker, loaded the quill
+toolbar icon and retained its two pre-existing records. Physical Android
+launcher appearance remains unverified.

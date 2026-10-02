@@ -37,9 +37,26 @@ This is browser evidence, not a physical Android launcher check. The full gate
 passed again after that maskable refinement, and the final Pages-path build
 reassembled the verified production catalogue.
 
-Publication remains pending. Next: commit named files, push normally under
-E-111, verify the Pages workflow, public JS and public icon hash, then record
-the result here. Exact candidate preview:
+Application commit `9ad1246fd6f2bb6b22a008eb8cbc2e176e84d3cc` was pushed
+normally to `master`. [Pages run 37048612948](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37048612948)
+completed successfully. Public HTML serves the exact `index-BerBxkZz.js` build;
+the public 192px and maskable PNG hashes match the reviewed files above. In the
+live 390px browser, the waiting worker activated, the quill toolbar image
+loaded, and the two pre-existing library records remained. No public records
+were added, removed or imported. The owner's physical Android launcher was
+not inspected; its icon cache may refresh separately from the PWA shell.
+
+Next three actions:
+
+1. On the phone, open Ex Libris online and accept its update after saving any
+   active edit. Reopen the installed app. Do not clear site data to refresh a
+   launcher icon; make a complete backup before any eventual reinstall.
+2. If the physical launcher still shows the old logo, inspect a real phone
+   screenshot and its installed-app update state before changing artwork.
+3. Measure deferred Q-028 catalogue latency and TalkBack behavior on an
+   available physical Android device; both remain unpassed.
+
+Exact local release preview:
 `http://127.0.0.1:4278/Ex-Libris/` (session 51524); stop it before building.
 
 The previous completed release follows.
