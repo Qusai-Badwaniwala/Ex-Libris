@@ -1478,3 +1478,11 @@ browser journeys, production build, types, lint, formatting and structural
 checks. The online-book add and reopened-series/world creation journeys pass.
 The physical Android catalogue latency and physical TalkBack checks remain
 unpassed. Final Pages-path inspection and publication are recorded in HANDOFF.
+
+Committed the follow-up as `3a11f3a` and pushed `master` normally. GitHub
+Pages run 36995073107 completed successfully. Public HTML served the reviewed
+`index-D6zqd1zy.js`; manifest scope and icons stayed under `/Ex-Libris/` and
+the public 192px icon hash matched local. The public production catalogue
+manifest retained 438,584 works and the original SHA-256. In the live browser,
+the waiting update activated while the prior two records remained; a real
+Open Library search returned Piranesi results. No public data was modified.

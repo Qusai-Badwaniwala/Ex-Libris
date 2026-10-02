@@ -1,4 +1,4 @@
-# Ex Libris — Reading Room live; launcher, lookup and grouping follow-up ready
+# Ex Libris — Reading Room live with new launcher, lookup and grouping
 
 Updated 2026-10-02. Production checkout: `H:\Ex libris Project\Website`,
 branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
@@ -7,7 +7,7 @@ and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
 and subtle Add by hand selection. This supersedes earlier no-publication notes.
 No prescriptive design skills. Preserve deployed data only; never import samples.
 
-## Current follow-up release candidate · 2026-10-02
+## Current follow-up release · 2026-10-02
 
 The owner showed that the Android launcher icon was too small and asked for a
 new mark, broader catalogue discovery, and one-click series/world grouping.
@@ -34,17 +34,31 @@ Pages-path build was inspected at 390x844 in both themes, including catalogue
 controls. This is browser evidence, not physical-phone evidence. Q-028 remains
 deferred and unpassed. The old icon PNG masters remain available in Git history.
 
-At this checkpoint the follow-up is **not yet pushed or deployed**. Next:
+Application commit `3a11f3aaded212ea0c2592d7175b4b900bf455b0` was pushed
+normally to `master`; [Pages run 36995073107](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36995073107)
+completed successfully. Public HTML serves `index-D6zqd1zy.js`; the public
+192px icon has the same SHA-256 as the reviewed local icon. Public manifest
+scope and icon paths remain `/Ex-Libris/`. Public catalogue manifest remains
+production, 438,584 works, SHA-256
+`1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7`.
+In a public 390px browser session, the waiting service-worker update activated
+with the existing two library records intact. The new Open Library action
+returned real results for Piranesi and the new folio toolbar mark rendered.
+No public-origin records were added, removed or imported during verification.
 
-1. Commit the named follow-up files on `master`, then push normally to the
-   authorised GitHub remote. Never import localhost evaluation data.
-2. Wait for the Pages workflow, then verify exact asset names, manifest icon
-   URLs and the unchanged catalogue checksum on the public URL. Confirm the
-   new icon and online lookup in a fresh public browser context.
-3. Record final release evidence here. The physical Android Q-028 latency and
-   TalkBack checks remain unpassed until measured on a real device.
+Next three actions:
 
-Exact local candidate preview:
+1. On the phone, reopen Ex Libris online and accept the in-app update offer
+   after any active edit is saved. Android may retain its old launcher artwork
+   temporarily; do not clear site data to refresh it. Make a complete manual
+   backup before any eventual reinstall.
+2. Try book lookup with a known missing title and group a work via its record;
+   a series page can create a reader-authored world in one tap. Unverified
+   worlds and pure web-novel coverage remain honest limitations.
+3. Measure deferred Q-028 catalogue latency and TalkBack behavior on an
+   available physical Android device. Both remain unpassed.
+
+Exact local release preview:
 `http://127.0.0.1:4278/Ex-Libris/` (session 60316). The preview must stop before
 another build. A disposable first-run record exists only on the localhost
 browser origin. `npm run gate` starts its own test-mode preview and restores the
@@ -52,7 +66,7 @@ ignored engineering fixture only inside that build; the normal release has no
 evaluation data.
 
 **Live:** https://qusai-badwaniwala.github.io/Ex-Libris/
-Application release: `4fa9e934eb75698f8eeaa3284cd0c0049a8ce548`.
+Previous Reading Room application release: `4fa9e934eb75698f8eeaa3284cd0c0049a8ce548`.
 GitHub Pages run [36963081036](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36963081036)
 completed successfully. Both checkouts fast-forwarded from a218b8a; nothing was
 reset or force-pushed. The production checkout's exact dependencies were installed.
