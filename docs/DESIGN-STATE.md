@@ -2,6 +2,15 @@
 
 ## Reading Room adoption · 2026-09-20
 
+**Follow-up, 2026-10-02.** The launcher and toolbar use one readable folio-under-arch
+mark instead of the small reader-circle launcher and letter seal. Dark ink,
+cream pages and a restrained vermilion fold remain legible when the platform
+masks the icon. The full-bleed background belongs to the icon, not the app
+screen. Catalogue search now places explicit online book/comic choices next to
+the query, before long result lists. Work records keep their series suggestion
+when reopened; series pages offer a clearly reader-authored one-tap world.
+The approved light layout and both runtime theme palettes remain unchanged.
+
 The owner approved the Astra Reading Room as the next Ex Libris frontend.
 This section supersedes the historical foundation below. On 2026-09-21 the
 owner authorised committing and publishing the verified adoption to GitHub

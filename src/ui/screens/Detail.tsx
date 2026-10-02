@@ -35,7 +35,7 @@ import { readRelationships } from '../../relationships/library';
  */
 export function Detail({
   id,
-  suggestRelationships = false,
+  suggestRelationships = true,
 }: {
   id: string;
   suggestRelationships?: boolean;

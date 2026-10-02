@@ -1456,3 +1456,25 @@ five development-only entries (one high, three moderate, one low), versus two at
 the earlier checkpoint; zero production vulnerabilities. Recorded new transitive
 tooling advisories and a separate targeted maintenance recommendation. No force
 fix, bulk upgrade, or unverified dependency change was made to the gated release.
+
+## 2026-10-02 — Launcher, broader lookup and relationship follow-up
+
+The owner supplied a phone screenshot showing the old reader-circle launcher
+rendering very small and requested a new logo, broader catalogue lookup and
+easier series/world creation. Replaced the icon and toolbar letter seal with a
+large folio-under-arch mark, kept ordinary/maskable masters reproducible through
+`npm run icons`, and removed the unused raster masters from `public/`.
+
+Added an explicit bounded Open Library online book lookup beside the existing
+MangaDex comics lookup. Real in-app browser search for Piranesi returned ten
+works; a work opened the editable Add sheet. The initial phone layout buried
+online actions below ten results, so they moved next to the query. Source facts
+remain leads, not inferred series/world data. Series offers remain available
+after reopening Detail, and one tap on a series page can create or join a
+same-named, clearly reader-authored world.
+
+The complete gate passed after these code changes: 220 unit tests, 60 phone
+browser journeys, production build, types, lint, formatting and structural
+checks. The online-book add and reopened-series/world creation journeys pass.
+The physical Android catalogue latency and physical TalkBack checks remain
+unpassed. Final Pages-path inspection and publication are recorded in HANDOFF.

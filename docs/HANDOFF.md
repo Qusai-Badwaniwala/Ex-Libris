@@ -1,4 +1,4 @@
-# Ex Libris — Reading Room publicly released
+# Ex Libris — Reading Room live; launcher, lookup and grouping follow-up ready
 
 Updated 2026-10-02. Production checkout: `H:\Ex libris Project\Website`,
 branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
@@ -6,6 +6,50 @@ branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
 and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
 and subtle Add by hand selection. This supersedes earlier no-publication notes.
 No prescriptive design skills. Preserve deployed data only; never import samples.
+
+## Current follow-up release candidate · 2026-10-02
+
+The owner showed that the Android launcher icon was too small and asked for a
+new mark, broader catalogue discovery, and one-click series/world grouping.
+The new folio-under-arch icon is generated from two vector masters into the
+unchanged manifest filenames, with the old raster masters removed from
+`public/`; the toolbar letter seal now uses the same mark. Light and dark
+Reading Room screen palettes are unchanged. The online catalogue now offers a
+reader-triggered, ten-result Open Library book lookup alongside the existing
+MangaDex comics lookup, with both choices reachable above results on a phone.
+The licensed 438,584-work offline catalogue is unchanged. Conservative series
+suggestions appear whenever an ungrouped work is opened; a series page can
+create or join a same-named, clearly reader-authored world in one tap. No data
+migration or bulk catalogue acquisition was added. The shipped catalogue still
+contains zero verified world rows.
+
+The complete final-source `npm run gate` passed: formatting, lint, strict
+types, frozen source checks, 220 unit tests, 60 production-mode Pixel 7 browser
+journeys and normal build. The exact `/Ex-Libris/` build assembled and verified
+all 273,784,832 original catalogue bytes. Its main JS is 606.47 kB (180.79 kB
+gzip), optional Codex 526.45 kB (132.65 kB gzip), CSS 39.68 kB (8.80 kB
+gzip); the offline shell precache is 51 entries / 15,876.65 KiB. A real
+in-app-browser Open Library search returned ten Piranesi results; the final
+Pages-path build was inspected at 390x844 in both themes, including catalogue
+controls. This is browser evidence, not physical-phone evidence. Q-028 remains
+deferred and unpassed. The old icon PNG masters remain available in Git history.
+
+At this checkpoint the follow-up is **not yet pushed or deployed**. Next:
+
+1. Commit the named follow-up files on `master`, then push normally to the
+   authorised GitHub remote. Never import localhost evaluation data.
+2. Wait for the Pages workflow, then verify exact asset names, manifest icon
+   URLs and the unchanged catalogue checksum on the public URL. Confirm the
+   new icon and online lookup in a fresh public browser context.
+3. Record final release evidence here. The physical Android Q-028 latency and
+   TalkBack checks remain unpassed until measured on a real device.
+
+Exact local candidate preview:
+`http://127.0.0.1:4278/Ex-Libris/` (session 60316). The preview must stop before
+another build. A disposable first-run record exists only on the localhost
+browser origin. `npm run gate` starts its own test-mode preview and restores the
+ignored engineering fixture only inside that build; the normal release has no
+evaluation data.
 
 **Live:** https://qusai-badwaniwala.github.io/Ex-Libris/
 Application release: `4fa9e934eb75698f8eeaa3284cd0c0049a8ce548`.

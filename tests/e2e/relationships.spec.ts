@@ -98,6 +98,21 @@ test('medium and low confidence offers are explicit and rejection writes nothing
   await expect(page.getByText('Late Entry (The Verdigris Cyce #4)')).toHaveCount(0);
 });
 
+test('a series suggestion remains available when a work is reopened', async ({ page }) => {
+  await addByHand(page, 'The Return (Archive Cycle #2)');
+  await expect(page.getByRole('button', { name: 'Group it' })).toBeVisible();
+  await page.getByRole('button', { name: 'Library', exact: true }).last().click();
+  await page.getByText('The Return (Archive Cycle #2)', { exact: true }).first().click();
+  await expect(page.getByRole('button', { name: 'Group it' })).toBeVisible();
+  await page.getByRole('button', { name: 'Group it' }).click();
+  await expect(page.getByRole('button', { name: 'View the series' })).toBeVisible();
+  await page.getByRole('button', { name: 'View the series' }).click();
+  await expect(page.getByRole('button', { name: 'Create world: Archive Cycle →' })).toBeVisible();
+  await page.getByRole('button', { name: 'Create world: Archive Cycle →' }).click();
+  await expect(page.getByText('Archive Cycle is now a world for this series.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Archive Cycle →' })).toBeVisible();
+});
+
 test('series orders can be created, renamed, reordered, deleted, and roll back on failure', async ({
   page,
 }) => {

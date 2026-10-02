@@ -632,7 +632,7 @@ test('Phase 3 online search only sends an explicit lookup and cancels stale resu
   const field = page.getByRole('searchbox', { name: 'Search the catalogue' });
   await field.fill('synthetic');
   expect(calls).toBe(0);
-  await page.getByRole('button', { name: 'Search MangaDex comics', exact: true }).click();
+  await page.getByRole('button', { name: 'Search MangaDex comics online', exact: true }).click();
   await expect(page.getByText('A synthetic comic')).toBeVisible();
   expect(calls).toBe(1);
   await expect(
@@ -643,6 +643,40 @@ test('Phase 3 online search only sends an explicit lookup and cancels stale resu
   expect(calls).toBe(1);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('a missing offline book can be found through an explicit Open Library search and added', async ({
+  page,
+}) => {
+  await openLibrary(page);
+  let calls = 0;
+  await page.route('https://openlibrary.org/search.json?*', async (route) => {
+    calls++;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        docs: [
+          {
+            key: '/works/OL987654W',
+            title: 'A Book Beyond the Index',
+            author_name: ['A. Reader'],
+            cover_i: 321,
+          },
+        ],
+      }),
+    });
+  });
+  await page.getByRole('button', { name: 'Add to the library' }).click();
+  await page.getByRole('button', { name: 'Search the catalogue' }).click();
+  await page.getByRole('searchbox', { name: 'Search the catalogue' }).fill('Beyond the Index');
+  expect(calls).toBe(0);
+  await page.getByRole('button', { name: 'Search Open Library books online' }).click();
+  await expect(page.getByText('A Book Beyond the Index')).toBeVisible();
+  expect(calls).toBe(1);
+  await page.getByRole('button', { name: 'Add A Book Beyond the Index' }).click();
+  await page.getByRole('radio', { name: 'Wishlist' }).click();
+  await page.getByRole('button', { name: 'Put it on the shelf' }).click();
+  await expect(page.getByRole('heading', { name: 'A Book Beyond the Index' })).toBeVisible();
 });
 
 test('Phase 3 connection notices distinguish offline from reconnecting', async ({

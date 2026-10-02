@@ -8,6 +8,7 @@ import type { ReadingOrderEntry, Work } from '../../db/schema';
 import { displayWork, STATUS_LABEL } from '../../db/derive';
 import { Cover, Segmented } from '../components';
 import { withInteractionFeedback } from '../interaction-feedback';
+import { startWorldForSeries } from '../../relationships/organise';
 
 export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'universe' }) {
   const graph = useLiveQuery(readRelationships, []);
@@ -15,6 +16,7 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
   const [orderId, setOrderId] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [worldMessage, setWorldMessage] = useState('');
   if (!graph)
     return (
       <main className="room-page">
@@ -40,6 +42,12 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
   const world =
     kind === 'series'
       ? graph.worldsById.get(graph.seriesById.get(id)?.universeId ?? '')
+      : undefined;
+  const matchingWorld =
+    kind === 'series' && !world
+      ? graph.worlds.find(
+          (candidate) => candidate.name.toLocaleLowerCase() === group.name.toLocaleLowerCase(),
+        )
       : undefined;
   const startingPoint =
     kind === 'universe' ? graph.worldsById.get(id)?.readingOrderNote : undefined;
@@ -179,6 +187,40 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
               {world.name} →
             </button>
           )}
+          {kind === 'series' && !world && (
+            <div className="room-world-offer">
+              <p>
+                If this series belongs to a wider continuity, you can{' '}
+                {matchingWorld ? 'join the matching world' : 'start a world using its name'}. This
+                is your choice, not a verified catalogue relationship.
+              </p>
+              <button
+                className="room-text"
+                disabled={!!busy}
+                onClick={() => {
+                  setBusy('world');
+                  setError('');
+                  void withInteractionFeedback('Starting the world…', () =>
+                    startWorldForSeries(id, graph.revision),
+                  )
+                    .then((created) =>
+                      setWorldMessage(`${created.name} is now a world for this series.`),
+                    )
+                    .catch((cause: unknown) =>
+                      setError(
+                        cause instanceof Error ? cause.message : 'The world could not be saved.',
+                      ),
+                    )
+                    .finally(() => setBusy(''));
+                }}
+              >
+                {busy === 'world'
+                  ? 'Saving…'
+                  : `${matchingWorld ? 'Join world' : 'Create world'}: ${group.name} →`}
+              </button>
+            </div>
+          )}
+          {worldMessage && <p role="status">{worldMessage}</p>}
           <p>
             {owned.length} in your library ·{' '}
             {owned.filter((work) => work.status === 'finished').length} finished

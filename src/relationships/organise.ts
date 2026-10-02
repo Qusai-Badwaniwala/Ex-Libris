@@ -1,6 +1,6 @@
 import { db } from '../db/db';
 import * as repo from '../db/repo';
-import { nowIso } from '../db/keys';
+import { nowIso, sortTitleOf } from '../db/keys';
 import { organisationRevision } from './library';
 
 export interface GroupEdit {
@@ -104,6 +104,22 @@ export async function organiseWork(
       seriesPosition: series ? input.position : undefined,
     });
     if (!series) await repo.setUniverse(id, world?.id);
+  });
+}
+
+/** An explicit one-tap start for a world; a series name is a proposal, not source evidence. */
+export async function startWorldForSeries(seriesId: string, expectedOrganisation: string) {
+  return db.transaction('rw', db.work, db.series, db.universe, async () => {
+    await assertOrganisation(expectedOrganisation);
+    const series = await db.series.get(seriesId);
+    if (!series) throw new Error('This series no longer exists.');
+    if (series.universeId) throw new Error('This series already belongs to a world.');
+    const world =
+      (await db.universe.toArray()).find(
+        (candidate) => sortTitleOf(candidate.name) === sortTitleOf(series.name),
+      ) ?? (await repo.universeByName(series.name));
+    await repo.linkSeriesToUniverse(seriesId, world.id);
+    return world;
   });
 }
 

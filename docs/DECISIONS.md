@@ -902,3 +902,30 @@ also requested reachable onboarding controls and unmistakable selected choices:
 the tour card is viewport-bounded with a fixed action row, and segmented choices
 use the active theme accent plus a non-colour checkmark and arrow-key operation.
 No other light-theme reinterpretation is authorised or needed.
+
+## Reading Room follow-up · 2026-10-02
+
+**E-112 · Replace the launcher seal with a folio mark.** The owner reported
+that the supplied reader-circle icon appeared too small on Android and asked
+for a new mark. A full-bleed dark field and large cream book beneath an arch
+replace it; the red fold connects the icon to the Reading Room light accent.
+Separate vector masters generate ordinary and maskable PNGs with the same
+manifest paths. The old raster masters are retained in Git history, but removed
+from `public/` so the deployed site contains no unused masters. The toolbar's old
+letter seal uses the same folio form.
+
+**E-113 · Broaden lookup through an explicit online Open Library action.**
+Keep the bounded 438,584-work index as the offline source. A reader-triggered,
+ten-result Open Library Search API request can find other published books; it
+does not download a bulk corpus, run in the background, infer series or edition
+details, or replace manual entry. MangaDex remains the separate comics lookup.
+The reader reviews shelf and status before saving a chosen work. This does not
+solve unlicensed web-novel metadata coverage.
+
+**E-114 · Make supported relationship actions easy to find.** Show conservative
+catalogue/title-pattern series offers whenever an ungrouped work is opened,
+not only directly after adding it. One explicit tap creates or joins the
+suggested series. A series with no world offers one tap to create or join a
+same-named world; the interface says this name is the reader's choice, not
+verified catalogue evidence. These writes remain transactional and preserve
+work IDs and data. The production corpus still has no verified world rows.

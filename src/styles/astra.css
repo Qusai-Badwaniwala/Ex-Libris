@@ -91,10 +91,19 @@ small {
   place-items: center;
   background: var(--accent);
   color: var(--on-accent);
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 22px;
   border-radius: 2px 2px 10px 2px;
+}
+.room-world-offer {
+  max-width: 36rem;
+  margin-top: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: var(--hairline-width) solid var(--hairline);
+}
+.room-world-offer p {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--size-caption);
+  line-height: var(--lh-caption);
 }
 .room-tools {
   display: flex;

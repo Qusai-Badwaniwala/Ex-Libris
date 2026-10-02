@@ -550,3 +550,19 @@ then `npm run pages:corpus:assemble` checks every committed part, reconstructs
 SHA-256 match. The manifest is copied only after successful assembly. The
 engineering fixture remains under ignored `pipeline/.cache` and is neither an
 input nor a fallback for this workflow.
+
+---
+
+## Reader-initiated Open Library search · 2026-10-02
+
+The owner found the bounded offline index too limited. The app now offers one
+explicit ten-result request to Open Library's [Search API](https://openlibrary.org/dev/docs/api/search),
+asking only for work key, title, author names, cover ID and first publication
+year. [Open Library's API guidelines](https://openlibrary.org/developers/api)
+distinguish useful human lookup from bulk harvest or use as a high-traffic
+backend. No background request or mass download was added. The result is a
+lead for reader review; it does not claim book-vs-adaptation certainty beyond
+the chosen shelf and has no verified series/world evidence. The existing
+on-demand MangaDex connector remains comics-only. The licensed offline corpus,
+its 438,584 count and checksum are unchanged. Pure web-serial coverage remains
+limited by the lack of a compatible source, as documented above.

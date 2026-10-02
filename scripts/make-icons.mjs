@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Rasterises the approved logo masters into the three PNGs the manifest names.
+ * Rasterises the Reading Room vector mark into the PNGs the manifest names.
  *
  * Uses the Chromium that Playwright already installs rather than adding an
  * image library for a job that runs by hand a handful of times a year.
@@ -21,9 +21,9 @@ const outDir = join(ROOT, 'public/icons');
 mkdirSync(outDir, { recursive: true });
 
 const TARGETS = [
-  { file: 'icon-192.png', source: 'icon-master.png', size: 192 },
-  { file: 'icon-512.png', source: 'icon-master.png', size: 512 },
-  { file: 'icon-maskable-512.png', source: 'icon-maskable-master.png', size: 512 },
+  { file: 'icon-192.png', source: 'reading-room-icon.svg', size: 192 },
+  { file: 'icon-512.png', source: 'reading-room-icon.svg', size: 512 },
+  { file: 'icon-maskable-512.png', source: 'reading-room-maskable.svg', size: 512 },
 ];
 
 const browser = await chromium.launch();
@@ -38,7 +38,7 @@ try {
       `<!doctype html><style>
          html,body{margin:0;width:${size}px;height:${size}px;overflow:hidden}
          img{display:block;width:${size}px;height:${size}px;object-fit:cover}
-       </style><img src="data:image/png;base64,${image}" alt="">`,
+       </style><img src="data:image/svg+xml;base64,${image}" alt="">`,
     );
     const shot = await page.screenshot({ omitBackground: false });
     writeFileSync(join(outDir, file), shot);

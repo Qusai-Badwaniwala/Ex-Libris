@@ -5,6 +5,7 @@ import { nav } from '../router/router';
 import { catalogue } from '../catalogue/client';
 import { openInstalledCatalogue } from '../catalogue/install';
 import { searchMangaDex } from '../catalogue/mangadex';
+import { searchOpenLibrary } from '../catalogue/openlibrary-live';
 import type { CorpusMatch } from '../catalogue/types';
 import { Cover, Sheet } from './components';
 import { SearchField } from './search-field';
@@ -26,7 +27,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
   const [message, setMessage] = useState('');
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [onlineResults, setOnlineResults] = useState(false);
+  const [onlineResults, setOnlineResults] = useState<'books' | 'comics' | null>(null);
   const generation = useRef(0);
   const onlineRequest = useRef<AbortController | null>(null);
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
@@ -63,7 +64,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     const request = ++counter.current;
     onlineRequest.current?.abort();
     setMatches([]);
-    setOnlineResults(false);
+    setOnlineResults(null);
     setBusy(false);
     if (!ready || query.trim().length < 3) return;
     setBusy(true);
@@ -97,7 +98,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     };
   }, []);
 
-  async function searchOnline() {
+  async function searchOnline(source: 'books' | 'comics') {
     const request = ++generation.current;
     onlineRequest.current?.abort();
     const controller = new AbortController();
@@ -105,12 +106,14 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     setMatches([]);
     setBusy(true);
     setMessage('');
-    setOnlineResults(true);
+    setOnlineResults(source);
     try {
       if (!navigator.onLine)
         throw new Error('You are offline. Your library and downloaded index still work.');
       const results = await withInteractionFeedback('Searching online…', () =>
-        searchMangaDex(query, controller.signal),
+        source === 'books'
+          ? searchOpenLibrary(query, controller.signal)
+          : searchMangaDex(query, controller.signal),
       );
       if (generation.current === request) setMatches(results);
     } catch (error) {
@@ -126,6 +129,23 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
       <div>
         <h1 style={{ ...label, fontWeight: 400, margin: '0 0 8px' }}>The catalogue</h1>
         <SearchField catalogue value={query} onChange={setQuery} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <span style={label}>Broaden this search</span>
+        <button
+          disabled={busy || query.trim().length < 3}
+          onClick={() => void searchOnline('books')}
+          style={quietButton}
+        >
+          Search Open Library books online
+        </button>
+        <button
+          disabled={busy || query.trim().length < 3}
+          onClick={() => void searchOnline('comics')}
+          style={quietButton}
+        >
+          Search MangaDex comics online
+        </button>
       </div>
       <div aria-live="polite" aria-busy={busy}>
         {busy && <p className="exl-sr">Search in progress.</p>}
@@ -229,28 +249,38 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
         })}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button
-          disabled={busy || query.trim().length < 3}
-          onClick={() => void searchOnline()}
-          style={quietButton}
-        >
-          Search MangaDex comics
-        </button>
-        <a
-          href="https://mangadex.org"
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            ...label,
-            color: 'var(--text-secondary)',
-            textDecoration: 'underline',
-            textUnderlineOffset: 3,
-          }}
-        >
-          Online manga results from MangaDex.
-        </a>
-        {onlineResults && (
+        {onlineResults === 'books' && (
+          <a
+            href="https://openlibrary.org"
+            target="_blank"
+            rel="noreferrer"
+            style={{ ...label, color: 'var(--text-secondary)', textDecoration: 'underline' }}
+          >
+            Online book results from Open Library.
+          </a>
+        )}
+        {onlineResults === 'comics' && (
+          <a
+            href="https://mangadex.org"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              ...label,
+              color: 'var(--text-secondary)',
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            Online manga results from MangaDex.
+          </a>
+        )}
+        {onlineResults === 'comics' && (
           <span style={label}>These are comics, not the novels they may adapt.</span>
+        )}
+        {onlineResults === 'books' && (
+          <span style={label}>
+            Online book results may not have series information. Review the shelf before adding.
+          </span>
         )}
         <button onClick={() => nav.closeAndPush({ screen: 'corpus' })} style={quietButton}>
           {settings?.corpusVersion ? 'Manage the downloaded index' : 'Download the index'}
