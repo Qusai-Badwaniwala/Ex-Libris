@@ -48,7 +48,7 @@ export function RoomToolbar({
         aria-label="Ex Libris, library"
       >
         <span className="room-seal" aria-hidden="true">
-          <img src={`${import.meta.env.BASE_URL}icons/reading-room-icon.svg`} alt="" />
+          <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />
         </span>
         <span>
           Ex Libris<small>A private reading room</small>

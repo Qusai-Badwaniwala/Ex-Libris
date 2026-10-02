@@ -1,13 +1,50 @@
-# Ex Libris — Reading Room live; EX identity revision
+# Ex Libris — Reading Room live; owner-supplied quill identity
 
-Updated 2026-10-02. Production checkout: `H:\Ex libris Project\Website`,
+Updated 2026-10-03. Production checkout: `H:\Ex libris Project\Website`,
 branch `master`; isolated implementation remains in `../Astra-Redesign`, branch
 `astra/frontend-redesign`. The owner explicitly authorised commit, push
 and GitHub Pages publication (E-111), including fixing the stuck onboarding tour
 and subtle Add by hand selection. This supersedes earlier no-publication notes.
 No prescriptive design skills. Preserve deployed data only; never import samples.
 
-## EX identity revision · 2026-10-02
+## Owner-supplied icon · 2026-10-02
+
+The owner selected a new 1254px image after the geometric EX release. Its exact
+bytes are preserved at `assets/brand/ex-libris-quill-source.png` (SHA-256
+`377e007a4d9a21912a0d36b16b394b9f69e820ad431926cb0d01603f439b973b`).
+The source shows a blue-grey X, vermilion quill, paper square and EX LIBRIS
+lettering. The existing icon script now derives the unchanged manifest PNG
+filenames from this image: ordinary icons trim only outer black margin and the
+maskable version leaves room for the Android safe crop. Toolbar and startup use
+the 192px icon, now included in the offline precache. Superseded runtime SVG
+masters are removed. App themes, data and functionality are unchanged.
+
+The generated 192px ordinary and 512px maskable icons were visually inspected,
+as was the local 390px toolbar in both themes. The complete `npm run gate`
+passed: formatting, lint, strict types, frozen-source checks, 220 unit tests,
+60 browser journeys and normal build. The exact `/Ex-Libris/` build uses
+`index-BerBxkZz.js`, preserves the manifest scope/share/installation identity,
+and assembled the full 273,784,832-byte production catalogue. The 192px and
+maskable PNGs in `dist/` match the reviewed sources; the 192px SHA-256 is
+`188f8e9188a9460e5cbd45d707c69350c6eac6b4b11d2481d34c43bace352b70`.
+The 192px header image is in the offline precache and the original 1254px
+source is excluded from the shipped build. The exact build was opened at
+390x844, its local waiting worker activated, and the icon inspected in both
+themes. The final maskable export keeps the feather and pen within the safe
+circle while filling more of the launcher; its SHA-256 is
+`5c27706015cf3a220751c13aa4e7d4a49a67375e2488079bad9fd796a96a52c5`.
+This is browser evidence, not a physical Android launcher check. The full gate
+passed again after that maskable refinement, and the final Pages-path build
+reassembled the verified production catalogue.
+
+Publication remains pending. Next: commit named files, push normally under
+E-111, verify the Pages workflow, public JS and public icon hash, then record
+the result here. Exact candidate preview:
+`http://127.0.0.1:4278/Ex-Libris/` (session 51524); stop it before building.
+
+The previous completed release follows.
+
+## Previous EX identity revision · 2026-10-02
 
 The owner rejected the folio launcher and asked for a large, minimally artistic
 `EX` with both light and dark accent colours. The release uses a custom

@@ -83,7 +83,7 @@ export default defineConfig(({ mode, command }) => ({
       // would otherwise try to hold hundreds of megabytes in the Cache Storage
       // API alongside the copy already in OPFS.
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2,wasm}'],
+        globPatterns: ['**/*.{js,css,html,svg,woff2,wasm}', 'icons/icon-192.png'],
         globIgnores: ['**/corpus/**'],
         navigateFallbackDenylist: [new RegExp(`^${escapedBasePath}corpus/`)],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,

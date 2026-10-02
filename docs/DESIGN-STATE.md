@@ -2,6 +2,14 @@
 
 ## Reading Room adoption · 2026-09-20
 
+**Owner artwork, 2026-10-02.** The owner replaced the geometric EX with the
+supplied paper-square illustration: a blue-grey `X`, vermilion quill, and
+`EX LIBRIS` lettering. The exact 1254px original is retained as the icon source.
+Ordinary launcher exports trim only the outer black margin so the paper square
+reads at phone size; the maskable export keeps the artwork inside Android's
+safe crop. The 40px toolbar and startup use the same icon, without recolouring
+the owner's image or changing either app theme.
+
 **Logo revision, 2026-10-02.** The owner rejected the folio mark. A custom,
 large `EX` monogram now uses vermilion-orange for the `E` and the dark theme's
 blue-grey for the `X` on a near-black field. The two letterforms fill the

@@ -1505,3 +1505,27 @@ public HTML served the reviewed `index-pwWpQDW9.js`, and the public 192px icon
 SHA-256 matched local. Activating the live waiting worker revealed the EX mark
 while preserving the existing two browser-origin records. The installed Android
 launcher itself was not inspected.
+
+## 2026-10-02 — Owner-supplied quill identity
+
+The owner supplied and selected a new image after reviewing the geometric EX.
+Copied its 1254px original byte-for-byte into `assets/brand/`, then changed the
+existing icon script to export cropped ordinary and safe-zone maskable PNGs.
+The same icon now appears in toolbar/startup; its 192px file is explicitly
+precached so the toolbar works offline. Removed the superseded SVG masters.
+Visually inspected the generated 192px and 512px maskable files and the local
+390px header in light and dark. Build, release and physical-launcher evidence
+belong in HANDOFF.
+
+The final full gate passed (220 unit tests, 60 browser journeys). The exact
+Pages-path build was inspected at 390x844 in both themes, with the locally
+waiting worker activated. Manifest scope, catalogue checksum and icon paths
+were preserved; the generated PNGs match their build copies. The 192px header
+image is precached and the original master stays outside the shipped output.
+Public deployment remains to be verified.
+
+The first maskable export left more black surround than necessary. Adjusted only
+that export's scale and centre, keeping the pen tip and feather tip within the
+Android safe circle. Inspected the revised 512px file, reran the complete gate
+(220 unit, 60 browser journeys), rebuilt at `/Ex-Libris/`, reassembled the
+verified 273,784,832-byte catalogue, and checked the final 390px local app.

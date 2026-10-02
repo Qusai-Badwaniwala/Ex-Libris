@@ -937,3 +937,11 @@ vermilion-orange `E` and blue-grey `X` on near-black, at generous scale for the
 ordinary launcher, with a separately scaled maskable master. The same mark
 appears in the toolbar and transient startup. Keep icon paths and installation
 identity stable; leave screen themes unchanged.
+
+**E-116 · Use the owner's X-and-quill artwork (2026-10-02).** The owner supplied
+and selected the 1254px paper-square image, superseding E-115's geometric mark.
+Preserve the source bytes in `assets/brand/`; generate ordinary icons with only
+the outer black margin trimmed and a separately scaled Android maskable icon.
+The same image appears in the toolbar and startup. Keep manifest filenames,
+scope, app name, user data and both screen palettes unchanged. No generated
+reinterpretation of the artwork is needed.
