@@ -1536,3 +1536,26 @@ reviewed `index-BerBxkZz.js`; public ordinary and maskable icon SHA-256 values
 matched local. The live browser activated the waiting worker, loaded the quill
 toolbar icon and retained its two pre-existing records. Physical Android
 launcher appearance remains unverified.
+
+## 2026-10-03 — Current-documentation reconciliation
+
+The owner requested a quick check of documentation currency. Confirmed clean
+`master` aligned with `origin/master`, application commit `9ad1246`, successful
+Pages runs 37048612948 / 37049057760, and the live site's current JS/CSS names.
+Corrected README's obsolete Spines/font references, updated adoption/release
+status and schema version wording, and labelled superseded logo/phase/brief
+instructions as historical. Rewrote the canonical handoff around one current
+release and next-action list; older release evidence remains in this chronology
+and Git history. The workspace AGENTS checkpoint now points to the adopted
+design and the owner's no-prescriptive-skills instruction.
+
+Port 4278's old preview did not respond; documentation no longer claims it is
+running. No application code, data contract or reader data changed. The earlier
+220-unit / 60-browser gate remains the application evidence; this session checks
+documentation formatting and diff integrity only. Physical Android latency,
+TalkBack and launcher appearance remain unverified, and tooling advisories and
+re-read history remain deferred.
+
+Prettier checks passed for all changed documentation, including the workspace
+guide; `git diff --check` passed. No application tests or build were rerun for
+this documentation-only change.

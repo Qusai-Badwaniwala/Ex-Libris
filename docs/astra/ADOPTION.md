@@ -1,8 +1,8 @@
 # Reading Room adoption
 
 The owner approved the complete adoption on 2026-09-20 and authorised commit,
-push and publication on 2026-09-21 (E-111). Work is prepared in
-`astra/frontend-redesign`; release uses the existing master/Pages workflow.
+push and publication on 2026-09-21 (E-111). The implementation was adopted from
+`astra/frontend-redesign` into `master` and is publicly released through the existing Pages workflow.
 Exact verification and publication status is in `../HANDOFF.md`.
 Only deployed-app data is retained. Localhost samples never enter release.
 No prescriptive design skills were used.
@@ -58,7 +58,8 @@ capped pixel density and change-driven rendering. GPU failure retains the same
 accessible DOM shelf controls in two dimensions.
 
 Production keeps Ex Libris' original origin, project path, manifest identity,
-icons and share target. Evaluation seeding and engineering bridges exist only
+icon paths and share target. The current artwork is the owner's X-and-quill
+image (E-116), replacing earlier logo experiments. Evaluation seeding and engineering bridges exist only
 in the explicit test build and are excluded from normal output. No cloud,
 account, telemetry, paid dependency or remote migration is introduced.
 

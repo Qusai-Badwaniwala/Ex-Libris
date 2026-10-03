@@ -1,5 +1,10 @@
 # Astra experiment record
 
+**Historical prototype chronology.** Later adoption, release and follow-up
+work is recorded in `../progress.md`. Current behavior, publication authority,
+URLs and unresolved checks are in `../HANDOFF.md`; statements below about an
+unadopted design, sample launcher or no deployment describe that earlier period.
+
 ## 2026-09-14 to 2026-09-19
 
 Owner approved a complete isolated alternate frontend after the initial design

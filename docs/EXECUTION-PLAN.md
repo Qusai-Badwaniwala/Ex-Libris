@@ -7,6 +7,8 @@ data/PWA hardening. Complete the candidate without arbitrary phase approval
 stops. On 2026-09-21 the owner authorised commit, push and publication of the
 verified usable app (E-111). [Active record](astra/ADOPTION.md).
 
+## Historical approved sequence
+
 Approved by the owner on 2026-09-06. This is the durable Phase 3–10 sequence.
 It evolves the current PWA; it is not permission to rebuild or reinterpret the
 approved Claude Design. `HANDOFF.md` records live status, `DECISIONS.md` records

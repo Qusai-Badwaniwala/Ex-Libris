@@ -12,11 +12,11 @@ Ex Libris is the reading tracker I wanted for my own shelf: private, quiet, and 
 
 - Keeps a local library, wishlist, reading progress, finish dates, and personal notes.
 - Handles books, web novels, and manhwa without pretending their metadata is equally complete.
-- Tracks series, universes, and more than one named reading order.
+- Tracks series, worlds, and more than one named reading order, with confirmation-based grouping suggestions.
 - Lets you attach notes and tags to several works, pin notes, and recover deleted items from Trash.
-- Builds honest reading stats and an optional spine view from the library you actually keep.
+- Builds honest reading stats and an optional Codex bookcase from the library you actually keep.
 - Exports and restores a complete ZIP backup, including covers you added yourself.
-- Offers an offline catalogue built from reusable Open Library and Wikidata data, while keeping manual entry available at all times.
+- Offers an optional 438,584-work offline catalogue built from reusable Open Library and Wikidata data, plus explicit online Open Library book and MangaDex comic lookups. Manual entry remains available at all times.
 
 ## Installing it
 
@@ -49,4 +49,6 @@ It runs formatting, linting, strict TypeScript, frozen-design checks, unit tests
 
 ## Acknowledgements
 
-The offline catalogue is built from Open Library bulk metadata and Wikidata. The illustrations are adapted from Storyset artwork supplied for this project. Sansita, Montserrat Alternates, and Taviraj are self-hosted through Fontsource.
+The offline catalogue is built from Open Library bulk metadata and Wikidata. The illustrations are adapted from Storyset artwork supplied for this project. Literata and Source Sans 3 are self-hosted through Fontsource. The current app icon uses the owner's supplied X-and-quill artwork.
+
+Current release evidence and remaining device checks are in [the handoff](docs/HANDOFF.md); [upgrade and rollback instructions](docs/astra/RELEASE.md) explain how to preserve on-device data. The immutable `design/` package records the original design; [DESIGN-STATE.md](docs/DESIGN-STATE.md) records the adopted Reading Room.

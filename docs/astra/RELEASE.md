@@ -1,14 +1,19 @@
 # Reading Room release
 
-Prepared on `astra/frontend-redesign`. The owner authorised commit, push and
+Implemented on `astra/frontend-redesign` and adopted into `master`. The owner authorised commit, push and
 GitHub Pages publication on 2026-09-21. See the canonical HANDOFF for the exact
 release commit, verification and deployment status. No localhost sample data
 is transferred to the deployed reader's library.
 
-Published 2026-10-02: application commit `4fa9e93`, successful Pages run
-[36963081036](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/36963081036).
-The public app's main JS/CSS match the locally reviewed build. A real cached-old
-to new-worker browser upgrade preserved its existing two records and onboarding.
+Latest application release, 2026-10-02: owner-supplied X-and-quill icon,
+commit `9ad1246`, successful Pages run
+[37048612948](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37048612948).
+On 2026-10-03 the public assets still match the reviewed build:
+`index-BerBxkZz.js` and `index-BEaYUs7W.css`. The final application gate passed
+220 unit tests and 60 browser journeys. The browser's waiting-worker upgrade
+preserved its two existing records; physical Android launcher appearance remains
+unverified. The original adoption release was `4fa9e93`; intervening release
+history is retained in `../progress.md`.
 
 ## Switch boundary
 
@@ -18,7 +23,7 @@ before upgrading; this release does not remotely read or back up phone data.
 Keep exports outside browser storage and verify them through restore preview
 on a disposable origin. Never export/import
 localhost sample data into production. Preserve the original origin, `/Ex-Libris/`
-base path, scope, start URL, launcher icons and share target.
+base path, scope, start URL, launcher icon paths and share target.
 
 Deploy only the normal build, never `--mode test`: test builds contain the
 explicit evaluation screen and engineering catalogue fixture. Normal builds

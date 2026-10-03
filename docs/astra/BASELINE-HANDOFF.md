@@ -1,5 +1,9 @@
 # Ex Libris handoff
 
+**Historical baseline snapshot.** Preserved for comparison with the adopted
+Reading Room. Current release state and next actions are in `../HANDOFF.md`;
+the ports, checkpoints and design instructions below are historical evidence.
+
 **Last updated:** 2026-09-13
 
 **Repository:** `H:\Ex libris Project\Website`

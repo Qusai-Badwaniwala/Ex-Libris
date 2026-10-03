@@ -10,18 +10,11 @@ reads at phone size; the maskable export keeps the artwork inside Android's
 safe crop. The 40px toolbar and startup use the same icon, without recolouring
 the owner's image or changing either app theme.
 
-**Logo revision, 2026-10-02.** The owner rejected the folio mark. A custom,
-large `EX` monogram now uses vermilion-orange for the `E` and the dark theme's
-blue-grey for the `X` on a near-black field. The two letterforms fill the
-ordinary launcher square; a separate maskable master scales the same mark only
-enough to protect it from Android cropping. The toolbar and transient startup
-use the same vector. Neither app theme's screen palette or composition changed.
+**Earlier logo revisions (historical), 2026-10-02.** The folio-under-arch mark
+(E-112) was replaced by a two-colour geometric EX (E-115), then by the owner's
+X-and-quill artwork (E-116) above. Neither earlier mark is the current app logo.
 
-**Follow-up, 2026-10-02.** The launcher and toolbar use one readable folio-under-arch
-mark instead of the small reader-circle launcher and letter seal. Dark ink,
-cream pages and a restrained vermilion fold remain legible when the platform
-masks the icon. The full-bleed background belongs to the icon, not the app
-screen. Catalogue search now places explicit online book/comic choices next to
+**Retained functional follow-up, 2026-10-02.** Catalogue search places explicit online book/comic choices next to
 the query, before long result lists. Work records keep their series suggestion
 when reopened; series pages offer a clearly reader-authored one-tap world.
 The approved light layout and both runtime theme palettes remain unchanged.
@@ -65,7 +58,7 @@ See [adoption](astra/ADOPTION.md), [release boundary](astra/RELEASE.md) and
 Updated 2026-09-08. This mutable document records approved production evolution.
 The visual source of truth in `../design/` is immutable and must not be edited.
 
-## Foundation
+### Historical foundation
 
 - Claude Design owns the product identity: onboarding, constellation, dark
   blue-grey palette, drawer, FAB bloom, sheets, Wishlist/Surprise Me, Trash,
@@ -80,7 +73,7 @@ The visual source of truth in `../design/` is immutable and must not be edited.
   intentional. No gradients, ornamental dashboard treatment, ambient motion, or
   generic loading chrome.
 
-## Approved production differences from the immutable prototype
+### Historical approved production differences from the immutable prototype
 
 - Spotlight onboarding runs over the real Home screen after Welcome/Bookplate.
 - Home Continue is a neutral cover-led whole-record target; the constellation

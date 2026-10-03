@@ -1,6 +1,8 @@
 # SCHEMA.md — the live data contract
 
-**Version 2 · 2026-09-07**
+**Current storage: Dexie version 3; JSON backup schema 2.** The original
+version-2 contract (2026-09-07) is retained below, with the append-only adoption
+changes recorded first.
 
 ## Adoption contract · 2026-09-20
 

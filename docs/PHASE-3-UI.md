@@ -1,5 +1,9 @@
 # Phase 3 UI implementation brief
 
+**Historical completed-phase brief.** Catalogue behavior remains relevant,
+but its visual instructions were superseded by the adopted Reading Room.
+Use `DESIGN-STATE.md` and `HANDOFF.md` for current design and release status.
+
 ## Direction contract
 
 THESIS: Operate. Find an owned work locally or deliberately acquire a new one;

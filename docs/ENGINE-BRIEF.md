@@ -1,5 +1,12 @@
 # Ex Libris — Engine Brief
 
+**Historical engineering brief.** This is the original project charter, not
+the current release checklist. Later settled decisions in `DECISIONS.md`, the
+live data contract in `SCHEMA.md`, adopted design in `DESIGN-STATE.md`, and
+current state in `HANDOFF.md` supersede conflicting instructions below.
+Phases 0–10 and the Reading Room adoption are already implemented and released;
+do not restart their initial questions or tooling setup.
+
 ### For Claude Code
 
 **Version 1.0 · Owner: the engine. Companion document: `EX-LIBRIS-DESIGN-BRIEF.md` (owned by Claude Design).**
