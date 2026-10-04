@@ -52,6 +52,53 @@ async function series(id: string, totalEntriesKnown?: number): Promise<Series> {
 }
 
 describe('Phase 9 statistics', () => {
+  it('separates current local-year pages and chapters without changing lifetime chapters', async () => {
+    const chapter = await work('Serial');
+    const page = await work('Book', { format: 'book' });
+    await db.readingSession.bulkPut([
+      {
+        id: 'old',
+        workId: chapter.id,
+        from: 0,
+        to: 30,
+        delta: 30,
+        unit: 'chapter',
+        at: atLocalNoon(2025),
+      },
+      {
+        id: 'now',
+        workId: chapter.id,
+        from: 30,
+        to: 42,
+        delta: 12,
+        unit: 'chapter',
+        at: atLocalNoon(2026),
+      },
+      {
+        id: 'pages',
+        workId: page.id,
+        from: 0,
+        to: 80,
+        delta: 80,
+        unit: 'page',
+        at: atLocalNoon(2026),
+      },
+      {
+        id: 'future',
+        workId: page.id,
+        from: 80,
+        to: 90,
+        delta: 10,
+        unit: 'page',
+        at: atLocalNoon(2027),
+      },
+    ]);
+    expect(await repo.libraryStats(NOW)).toMatchObject({
+      pagesThisYear: 80,
+      chaptersThisYear: 12,
+      chaptersRead: 42,
+    });
+  });
   it('keeps wishlist, trash, and page sessions out of library and chapter figures', async () => {
     const finished = await work('Finished', { genres: [0] });
     await finish(finished, 2026);

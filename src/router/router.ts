@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { flushSync } from 'react-dom';
+import { cancelNativeTransition, nativeTransition } from './transitions';
 import type { AxisKey } from '../axes/axes';
 
 /**
@@ -82,6 +82,9 @@ export interface Route {
   suggestRelationships?: boolean;
   /** Axis screen only: open directly at the word the reader selected. */
   axis?: AxisKey;
+  /** Backup steps own history while sharing the original flow's draft. */
+  step?: 'paste' | 'csv-map' | 'import-preview' | 'restore-preview';
+  flow?: Route;
 }
 
 export interface Overlay {
@@ -92,6 +95,10 @@ export interface Overlay {
   /** Manual-add title carried from a share target or catalogue search. */
   initialTitle?: string;
   candidate?: import('../catalogue/types').CorpusMatch;
+  /** Return to the exact acquisition query/results after candidate review. */
+  returnTo?: Overlay;
+  /** Seed a new note attached to the record that opened it. */
+  workId?: string;
 }
 
 export interface NavState {
@@ -102,12 +109,23 @@ export interface NavState {
 type Listener = () => void;
 
 const HOME: Route = { screen: 'home' };
+const tabRoutes = new Map<string, Route>();
 
 let state: NavState = { screens: [HOME], overlays: [] };
 const listeners = new Set<Listener>();
 
 // Presentation-only guard. The browser entry is restored when a draft remains open.
 const dismissGuards = new Map<OverlayKind, () => boolean>();
+type ScreenDismissGuard = (next?: Route, replay?: () => void) => boolean;
+const screenGuards = new WeakMap<Route, ScreenDismissGuard>();
+export function guardScreenDismiss(route: Route, guard: ScreenDismissGuard) {
+  screenGuards.set(route, guard);
+  return () => {
+    if (screenGuards.get(route) === guard) screenGuards.delete(route);
+  };
+}
+let presentation: 'forward' | 'back' | 'lateral' | 'native' = 'forward';
+export const navigationPresentation = () => presentation;
 export function guardOverlayDismiss(kind: OverlayKind, guard: () => boolean) {
   dismissGuards.set(kind, guard);
   return () => {
@@ -115,7 +133,15 @@ export function guardOverlayDismiss(kind: OverlayKind, guard: () => boolean) {
   };
 }
 
-function emit(next: NavState) {
+function emit(next: NavState, motion?: typeof presentation) {
+  presentation =
+    motion ??
+    (next.screens.length < state.screens.length
+      ? 'back'
+      : next.screens.length > state.screens.length
+        ? 'forward'
+        : 'lateral');
+  if (motion !== 'native') cancelNativeTransition();
   state = next;
   for (const l of listeners) l();
 }
@@ -132,84 +158,18 @@ const isAddSurface = (kind: OverlayKind | undefined) =>
  * outside this rare add-surface transition.
  */
 function emitAddTransition(next: NavState, closing = false) {
-  const start = (
-    document as Document & {
-      startViewTransition?: (update: () => void | Promise<void>) => {
-        ready: Promise<void>;
-        updateCallbackDone: Promise<void>;
-        finished: Promise<void>;
-      };
-    }
-  ).startViewTransition;
-  const prefersReducedMotion =
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!start || prefersReducedMotion) {
-    emit(next);
-    return;
-  }
-  if (closing) document.documentElement.dataset['closing'] = '';
-  const cleanup = () => {
-    delete document.documentElement.dataset['closing'];
-  };
-  let updated = false;
-  try {
-    const transition = start.call(document, () => {
-      updated = true;
-      flushSync(() => emit(next));
-    });
-    // A rapid second navigation can skip a transition. All three promises may
-    // reject in that normal path; allSettled consumes every outcome and keeps
-    // cleanup single-sourced (design MOTION §13).
-    void Promise.allSettled([
-      transition.ready,
-      transition.updateCallbackDone,
-      transition.finished,
-    ]).then(cleanup);
-  } catch {
-    // A browser may reject a second transition synchronously. The navigation
-    // still has to happen once, without leaving the closing speed override on.
-    cleanup();
-    if (!updated) emit(next);
-  }
+  nativeTransition('add', () => emit(next, 'native'), undefined, closing);
 }
 
 function emitCoverTransition(next: NavState, cover: HTMLElement) {
-  const start = (
-    document as Document & {
-      startViewTransition?: (update: () => void | Promise<void>) => {
-        ready: Promise<void>;
-        updateCallbackDone: Promise<void>;
-        finished: Promise<void>;
-      };
-    }
-  ).startViewTransition;
-  const prefersReducedMotion =
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!start || prefersReducedMotion) {
-    emit(next);
-    return;
-  }
   cover.style.viewTransitionName = 'work-cover';
-  const cleanup = () => {
-    cover.style.viewTransitionName = '';
-  };
-  let updated = false;
-  try {
-    const transition = start.call(document, () => {
-      updated = true;
-      flushSync(() => emit(next));
-    });
-    void Promise.allSettled([
-      transition.ready,
-      transition.updateCallbackDone,
-      transition.finished,
-    ]).then(cleanup);
-  } catch {
-    cleanup();
-    if (!updated) emit(next);
-  }
+  nativeTransition(
+    'cover',
+    () => emit(next, 'native'),
+    () => {
+      cover.style.viewTransitionName = '';
+    },
+  );
 }
 
 function subscribe(l: Listener) {
@@ -229,14 +189,46 @@ function pushHistory() {
 }
 
 export const nav = {
+  /** Preserve each destination's browsing place without persisting it as data. */
+  tab(screen: 'home' | 'wishlist' | 'notes' | 'stats') {
+    const current = [...state.screens]
+      .reverse()
+      .find((route) =>
+        ['home', 'everything', 'format', 'wishlist', 'notes', 'stats'].includes(route.screen),
+      );
+    if (current)
+      tabRoutes.set(
+        ['home', 'everything', 'format'].includes(current.screen) ? 'home' : current.screen,
+        current,
+      );
+    this.reset(tabRoutes.get(screen) ?? { screen });
+  },
   /** Drill down. Adds a history entry, so back returns here. */
   push(route: Route) {
+    cancelNativeTransition();
+    if (screenGuards.get(state.screens.at(-1)!)?.(route, () => this.push(route)) === false) return;
     pushHistory();
     emit({ screens: [...state.screens, route], overlays: [] });
   },
 
+  openWork(id: string, source?: HTMLElement) {
+    const owner =
+      source?.closest('[data-work]') ?? document.querySelector(`[data-work="${CSS.escape(id)}"]`);
+    const cover =
+      owner?.querySelector<HTMLElement>('[data-cover]') ??
+      document.querySelector<HTMLElement>(`[data-work="${CSS.escape(id)}"] [data-cover]`);
+    if (cover) this.pushWithCover({ screen: 'detail', id }, cover);
+    else this.push({ screen: 'detail', id });
+  },
+
   /** The source cover owns the shared name only for this one navigation. */
   pushWithCover(route: Route, cover: HTMLElement) {
+    cancelNativeTransition();
+    if (
+      screenGuards.get(state.screens.at(-1)!)?.(route, () => this.pushWithCover(route, cover)) ===
+      false
+    )
+      return;
     pushHistory();
     emitCoverTransition({ screens: [...state.screens, route], overlays: [] }, cover);
   },
@@ -248,17 +240,34 @@ export const nav = {
    * which also skips the cross-fade on these.
    */
   replace(route: Route) {
+    cancelNativeTransition();
+    if (screenGuards.get(state.screens.at(-1)!)?.(route, () => this.replace(route)) === false)
+      return;
     emit({ screens: [...state.screens.slice(0, -1), route], overlays: [] });
   },
 
   /** Clears the drill-down stack. Used by the drawer destinations (D-051). */
   reset(route: Route = HOME) {
+    cancelNativeTransition();
+    if (screenGuards.get(state.screens.at(-1)!)?.(route, () => this.reset(route)) === false) return;
+    if (
+      state.screens.length === 1 &&
+      !state.overlays.length &&
+      state.screens[0]?.screen === route.screen &&
+      state.screens[0]?.id === route.id &&
+      state.screens[0]?.format === route.format &&
+      state.screens[0]?.genre === route.genre
+    )
+      return;
     emit({ screens: [route], overlays: [] });
   },
 
   open(overlay: Overlay) {
+    cancelNativeTransition();
     pushHistory();
-    emit({ ...state, overlays: [...state.overlays, overlay] });
+    const next = { ...state, overlays: [...state.overlays, overlay] };
+    if (isAddSurface(overlay.kind)) emitAddTransition(next);
+    else emit(next);
   },
 
   /**
@@ -275,6 +284,7 @@ export const nav = {
    * than to the menu.
    */
   swap(overlay: Overlay) {
+    cancelNativeTransition();
     // Nothing to replace means this is an open, and it must take a history
     // entry like any other. Without this guard `[].slice(0, -1)` is still `[]`,
     // so the overlay appears with NO entry behind it — visible, and impossible
@@ -300,11 +310,19 @@ export const nav = {
    * reopen the sheet that created it.
    */
   closeAndPush(route: Route) {
+    cancelNativeTransition();
     if (state.overlays.length === 0) {
       this.push(route);
       return;
     }
-    emit({ screens: [...state.screens, route], overlays: state.overlays.slice(0, -1) });
+    const next = { screens: [...state.screens, route], overlays: state.overlays.slice(0, -1) };
+    if (screenGuards.get(state.screens.at(-1)!)?.(route, () => emit(next)) === false) {
+      // Release the menu's focus isolation so the underlying draft confirmation
+      // can receive input. Its existing history entry is still the destination.
+      emit({ ...state, overlays: next.overlays });
+      return;
+    }
+    emit(next);
   },
 
   /** Programmatic dismissal — the button, not the gesture. */
@@ -341,6 +359,7 @@ export function installHistory() {
   uninstall?.();
   history.replaceState({ exl: 1 }, '');
   const onPop = () => {
+    cancelNativeTransition();
     if (state.overlays.length > 0) {
       const kind = state.overlays.at(-1)!.kind;
       if (dismissGuards.get(kind)?.() === false) {
@@ -353,6 +372,10 @@ export function installHistory() {
       return;
     }
     if (state.screens.length > 1) {
+      if (screenGuards.get(state.screens.at(-1)!)?.(state.screens.at(-2)) === false) {
+        pushHistory();
+        return;
+      }
       emit({ screens: state.screens.slice(0, -1), overlays: [] });
       return;
     }
@@ -383,5 +406,6 @@ export function useTopOverlay(): Overlay | null {
 
 /** Test seam. Never called by the app. */
 export function __resetNav() {
+  tabRoutes.clear();
   state = { screens: [HOME], overlays: [] };
 }

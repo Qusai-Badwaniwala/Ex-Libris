@@ -42,7 +42,9 @@ test('Stats is a truthful live ledger with both approved illustrations and genre
   });
 
   await expect(page.getByRole('heading', { name: /so far/ })).toBeVisible();
-  await expect(page.getByText('502', { exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel("This year's reading figures").getByText('502', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('7', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('For Later')).toHaveCount(0);
   await expect(
@@ -156,8 +158,8 @@ test('empty Stats stays honest and obsolete spine routes open the index', async 
   await page.evaluate(() => window.__EXL_PHASE9_TEST__!.openStats());
   await expect(page.getByRole('heading', { name: /so far/ })).toBeVisible();
   const figures = page.getByLabel("This year's reading figures");
-  await expect(figures.getByText('0')).toHaveCount(2);
-  await expect(figures.getByText('1')).toHaveCount(1);
+  await expect(figures.getByText('0')).toHaveCount(3);
+  await expect(page.getByText('Years tracked').locator('..')).toContainText('1');
   await expect(
     page.getByText(
       'Genre counts appear when works have genres. You can add them on a work’s record.',

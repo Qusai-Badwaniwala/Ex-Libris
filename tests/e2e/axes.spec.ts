@@ -33,7 +33,7 @@ test('finishing offers the moment, seven optional axes, and explained local matc
   const fixture = await page.evaluate(() => window.__EXL_PHASE6_TEST__!.seed());
   await page.evaluate((id) => window.__EXL_PHASE6_TEST__!.openDetail(id), fixture.targetId);
 
-  await page.getByRole('button', { name: /Reading/ }).click();
+  await page.getByRole('button', { name: 'Reading', exact: true }).click();
   await page.getByRole('button', { name: /Finished/ }).click();
   await expect(page.getByRole('heading', { name: 'Finished' })).toBeVisible();
   await expect(page.getByText('The Night Archive', { exact: true })).toBeVisible();
@@ -84,6 +84,7 @@ test('the ending stays locked before Finished and a failed write keeps the draft
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const fixture = await page.evaluate(() => window.__EXL_PHASE6_TEST__!.seed());
   await page.evaluate((id) => window.__EXL_PHASE6_TEST__!.openDetail(id), fixture.targetId);
+  await page.getByRole('button', { name: 'Reading profile' }).click();
   await page.getByRole('button', { name: 'Edit Protagonist axis: Not set' }).click();
 
   const protagonist = page.getByRole('slider');
@@ -93,10 +94,10 @@ test('the ending stays locked before Finished and a failed write keeps the draft
   await expect(protagonist).toHaveAttribute('aria-valuetext', 'Ruthless');
   await protagonist.press('End');
   expect(
-    await page.locator('.exl-axis-word').evaluate((word) => getComputedStyle(word).animationName),
+    await page.getByRole('slider').evaluate((slider) => getComputedStyle(slider).animationName),
   ).toBe('none');
   await page.evaluate(() => window.__EXL_PHASE6_TEST__!.failNextAxisWrite());
-  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('could not be saved');
   await expect(
     page
@@ -104,15 +105,15 @@ test('the ending stays locked before Finished and a failed write keeps the draft
       .getByText('Monstrous', { exact: true })
       .first(),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Next' }).click();
-
-  for (let step = 0; step < 4; step += 1) {
-    await page.getByRole('button', { name: 'Next' }).click();
-  }
-  await expect(page.getByRole('dialog', { name: 'Ending axis' })).toBeVisible();
-  await expect(page.getByText('Finish it first')).toBeVisible();
-  await expect(page.getByRole('slider')).toHaveAttribute('aria-disabled', 'true');
-  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Edit Protagonist axis: Monstrous' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Edit Ending axis: After finishing' }),
+  ).toBeDisabled();
+  await page.getByRole('button', { name: 'Edit Translation axis: Not set' }).click();
   await expect(page.getByRole('dialog', { name: 'Translation axis' })).toBeVisible();
 });
 

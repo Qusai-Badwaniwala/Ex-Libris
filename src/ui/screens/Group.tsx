@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePresentationState } from '../../router/presentation';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { readRelationships, sequence } from '../../relationships/library';
 import { seriesCompletionFacts } from '../../relationships/completion';
@@ -9,14 +10,16 @@ import { displayWork, STATUS_LABEL } from '../../db/derive';
 import { Cover, Segmented } from '../components';
 import { withInteractionFeedback } from '../interaction-feedback';
 import { startWorldForSeries } from '../../relationships/organise';
+import { Arrive, Disclosure } from '../motion';
 
 export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'universe' }) {
   const graph = useLiveQuery(readRelationships, []);
-  const [view, setView] = useState<'members' | 'orders'>('members');
-  const [orderId, setOrderId] = useState('');
+  const [view, setView] = usePresentationState<'members' | 'orders'>('group-view', 'members');
+  const [orderId, setOrderId] = usePresentationState('group-order', '');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [worldMessage, setWorldMessage] = useState('');
+  const [missingOpen, setMissingOpen] = usePresentationState('missing-open', false);
   if (!graph)
     return (
       <main className="room-page">
@@ -37,6 +40,7 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
   const members = kind === 'series' ? graph.seriesWorks(id) : graph.worldWorks(id);
   const owned = members.filter((work) => work.status !== 'wishlist');
   const wished = members.filter((work) => work.status === 'wishlist');
+  const standaloneWished = wished.filter((work) => kind === 'series' || !work.seriesId);
   const childSeries =
     kind === 'universe' ? graph.series.filter((series) => series.universeId === id) : [];
   const world =
@@ -179,6 +183,7 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
             {kind === 'series' ? 'A series in your library' : 'A world in your library'}
           </p>
           <h1>{group.name}</h1>
+          {'description' in group && group.description && <p>{group.description}</p>}
           {world && (
             <button
               className="room-text"
@@ -295,7 +300,9 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
               })}
             </section>
           )}
-          <section aria-label="Series entries">
+          <section
+            aria-label={kind === 'series' ? 'Series entries' : 'Standalone works in this world'}
+          >
             {(kind === 'series' ? owned : owned.filter((work) => !work.seriesId))
               .sort(sequence)
               .map((work) => (
@@ -312,26 +319,30 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
               No works belong here yet. Use Organise to add entries from your library or Wishlist.
             </p>
           )}
-          {wished.length > 0 && (
+          {standaloneWished.length > 0 && (
             <section>
               <h2>On your Wishlist</h2>
-              {wished
-                .filter((work) => kind === 'series' || !work.seriesId)
-                .map((work) => (
-                  <GroupWork
-                    key={work.id}
-                    work={work}
-                    author={graph.authorLine(work)}
-                    ordinal={work.seriesPosition}
-                  />
-                ))}
+              {standaloneWished.map((work) => (
+                <GroupWork
+                  key={work.id}
+                  work={work}
+                  author={graph.authorLine(work)}
+                  ordinal={work.seriesPosition}
+                />
+              ))}
             </section>
           )}
           {knownMissing.length > 0 && (
-            <details>
-              <summary>Known entries outside your library · {knownMissing.length}</summary>
-              {knownMissing.map(renderEntry)}
-            </details>
+            <section>
+              <button
+                className="room-disclosure-toggle"
+                aria-expanded={missingOpen}
+                onClick={() => setMissingOpen(!missingOpen)}
+              >
+                Known entries outside your library · {knownMissing.length}
+              </button>
+              <Disclosure open={missingOpen}>{knownMissing.map(renderEntry)}</Disclosure>
+            </section>
           )}
         </>
       ) : (
@@ -365,7 +376,7 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
             <p>No named orders yet. Add one when you have a sequence you want to keep.</p>
           )}
           {order?.description && <p>{order.description}</p>}
-          {entries.map(renderEntry)}
+          <Arrive motionKey={orderId}>{entries.map(renderEntry)}</Arrive>
         </section>
       )}
       {error && (
@@ -383,7 +394,7 @@ export function GroupScreen({ id, kind }: { id: string; kind: 'series' | 'univer
 function GroupWork({ work, author, ordinal }: { work: Work; author: string; ordinal?: number }) {
   const d = displayWork(work, author);
   return (
-    <button className="room-group-row" onClick={() => nav.push({ screen: 'detail', id: work.id })}>
+    <button className="room-group-row" data-work={work.id} onClick={() => nav.openWork(work.id)}>
       <span className="room-group-number">{ordinal ?? '—'}</span>
       <Cover color={d.coverColor} ink={d.coverInk} path={work.coverPath} width={46} height={69} />
       <span className="room-group-record">

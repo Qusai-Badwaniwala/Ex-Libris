@@ -7,6 +7,7 @@ import { withInteractionFeedback } from './interaction-feedback';
 import { caption, displayS, label, resetButton } from './styles';
 import { organiseWork } from '../relationships/organise';
 import { membership, readRelationships } from '../relationships/library';
+import { DiscardDraft, useDraftGuard } from './draft-guard';
 
 export function RelationshipEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const data = useLiveQuery(async () => {
@@ -40,6 +41,15 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
   const [error, setError] = useState('');
   const [reviewing, setReviewing] = useState(false);
   const [organisation, setOrganisation] = useState('');
+  const guard = useDraftGuard(
+    initialized &&
+      !!data &&
+      (seriesName !== (data.series?.name ?? '') ||
+        position !== (data.work.seriesPosition?.toString() ?? '') ||
+        universeName !== (data.universe?.name ?? '')),
+    saving,
+    'seriesPicker',
+  );
   useEffect(() => setReviewing(false), [seriesName, position, universeName]);
 
   useEffect(() => {
@@ -51,6 +61,7 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
     setOrganisation(data.graph.revision);
   }, [data, initialized]);
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!data) return null;
   const validPosition =
     position.trim() === '' || (/^\d+(?:\.\d+)?$/.test(position) && Number(position) > 0);
@@ -68,6 +79,7 @@ export function RelationshipEditor({ id, onClose }: { id: string; onClose: () =>
           expectedOrganisation: organisation,
         });
       });
+      guard.allow();
       onClose();
     } catch (cause) {
       setError(

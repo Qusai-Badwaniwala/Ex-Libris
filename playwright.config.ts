@@ -37,11 +37,11 @@ export default defineConfig({
   webServer: {
     // Test mode is still Vite's optimized production build. Its only project
     // difference is that the distribution guard copies the explicitly marked
-    // local corpus fixture from pipeline/.cache into dist after the build, so
+    // authored corpus fixture from pipeline/.cache into dist after the build, so
     // the real worker/OPFS path can be exercised without touching the
     // production Open Library catalogue in public/corpus.
     command:
-      'npm run pipeline -- fixture-merge fixture-build && npm run build -- --mode test && npm run preview -- --port 4284 --strictPort',
+      'npm run fixture:catalogue && npm run build -- --mode test && npm run preview -- --port 4284 --strictPort',
     url: 'http://localhost:4284',
     // Reusing the owner's production preview would silently skip the test-mode
     // build and its test bridge. A busy port is therefore a loud failure.

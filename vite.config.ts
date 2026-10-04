@@ -4,6 +4,21 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+function buildIdentity() {
+  try {
+    const commit = execFileSync('git', ['rev-parse', '--short=8', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim();
+    const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=normal'], {
+      encoding: 'utf8',
+    }).trim();
+    return `${commit}${dirty ? '-local' : ''}`;
+  } catch {
+    return 'local';
+  }
+}
 
 const configuredBase = process.env.VITE_BASE_PATH || '/';
 const basePath = `/${configuredBase.replace(/^\/+|\/+$/g, '')}${configuredBase === '/' ? '' : '/'}`;
@@ -11,7 +26,7 @@ const escapedBasePath = basePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * The production Open Library/Wikidata corpus lives in `public/corpus`. The
- * AniList/MangaDex engineering fixture lives under pipeline/.cache and is
+ * Authored synthetic engineering fixture lives under pipeline/.cache and is
  * copied into `dist` only after an explicit test-mode build. Keeping the two
  * outputs physically separate prevents a routine Playwright run from
  * overwriting the distributable catalogue.
@@ -65,6 +80,7 @@ function corpusDistributionGuard(mode: string, command: string) {
 }
 
 export default defineConfig(({ mode, command }) => ({
+  define: { 'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildIdentity()) },
   base: basePath,
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
@@ -79,12 +95,13 @@ export default defineConfig(({ mode, command }) => ({
     react(),
     VitePWA({
       registerType: 'prompt',
+      injectRegister: false,
       // The corpus is downloaded at runtime into OPFS, never precached: Workbox
       // would otherwise try to hold hundreds of megabytes in the Cache Storage
       // API alongside the copy already in OPFS.
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,woff2,wasm}', 'icons/icon-192.png'],
-        globIgnores: ['**/corpus/**'],
+        globIgnores: ['**/corpus/**', 'illustrations/*.svg'],
         navigateFallbackDenylist: [new RegExp(`^${escapedBasePath}corpus/`)],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // Covers are fetched into unique OPFS files and become visible only

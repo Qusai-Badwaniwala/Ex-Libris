@@ -8,12 +8,14 @@ export function SearchField({
   catalogue = false,
   placeholder,
   ariaLabel,
+  autoFocus = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   catalogue?: boolean;
   placeholder?: string;
   ariaLabel?: string;
+  autoFocus?: boolean;
 }) {
   return (
     <div
@@ -32,6 +34,7 @@ export function SearchField({
     >
       <Search color="var(--text-secondary)" />
       <input
+        autoFocus={autoFocus}
         className="exl-search-input"
         type="search"
         aria-label={ariaLabel ?? (catalogue ? 'Search the catalogue' : 'Search your library')}

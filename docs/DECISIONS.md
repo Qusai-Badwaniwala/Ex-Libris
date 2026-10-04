@@ -945,3 +945,68 @@ the outer black margin trimmed and a separately scaled Android maskable icon.
 The same image appears in the toolbar and startup. Keep manifest filenames,
 scope, app name, user data and both screen palettes unchanged. No generated
 reinterpretation of the artwork is needed.
+
+## Product evolution · 2026-10-04
+
+**E-117 · Implement the approved four-pass evolution and publish after verification.**
+The owner approved the complete evidence-based audit, all six consequential
+boundaries, and the replacement app-wide motion plan. Preserve Reading Room,
+deployed records and current architecture. This supersedes historical restrictions
+on lateral transitions, disclosures, Wishlist purge and a motion dependency for
+this agreed scope; no prescriptive design skill is authorised. No repeated phase
+approval is needed. [Execution scope](PRODUCT-EVOLUTION.md).
+
+**E-118 · Recovery preserves compatibility and makes overwrite consequences explicit.**
+Known backup record shapes and references are validated before preview/write.
+Schema-v1 reading-order defaults remain the only legacy shape normalization.
+Incoming backup records still win overlapping IDs; the preview names collisions,
+and an overlapping merge requires a freshly verified complete safety archive.
+Wishlist removal soft-deletes with Undo, superseding historical D-080 because
+Wishlist records can now contain irreplaceable covers, profiles and linked notes.
+Catalogue repair uses an inactive resumable slot and changes the existing
+`corpusVersion` file pointer only after verification; no database migration.
+
+**E-119 · One motion and scroll owner per surface.**
+Motion 14 uses LazyMotion/m with reviewed presets; CSS owns simple presses and
+colours; native View Transitions own cover/add/theme continuity. Incoming pages
+settle without retaining reactive outgoing screens, which otherwise re-read the
+new global route and duplicate step UI. Sheet exits immediately become inert
+and release traps. Collection/Codex retain their virtual scroll owners and are
+excluded from shared scroll restoration. Overlay identity keys prevent a quick
+reopen from recovering a stale exiting draft. Native SW registration and a
+bounded on-demand window check protect drafts during release activation.
+
+**E-120 · Record priorities and complete secondary workflows.** Detail preserves
+its cover/reading controls, then relationships and notes, with expandable profile
+and read-only newest-first history ahead of administrative metadata. Creating a
+note from Detail seeds the existing link; attached titles stay visible in the
+editor without expanding its picker. Current-year page/chapter totals use local
+calendar dates; lifetime chapters remain separate. Sticky form actions and exact
+destination replay make draft dismissal predictable. Existing relationship, axis,
+status, record and session semantics remain unchanged; rereads/session editing
+remain deferred.
+
+**E-121 · Off-thread archives and reproducible release verification.** A lazy
+module worker owns ZIP/CRC/JSON, shape/reference validation and safety-copy byte
+comparison. It transfers archive buffers and reports failures without a blocking
+fallback; Dexie/OPFS transactions and formats remain. CI runs the unweakened gate
+using authored synthetic rows through the existing SQLite/FTS builder. The normal
+Pages artifact is built again and verified against the unchanged licensed
+production catalogue. Both illustration theme derivatives remain precached;
+unused originals and the catalogue do not. Custom draft-safe SW registration
+owns activation, so Vite's additional automatic registration is disabled.
+
+**E-122 · Release polish keeps interaction continuity ahead of animation.** Direct
+axis sheets retain the actual underlying screen and participate in presence exits;
+Surprise rerolls replace picked content without remounting focused controls. Menu
+navigation protects the underlying screen draft while releasing menu isolation
+for its confirmation. Session/filter actions join existing stable sheet footers.
+Ready native transition snapshots do not intercept live input. Theme uses a
+brief CSS colour handoff: real-pointer testing showed native full-page capture
+suppresses hit testing before its callback, even with transparent pointer
+handling on every snapshot. This supersedes E-119's native theme treatment;
+shared cover/add transitions remain. The public Motion
+domMax bundle measures 42.8 KiB gzip, missing the 40 KiB target by 2.8 KiB; keep
+the supported API rather than private feature imports. This is a measured limit,
+not a claim that the target passed. Documentation-only pushes skip Pages builds;
+source/workflow changes still run the full gate before publication.

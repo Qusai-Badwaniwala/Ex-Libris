@@ -5,6 +5,7 @@ import { Cover, Sheet } from './components';
 import { useWork } from './store';
 import { caption, displayS, label, resetButton } from './styles';
 import { withInteractionFeedback } from './interaction-feedback';
+import { DiscardDraft, useDraftGuard } from './draft-guard';
 
 export function CoverPicker({ id }: { id: string }) {
   const row = useWork(id);
@@ -14,6 +15,7 @@ export function CoverPicker({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [error, setError] = useState('');
+  const guard = useDraftGuard(!!selected, busy, 'coverPicker');
 
   useEffect(() => {
     if (!selected) {
@@ -25,6 +27,7 @@ export function CoverPicker({ id }: { id: string }) {
     return () => URL.revokeObjectURL(url);
   }, [selected]);
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!row) return null;
   const { work } = row;
   const hasStoredCover = !!work.coverPath;
@@ -35,6 +38,7 @@ export function CoverPicker({ id }: { id: string }) {
     setError('');
     try {
       await withInteractionFeedback(pendingLabel, action);
+      guard.allow();
       nav.close();
     } catch (cause) {
       setError(

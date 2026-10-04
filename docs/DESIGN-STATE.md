@@ -1,5 +1,29 @@
 # Current design state
 
+## Product evolution · 2026-10-04
+
+The owner approved purposeful app-wide motion and the four-pass blueprint
+(E-117). Reading Room typography, palette, illustrations, Home/Notes composition
+and optional Codex remain the identity. Shared cover/add transitions use the
+platform; bounded springs, disclosures, indicators and inert exits use Motion 14.
+CSS owns colour/press feedback and the theme handoff, preserving rapid live input
+where native full-page capture suppressed hit testing (E-122). Incoming-only page movement keeps
+chrome stable and avoids duplicate reactive outgoing screens. Scroll restoration
+has one owner and virtual rows do not replay arrival animations. Reduced motion
+removes movement and delay. There is no continuous background animation.
+
+Detail puts relationships and attached notes before administrative records,
+offers direct note creation and expandable read-only history/profile. Forms keep
+actions in their footer; short-phone collection/group headers reduce excess
+vertical space. Current-year statistics distinguish pages/chapters from lifetime
+chapters. Trash names records and dates with reachable restore/remove actions.
+Settings explains persistence truthfully and About identifies the build. These
+changes are approved refinements; final browser acceptance is recorded in HANDOFF.
+Direct axis editing retains the real record beneath it, and Surprise rerolls keep
+the action controls mounted. Disclosures have ruled surfaces rather than native
+button chrome; programmatic heading focus stays visually quiet while keyboard
+controls retain their focus treatment.
+
 ## Reading Room adoption · 2026-09-20
 
 **Owner artwork, 2026-10-02.** The owner replaced the geometric EX with the

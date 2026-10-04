@@ -81,15 +81,16 @@ CREATE VIRTUAL TABLE corpus_work_fts USING fts5(
 `;
 
 interface BuildOptions {
-  inputStage?: 'merge' | 'fixture-merge';
+  inputStage?: 'merge' | 'fixture-merge' | 'synthetic-fixture';
   outputDir?: string;
+  builtAt?: string;
 }
 
 export async function runBuild(options: BuildOptions = {}): Promise<StageReport> {
   const started = Date.now();
   const inputStage = options.inputStage ?? 'merge';
   const outputDir = options.outputDir ?? OUT;
-  const stage = inputStage === 'fixture-merge' ? 'fixture-build' : 'build';
+  const stage = inputStage === 'merge' ? 'build' : 'fixture-build';
   const notes: string[] = [];
 
   const worksPath = cachePath(inputStage, 'works.jsonl');
@@ -237,10 +238,11 @@ export async function runBuild(options: BuildOptions = {}): Promise<StageReport>
       ? 'production'
       : 'engineering-fixture';
 
+  const builtAt = options.builtAt ?? new Date().toISOString();
   const manifest = {
     schema: 1,
-    version: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-    builtAt: new Date().toISOString(),
+    version: builtAt.slice(0, 10).replace(/-/g, ''),
+    builtAt,
     file: 'corpus.sqlite',
     bytes,
     sha256: checksum.sha256,

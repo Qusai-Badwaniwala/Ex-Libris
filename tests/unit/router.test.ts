@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { nav, installHistory, __resetNav, guardOverlayDismiss } from '../../src/router/router';
+import {
+  nav,
+  installHistory,
+  __resetNav,
+  guardOverlayDismiss,
+  guardScreenDismiss,
+} from '../../src/router/router';
 
 /**
  * The back gesture. This is the one Phase 0 behaviour a person would notice
@@ -88,6 +94,26 @@ describe('back', () => {
 });
 
 describe('lateral moves between tabs', () => {
+  it('returns to the Collection entry when Library is selected again', () => {
+    const collection = { screen: 'everything' as const };
+    nav.push(collection);
+    nav.tab('notes');
+    nav.tab('home');
+    expect(nav.state.screens.at(-1)).toBe(collection);
+  });
+  it('keeps a protected screen draft when switching destinations', () => {
+    const axis = { screen: 'axis' as const, id: 'work' };
+    nav.push(axis);
+    const release = guardScreenDismiss(axis, () => false);
+    try {
+      nav.tab('notes');
+      expect(nav.state.screens.at(-1)).toBe(axis);
+      pressBack();
+      expect(nav.state.screens.at(-1)).toBe(axis);
+    } finally {
+      release();
+    }
+  });
   it('replace rather than push, so back does not walk through every tab', () => {
     nav.replace({ screen: 'stats' });
     nav.replace({ screen: 'wishlist' });
@@ -104,6 +130,85 @@ describe('lateral moves between tabs', () => {
 });
 
 describe('opening a screen', () => {
+  it.each(['push', 'pushWithCover', 'replace', 'reset'] as const)(
+    'resumes the exact guarded %s destination after a draft is discarded',
+    (action) => {
+      const draft = { screen: 'axis' as const, id: 'work' };
+      const destination = { screen: 'detail' as const, id: 'selected-work' };
+      nav.push(draft);
+      let mayLeave = false;
+      let resume: (() => void) | undefined;
+      const release = guardScreenDismiss(draft, (next, replay) => {
+        expect(next).toBe(destination);
+        resume = replay;
+        return mayLeave;
+      });
+      try {
+        const before = history.length;
+        if (action === 'pushWithCover')
+          nav.pushWithCover(destination, document.createElement('div'));
+        else nav[action](destination);
+        expect(nav.state.screens.at(-1)).toBe(draft);
+        expect(history.length).toBe(before);
+        expect(resume).toBeTypeOf('function');
+        mayLeave = true;
+        resume!();
+        expect(nav.state.screens.at(-1)).toBe(destination);
+        expect(nav.state.screens).toHaveLength(
+          action === 'reset' ? 1 : action === 'replace' ? 2 : 3,
+        );
+        expect(history.length).toBe(
+          before + (action === 'push' || action === 'pushWithCover' ? 1 : 0),
+        );
+      } finally {
+        release();
+      }
+    },
+  );
+  it('keeps guarded Back on the browser-history path instead of supplying a forward replay', () => {
+    const draft = { screen: 'axis' as const, id: 'work' };
+    nav.push(draft);
+    const release = guardScreenDismiss(draft, (next, replay) => {
+      expect(next?.screen).toBe('home');
+      expect(replay).toBeUndefined();
+      return false;
+    });
+    try {
+      pressBack();
+      expect(nav.state.screens.at(-1)).toBe(draft);
+    } finally {
+      release();
+    }
+  });
+  it('commits pending native navigation once before a rapid second navigation', () => {
+    const original = document.startViewTransition;
+    let delayed: (() => void) | undefined;
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (update: () => void) => {
+        delayed = update;
+        return {
+          ready: Promise.resolve(),
+          updateCallbackDone: Promise.resolve(),
+          finished: new Promise(() => {}),
+          skipTransition() {},
+        };
+      },
+    });
+    try {
+      nav.pushWithCover({ screen: 'detail', id: 'first' }, document.createElement('div'));
+      nav.push({ screen: 'detail', id: 'second' });
+      delayed?.();
+      expect(nav.state.screens.map((route) => route.id)).toEqual([undefined, 'first', 'second']);
+    } finally {
+      if (original)
+        Object.defineProperty(document, 'startViewTransition', {
+          configurable: true,
+          value: original,
+        });
+      else Reflect.deleteProperty(document, 'startViewTransition');
+    }
+  });
   it('dismisses anything modal that belonged to the screen being left', () => {
     nav.open({ kind: 'drawer' });
     nav.push({ screen: 'notes' });
@@ -208,6 +313,28 @@ describe('replacing a sheet without racing history', () => {
     pressBack();
     expect(nav.state.screens.at(-1)?.screen).toBe('home');
     expect(nav.state.overlays).toHaveLength(0);
+  });
+
+  it('protects a screen draft when its menu chooses another screen', () => {
+    const draft = { screen: 'backup' as const };
+    nav.push(draft);
+    let resume: (() => void) | undefined;
+    const release = guardScreenDismiss(draft, (_next, replay) => {
+      resume = replay;
+      return false;
+    });
+    nav.open({ kind: 'drawer' });
+    const before = history.length;
+    nav.closeAndPush({ screen: 'corpus' });
+    expect(nav.state.screens.at(-1)).toBe(draft);
+    expect(nav.state.overlays).toHaveLength(0);
+    expect(resume).toBeTypeOf('function');
+    resume?.();
+    expect(nav.state.screens.at(-1)).toEqual({ screen: 'corpus' });
+    expect(history.length).toBe(before);
+    pressBack();
+    expect(nav.state.screens.at(-1)).toBe(draft);
+    release();
   });
 
   it('falls back to a plain push when nothing is open', () => {

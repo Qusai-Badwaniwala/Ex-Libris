@@ -11,9 +11,11 @@ import './styles/reading-room-tokens.css';
 import './styles/base.css';
 import './styles/app.css';
 import './styles/astra.css';
+import './styles/motion.css';
 
 import { App } from './ui/App';
 import { installHistory } from './router/router';
+import { MotionRoot } from './ui/motion';
 
 installHistory();
 
@@ -37,7 +39,9 @@ const root = createRoot(el);
 const openApp = () =>
   root.render(
     <StrictMode>
-      <App />
+      <MotionRoot>
+        <App />
+      </MotionRoot>
     </StrictMode>,
   );
 // Sample records belong solely to the explicit engineering test build. Vite

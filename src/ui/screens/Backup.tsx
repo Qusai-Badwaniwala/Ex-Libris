@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { catalogue } from '../../catalogue/client';
 import { openInstalledCatalogue } from '../../catalogue/install';
-import { nav } from '../../router/router';
+import { nav, useRoute } from '../../router/router';
+import { usePresentationState } from '../../router/presentation';
+import { DiscardDraft, useDraftGuard } from '../draft-guard';
 import {
   exportManualBackup,
   automaticBackupStore,
   inspectAutomaticBackups,
+  exportStoredBackup,
   type BackupHistoryItem,
 } from '../../data-safety/backup';
 import {
@@ -23,6 +26,7 @@ import {
 import {
   readBackupFile,
   restoreBackup,
+  restoreCollisions,
   type PreparedBackup,
   type RestoreMode,
 } from '../../data-safety/restore';
@@ -32,6 +36,9 @@ import { ChevronLeft, ChevronRight } from '../icons';
 import { withInteractionFeedback } from '../interaction-feedback';
 import { APP_VERSION, useSettings } from '../store';
 import { caption, displayM, displayS, label, resetButton, tabular } from '../styles';
+import { readFile } from '../../storage/opfs';
+import { Segmented } from '../components';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 type View = 'home' | 'paste' | 'csv-map' | 'import-preview' | 'restore-preview';
 
@@ -46,16 +53,25 @@ export function Backup() {
     automaticBackupStore.getSnapshot,
   );
   const { settings } = useSettings();
-  const [view, setView] = useState<View>('home');
+  const route = useRoute();
+  const flow = route.flow ?? route;
+  const view: View = route.step ?? 'home';
+  const setView = (next: View) =>
+    next === 'home' ? nav.reset(flow) : nav.push({ screen: 'backup', step: next, flow });
   const [history, setHistory] = useState<BackupHistoryItem[] | null>(null);
-  const [paste, setPaste] = useState('');
-  const [drafts, setDrafts] = useState<ImportDraft[]>([]);
-  const [csv, setCsv] = useState<CsvTable | null>(null);
-  const [mapping, setMapping] = useState<CsvMapping>({});
-  const [backup, setBackup] = useState<PreparedBackup | null>(null);
-  const [restoreMode, setRestoreMode] = useState<RestoreMode>('merge');
+  const [paste, setPaste] = usePresentationState('import-paste', '');
+  const [drafts, setDrafts] = usePresentationState<ImportDraft[]>('import-drafts', []);
+  const [csv, setCsv] = usePresentationState<CsvTable | null>('import-csv', null);
+  const [mapping, setMapping] = usePresentationState<CsvMapping>('import-mapping', {});
+  const [backup, setBackup] = usePresentationState<PreparedBackup | null>('restore-backup', null);
+  const [restoreMode, setRestoreMode] = usePresentationState<RestoreMode>('restore-mode', 'merge');
+  const collisions = useLiveQuery(
+    () => (backup ? restoreCollisions(backup) : Promise.resolve(null)),
+    [backup],
+  );
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = usePresentationState('backup-message', '');
+  const guard = useDraftGuard(!!paste.trim() || drafts.length > 0 || !!csv, busy);
   const restoreInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -79,7 +95,7 @@ export function Backup() {
         setMessage('Local backup history could not be read. Export a fresh copy.');
       });
   };
-  useEffect(refreshHistory, []);
+  useEffect(refreshHistory, [setMessage]);
   useLayoutEffect(() => {
     if (scroll.current) scroll.current.scrollTop = 0;
   }, [view]);
@@ -129,8 +145,9 @@ export function Backup() {
         restoreBackup(backup, restoreMode, APP_VERSION),
       );
       setMessage('The library was restored in full.');
-      setView('home');
       setBackup(null);
+      guard.allow();
+      setView('home');
       refreshHistory();
       setBusy(false);
     } catch (error) {
@@ -184,6 +201,8 @@ export function Backup() {
       setMessage(`${count} ${count === 1 ? 'work was' : 'works were'} imported together.`);
       setDrafts([]);
       setPaste('');
+      setCsv(null);
+      guard.allow();
       setView('home');
       setBusy(false);
     } catch (error) {
@@ -204,6 +223,7 @@ export function Backup() {
     }
   }
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   return (
     <div
       ref={scroll}
@@ -227,7 +247,7 @@ export function Backup() {
                   ? 'Restore preview'
                   : 'Import preview'
         }
-        onBack={() => (view === 'home' ? nav.reset({ screen: 'home' }) : setView('home'))}
+        onBack={() => nav.back()}
       />
 
       {message ? (
@@ -261,6 +281,22 @@ export function Backup() {
           onRestore={() => restoreInput.current?.click()}
           onPaste={() => setView('paste')}
           onCsv={() => csvInput.current?.click()}
+          onSnapshot={(item) => {
+            void readFile(item.path)
+              .then((file) => {
+                if (!file) throw new Error('This snapshot is no longer on this device.');
+                return chooseBackup(file);
+              })
+              .catch((cause: unknown) => fail(cause, 'The snapshot could not be opened.'));
+          }}
+          onSnapshotExport={(item) => {
+            setBusy(true);
+            void withInteractionFeedback('Exporting the retained snapshot…', () =>
+              exportStoredBackup(item.path),
+            )
+              .catch((cause: unknown) => fail(cause, 'The snapshot could not be exported.'))
+              .finally(() => setBusy(false));
+          }}
         />
       ) : null}
 
@@ -297,6 +333,7 @@ export function Backup() {
           mode={restoreMode}
           busy={busy}
           onMode={setRestoreMode}
+          collisions={collisions ?? null}
           onRestore={() => void restore()}
         />
       ) : null}
@@ -358,6 +395,8 @@ function HomeView({
   onRestore,
   onPaste,
   onCsv,
+  onSnapshot,
+  onSnapshotExport,
 }: {
   history: BackupHistoryItem[] | null;
   lastAutoBackupAt?: string;
@@ -366,6 +405,8 @@ function HomeView({
   onRestore: () => void;
   onPaste: () => void;
   onCsv: () => void;
+  onSnapshot: (item: BackupHistoryItem) => void;
+  onSnapshotExport: (item: BackupHistoryItem) => void;
 }) {
   return (
     <>
@@ -398,7 +439,15 @@ function HomeView({
         {history === null ? (
           <p style={label}>Reading local snapshots…</p>
         ) : history.length ? (
-          history.map((item) => <HistoryRow key={item.path} item={item} />)
+          history.map((item) => (
+            <HistoryRow
+              key={item.path}
+              item={item}
+              busy={busy}
+              onReview={() => onSnapshot(item)}
+              onExport={() => onSnapshotExport(item)}
+            />
+          ))
         ) : (
           <p style={label}>The ten newest automatic snapshots will appear here.</p>
         )}
@@ -427,9 +476,19 @@ function HomeView({
   );
 }
 
-function HistoryRow({ item }: { item: BackupHistoryItem }) {
+function HistoryRow({
+  item,
+  busy,
+  onReview,
+  onExport,
+}: {
+  item: BackupHistoryItem;
+  busy: boolean;
+  onReview: () => void;
+  onExport: () => void;
+}) {
   return (
-    <div style={rowStyle}>
+    <div style={{ ...rowStyle, flexWrap: 'wrap' }}>
       <span style={{ display: 'flex', flexDirection: 'column' }}>
         <span>{dateTime.format(new Date(item.createdAt))}</span>
         <span style={label}>Automatic snapshot</span>
@@ -438,6 +497,14 @@ function HistoryRow({ item }: { item: BackupHistoryItem }) {
       <MetaParts
         parts={[countLabel(item.counts.works, 'work'), countLabel(item.counts.notes, 'note')]}
       />
+      <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+        <button className="room-text" disabled={busy} onClick={onReview}>
+          Review snapshot
+        </button>
+        <button className="room-text" disabled={busy} onClick={onExport}>
+          Export snapshot
+        </button>
+      </div>
     </div>
   );
 }
@@ -793,17 +860,20 @@ function RestorePreview({
   busy,
   onMode,
   onRestore,
+  collisions,
 }: {
   backup: PreparedBackup;
   mode: RestoreMode;
   busy: boolean;
   onMode: (mode: RestoreMode) => void;
   onRestore: () => void;
+  collisions: Awaited<ReturnType<typeof restoreCollisions>> | null;
 }) {
   const counts = backup.data.counts;
   return (
     <div>
-      <div style={displayS}>{backup.filename}</div>
+      <div style={displayS}>Your library, as it was</div>
+      <p style={{ ...caption, overflowWrap: 'anywhere' }}>{backup.filename}</p>
       <p style={{ ...caption, color: 'var(--text-secondary)' }}>
         Written {dateTime.format(new Date(backup.data.createdAt))}.{' '}
         {countLabel(counts.works, 'work')}, {countLabel(counts.notes, 'note')},{' '}
@@ -811,36 +881,15 @@ function RestorePreview({
         {countLabel(backup.data.userCovers.length, 'user cover')} were validated before this
         preview.
       </p>
-      <div
-        role="radiogroup"
-        aria-label="Restore mode"
-        style={{
-          display: 'flex',
-          border: 'var(--hairline-width) solid var(--hairline-strong)',
-          borderRadius: 'var(--radius-button)',
-          overflow: 'hidden',
-          margin: 'var(--space-5) 0',
-        }}
-      >
-        {(['merge', 'replace'] as const).map((value) => (
-          <button
-            key={value}
-            role="radio"
-            aria-checked={mode === value}
-            onClick={() => onMode(value)}
-            style={{
-              ...resetButton,
-              flex: 1,
-              minHeight: 44,
-              background: mode === value ? 'var(--surface-raised)' : 'transparent',
-              color: mode === value ? 'var(--text-primary)' : 'var(--text-secondary)',
-              textTransform: 'capitalize',
-            }}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        ariaLabel="Restore mode"
+        options={[
+          { value: 'merge', label: 'Merge' },
+          { value: 'replace', label: 'Replace' },
+        ]}
+        value={mode}
+        onChange={onMode}
+      />
       <p
         style={{
           ...caption,
@@ -849,10 +898,32 @@ function RestorePreview({
         }}
       >
         {mode === 'merge'
-          ? 'Merge keeps records already on this device and adds or updates records from the backup.'
+          ? 'Merge keeps other records on this device. Where IDs overlap, the backup replaces the entire record, including progress, notes and cover choice. A verified safety snapshot is saved before any overwrite.'
           : 'Replace first makes a local safety snapshot, then replaces this library in one database transaction.'}
       </p>
-      <button disabled={busy} onClick={onRestore} style={primaryButton}>
+      {mode === 'merge' &&
+        (collisions ? (
+          <div className="room-restore-collisions">
+            <p>
+              {collisions.total
+                ? `${collisions.total} existing records will be overwritten, including ${collisions.works.length} works and ${collisions.notes} notes.`
+                : 'No existing record IDs overlap.'}
+            </p>
+            {collisions.works.length > 0 && (
+              <details>
+                <summary>Works that will be replaced</summary>
+                <ul>
+                  {collisions.works.map((title, index) => (
+                    <li key={index}>{title}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        ) : (
+          <p role="status">Checking existing records…</p>
+        ))}
+      <button disabled={busy || !collisions} onClick={onRestore} style={primaryButton}>
         {busy ? 'Restoring…' : mode === 'merge' ? 'Merge this backup' : 'Replace this library'}
       </button>
     </div>

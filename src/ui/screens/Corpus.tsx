@@ -18,7 +18,7 @@ import {
 } from '../styles';
 import { Illustration } from '../illustration';
 
-const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 
 export function Corpus() {
   const [size, setSize] = useState<number>();
@@ -147,6 +147,11 @@ export function Corpus() {
         {busy && (
           <button style={primaryButton} onClick={() => nav.reset({ screen: 'home' })}>
             Carry on in the background
+          </button>
+        )}
+        {installed && !busy && (
+          <button style={quietButton} onClick={() => void installCatalogue(undefined, true)}>
+            Repair catalogue
           </button>
         )}
         {installed && !busy && (

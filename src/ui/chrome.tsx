@@ -18,6 +18,7 @@ import {
   Moon,
 } from './icons';
 import { Sheet } from './components';
+import { Arrive, m, useMotion } from './motion';
 import type { ThemeChoice } from '../db/schema';
 
 const NO_CHROME: Screen[] = ['bookplate', 'welcome', 'finish', 'tagpick', 'axis'];
@@ -84,6 +85,7 @@ export function RoomToolbar({
 }
 
 export function NavBar({ screen }: { screen: Screen }) {
+  const { spring } = useMotion();
   if (NO_CHROME.includes(screen)) return null;
   const tabs = [
     {
@@ -101,10 +103,15 @@ export function NavBar({ screen }: { screen: Screen }) {
       {tabs.map((tab, i) => (
         <Fragment key={tab.name}>
           {i === 2 && <span className="room-nav-space" />}
-          <button
-            aria-current={tab.on ? 'page' : undefined}
-            onClick={() => nav.reset({ screen: tab.screen })}
-          >
+          <button aria-current={tab.on ? 'page' : undefined} onClick={() => nav.tab(tab.screen)}>
+            {tab.on && (
+              <m.span
+                className="room-nav-indicator"
+                layoutId="primary-selection"
+                transition={spring}
+                aria-hidden="true"
+              />
+            )}
             <tab.Icon color="currentColor" />
             <span>{tab.name}</span>
           </button>
@@ -149,22 +156,26 @@ export function FabMenu({
         <h2>Add a work</h2>
         <p>One place for everything you read.</p>
       </div>
-      <button className="room-door" data-fab-door onClick={onCatalogue}>
-        <Search />
-        <span>
-          <strong>Search the catalogue</strong>
-          <small>Find a title and review its details</small>
-        </span>
-        <span aria-hidden="true">↗</span>
-      </button>
-      <button className="room-door" data-fab-door onClick={onByHand}>
-        <Pencil />
-        <span>
-          <strong>Add by hand</strong>
-          <small>Your own record, with or without a catalogue</small>
-        </span>
-        <span aria-hidden="true">↗</span>
-      </button>
+      <Arrive>
+        <button className="room-door" data-fab-door onClick={onCatalogue}>
+          <Search />
+          <span>
+            <strong>Search the catalogue</strong>
+            <small>Find a title and review its details</small>
+          </span>
+          <span aria-hidden="true">↗</span>
+        </button>
+      </Arrive>
+      <Arrive>
+        <button className="room-door" data-fab-door onClick={onByHand}>
+          <Pencil />
+          <span>
+            <strong>Add by hand</strong>
+            <small>Your own record, with or without a catalogue</small>
+          </span>
+          <span aria-hidden="true">↗</span>
+        </button>
+      </Arrive>
     </Sheet>
   );
 }

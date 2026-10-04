@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Illustration } from '../illustration';
 import { useLibraryStats } from '../store';
+import { m, useMotion, Arrive } from '../motion';
 
 const number = new Intl.NumberFormat();
 export function Stats() {
   const stats = useLibraryStats();
+  const { reduced, settle } = useMotion();
   const [scope, setScope] = useState<'all' | 'finished'>('all');
   const genres = [...(stats?.genres[scope] ?? [])].sort(
     (a, b) => b.count - a.count || a.name.localeCompare(b.name),
@@ -23,11 +25,13 @@ export function Stats() {
       <div className="room-stats-figures" aria-label="This year's reading figures">
         {[
           { value: stats?.finishedThisYear, label: 'finished' },
-          { value: stats?.chaptersRead, label: 'chapters read' },
-          { value: stats?.yearsTracked, label: 'years tracked' },
+          { value: stats?.pagesThisYear, label: 'pages read' },
+          { value: stats?.chaptersThisYear, label: 'chapters read' },
         ].map((figure) => (
           <div key={figure.label}>
-            <strong>{figure.value === undefined ? '—' : number.format(figure.value)}</strong>
+            <Arrive motionKey={figure.value} still>
+              <strong>{figure.value === undefined ? '—' : number.format(figure.value)}</strong>
+            </Arrive>
             <span>{figure.label}</span>
           </div>
         ))}
@@ -44,6 +48,8 @@ export function Stats() {
               ['Caught up, still running', number.format(stats.caughtUp)],
               ['On the wishlist', number.format(stats.wishlistTotal)],
               ['Dropped', number.format(stats.dropped)],
+              ['Years tracked', number.format(stats.yearsTracked)],
+              ['Chapters logged, all years', number.format(stats.chaptersRead)],
             ]}
           />
           <section className="room-stat-genres">
@@ -73,8 +79,12 @@ export function Stats() {
                       <span>{genre.count}</span>
                     </div>
                     <div aria-hidden="true">
-                      <span
+                      <m.span
+                        initial={reduced ? false : { scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={settle}
                         style={{
+                          transformOrigin: 'left',
                           width: `${(100 * genre.count) / maximum}%`,
                           background: `var(--genre-${genre.index})`,
                         }}

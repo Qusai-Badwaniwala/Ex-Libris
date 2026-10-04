@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { usePresentationState } from '../../router/presentation';
 import { nav } from '../../router/router';
 import { useLibrarySearch } from '../store';
 import { Cover, TagPill } from '../components';
@@ -10,7 +11,9 @@ export const CATALOGUE_EXPLANATION =
   'Search the downloaded index, or search online. Anything you add stays in your library.';
 
 export function SearchScreen() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = usePresentationState('search-query', '');
+  const [entered, setEntered] = usePresentationState('search-entered', false);
+  useEffect(() => setEntered(true), [setEntered]);
   const result = useLibrarySearch(query);
   const empty = result && Object.values(result).every((rows) => rows.length === 0);
   return (
@@ -39,7 +42,7 @@ export function SearchScreen() {
         >
           <ChevronLeft />
         </button>
-        <SearchField value={query} onChange={setQuery} />
+        <SearchField value={query} onChange={setQuery} autoFocus={!entered} />
       </header>
       <div className="exl-scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 104px' }}>
         {!result && (
@@ -57,7 +60,7 @@ export function SearchScreen() {
                 <button
                   key={work.id}
                   data-work={work.id}
-                  onClick={() => nav.push({ screen: 'detail', id: work.id })}
+                  onClick={(event) => nav.openWork(work.id, event.currentTarget)}
                   style={{
                     ...resetButton,
                     width: '100%',

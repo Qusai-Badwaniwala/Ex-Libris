@@ -132,7 +132,9 @@ test('deleting and restoring a note is reversible, while permanent work deletion
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openTrash());
   await page.screenshot({ path: '.astra/review/phase7-note-trash-dark.png' });
-  const row = page.getByText('Surviving note').locator('..').locator('..');
+  const row = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name: 'Surviving note', exact: true }) });
   await row.getByRole('button', { name: 'Restore' }).click();
   await page.evaluate(() => window.__EXL_PHASE7_TEST__!.openNotes());
   await expect(page.getByRole('button', { name: /Edit note: Surviving note/ })).toBeVisible();

@@ -1,0 +1,256 @@
+/* E-117: property ownership is explicit. Motion owns presence/layout; CSS owns
+   colour and simple press feedback; native transitions own named surfaces. */
+.room-screen-layer {
+  position: absolute;
+  inset: 0;
+}
+.room-screen-layer[inert] {
+  pointer-events: none;
+}
+.room-screen-layer h1[tabindex='-1']:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.room-disclosure-content {
+  padding-block: var(--space-2);
+}
+.room-feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-block: var(--space-3);
+  border-block: var(--hairline-width) solid var(--hairline);
+}
+.room-restore-collisions {
+  padding-block: var(--space-3);
+}
+.room-restore-collisions p {
+  margin-block: var(--space-2);
+}
+.room-nav button[aria-current='page']::before {
+  display: none;
+}
+.room-nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 24%;
+  right: 24%;
+  height: 2px;
+  background: var(--accent);
+}
+.room-segment {
+  position: relative;
+  isolation: isolate;
+}
+.room-segment > span:not(.room-selection) {
+  position: relative;
+}
+.room-selection {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  z-index: -1;
+}
+.room-step {
+  min-width: 0;
+}
+.room-note-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+}
+.room-note-attachments > span {
+  max-width: 100%;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+.room-form-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.room-sheet-footer .room-form-actions > button:first-child {
+  width: 96px !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+}
+.room-sheet-footer .room-form-actions > button:last-child {
+  width: auto !important;
+  flex: 1;
+}
+.room-trash-row {
+  border-top: var(--hairline-width) solid var(--hairline);
+  padding-block: var(--space-4);
+}
+.room-trash-record {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.room-trash-record > div:last-child {
+  min-width: 0;
+  flex: 1;
+}
+.room-trash-record h2 {
+  margin: 0;
+  font-size: var(--size-body-l);
+  overflow-wrap: anywhere;
+}
+.room-trash-record p {
+  margin-block: var(--space-2) 0;
+  color: var(--text-secondary);
+  font-size: var(--size-caption);
+}
+.room-trash-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+.room-danger-text {
+  color: var(--danger-text);
+}
+.room-trash-empty {
+  min-height: 44px;
+  width: 100%;
+  border: var(--hairline-width) solid var(--danger);
+  border-radius: var(--radius-button);
+  margin-top: var(--space-5);
+}
+.room-disclosure-toggle {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding-block: var(--space-2);
+  border-block: var(--hairline-width) solid var(--hairline);
+  text-align: left;
+  color: var(--text-secondary);
+  font-size: var(--size-body);
+}
+.room-session-history {
+  padding: 0;
+  list-style: none;
+  margin: var(--space-3) 0;
+}
+.room-session-history li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  padding-block: var(--space-3);
+  border-top: var(--hairline-width) solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+}
+.room-session-history time {
+  grid-column: 1 / -1;
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+}
+.room-genre-bar > div > span {
+  transition: width var(--dur-base) var(--ease-out);
+}
+@media (max-height: 740px) and (max-width: 600px) {
+  .room-collection-head {
+    padding-top: var(--space-2);
+  }
+  .room-collection-head .room-view-tabs,
+  .room-collection-head .room-section-heading {
+    margin-bottom: var(--space-2);
+  }
+  .room-group-covers {
+    gap: var(--space-2);
+  }
+  .room-group-covers > [data-cover] {
+    width: 60px !important;
+    height: 90px !important;
+  }
+}
+.room-status-tabs {
+  padding-inline: 4px 12px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--text-primary) 4px,
+    var(--text-primary) calc(100% - 12px),
+    transparent
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-genre-bar > div > span {
+    transition: none;
+  }
+}
+.room-cover-image {
+  animation: exl-fade var(--dur-base) var(--ease-out) both;
+}
+@media (hover: hover) and (pointer: fine) {
+  .room-cover-link {
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .room-cover-link:hover {
+    transform: translateY(-2px);
+  }
+}
+@media (min-width: 768px) {
+  .room-nav-indicator {
+    top: 18%;
+    bottom: 18%;
+    left: 0;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-cover-image {
+    animation: none;
+  }
+  .room-cover-link {
+    transition: none;
+  }
+  .room-cover-link:hover {
+    transform: none;
+  }
+}
+html[data-native-transition='cover']::view-transition-old(root),
+html[data-native-transition='cover']::view-transition-new(root),
+html[data-native-transition='add']::view-transition-old(root),
+html[data-native-transition='add']::view-transition-new(root) {
+  animation: none;
+}
+/* Theme changes stay interactive during the colour handoff. Native full-page
+   capture suppresses hit testing before its update callback, losing quick taps. */
+.room-frame,
+.room-toolbar,
+.room-nav,
+.room-sheet {
+  transition:
+    background-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-frame,
+  .room-toolbar,
+  .room-nav,
+  .room-sheet {
+    transition: none;
+  }
+}
+/* The snapshots are visual continuity; the live controls stay usable. */
+::view-transition,
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  pointer-events: none;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+}

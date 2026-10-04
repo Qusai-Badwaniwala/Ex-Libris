@@ -6,6 +6,8 @@ import { nav } from '../../router/router';
 import { withInteractionFeedback } from '../interaction-feedback';
 import { ChevronLeft } from '../icons';
 import { caption, displayM, label, quietButton, resetButton, tabular } from '../styles';
+import { DiscardDraft, useDraftGuard } from '../draft-guard';
+import { Disclosure } from '../motion';
 
 /** Phase 10's deliberately small tag maintenance surface. */
 export function Tags() {
@@ -18,17 +20,21 @@ export function Tags() {
   const [error, setError] = useState('');
 
   const editing = rows?.find((row) => row.tag.id === editingId);
+  const guard = useDraftGuard(!!editing && name.trim() !== editing.tag.name, pending);
   const destination = useMemo(() => {
     const normalized = normalizeTag(name.trim());
     return rows?.find((row) => row.tag.id !== editingId && row.tag.normalizedName === normalized);
   }, [editingId, name, rows]);
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
 
   const beginEdit = (id: string, currentName: string) => {
-    setEditingId(id);
-    setName(currentName);
-    setArmed(undefined);
-    setMessage('');
-    setError('');
+    guard.request(() => {
+      setEditingId(id);
+      setName(currentName);
+      setArmed(undefined);
+      setMessage('');
+      setError('');
+    });
   };
 
   const save = async () => {
@@ -212,7 +218,7 @@ export function Tags() {
                   ) : null}
                 </div>
 
-                {isEditing ? (
+                <Disclosure open={isEditing}>
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -258,10 +264,12 @@ export function Tags() {
                     >
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditingId(undefined);
-                          setArmed(undefined);
-                        }}
+                        onClick={() =>
+                          guard.request(() => {
+                            setEditingId(undefined);
+                            setArmed(undefined);
+                          })
+                        }
                         style={quietButton}
                       >
                         Cancel
@@ -282,7 +290,7 @@ export function Tags() {
                       </button>
                     </div>
                   </form>
-                ) : null}
+                </Disclosure>
               </section>
             );
           })}

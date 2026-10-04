@@ -11,11 +11,13 @@ Ex Libris is the reading tracker I wanted for my own shelf: private, quiet, and 
 ## What it does
 
 - Keeps a local library, wishlist, reading progress, finish dates, and personal notes.
+- Shows read-only reading-session history and lets you write an attached note directly from a work.
 - Handles books, web novels, and manhwa without pretending their metadata is equally complete.
 - Tracks series, worlds, and more than one named reading order, with confirmation-based grouping suggestions.
 - Lets you attach notes and tags to several works, pin notes, and recover deleted items from Trash.
 - Builds honest reading stats and an optional Codex bookcase from the library you actually keep.
 - Exports and restores a complete ZIP backup, including covers you added yourself.
+- Reviews retained recovery snapshots and explains overlapping records before restoring a backup.
 - Offers an optional 438,584-work offline catalogue built from reusable Open Library and Wikidata data, plus explicit online Open Library book and MangaDex comic lookups. Manual entry remains available at all times.
 
 ## Installing it
@@ -23,6 +25,11 @@ Ex Libris is the reading tracker I wanted for my own shelf: private, quiet, and 
 Open the live link on your phone. During the first tour, Ex Libris takes you to the Install section in Settings. On supported Android browsers, the **Install** button opens the browser's real installer. On iPhone or iPad, it shows the Safari steps for adding the app to the Home Screen.
 
 Once installed, Ex Libris opens in its own window and its app shell works without a signal. The catalogue is a separate optional download because it is much larger than the app itself.
+
+For an existing installation, open it online and choose **Update** when offered.
+Updates wait while an editor or data operation is active, including in another
+open Ex Libris window. Closing and reopening the app also lets the browser
+activate a waiting release. Keep your installation and browser storage.
 
 ## Privacy and backups
 
@@ -46,6 +53,12 @@ npm run gate
 ```
 
 It runs formatting, linting, strict TypeScript, frozen-design checks, unit tests, production-mode Pixel 7 journeys, and the production build.
+
+The browser suite generates an authored synthetic catalogue through the real
+SQLite builder. CI then builds the normal Pages artifact separately and verifies
+the licensed production catalogue, offline assets and absence of test bridges.
+Motion for React handles deliberate transitions and disclosures; native scrolling,
+reduced-motion preferences and the existing Reading Room design remain intact.
 
 ## Acknowledgements
 

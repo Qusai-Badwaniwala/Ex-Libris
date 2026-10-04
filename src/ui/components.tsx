@@ -5,6 +5,9 @@ import type { GenreIndex } from '../db/schema';
 import { caption, coverRadius, displayS, label, resetButton, tabular } from './styles';
 import { coverService } from '../covers';
 import { Illustration, type IllustrationName } from './illustration';
+import { m, useIsPresent, useMotion, usePresentationRestoration } from './motion';
+import { useModalFocus } from './modal-focus';
+import { MOTION, SCRIM } from './design-literals';
 
 /* ── Cover ──────────────────────────────────────────────────────────────── */
 
@@ -35,6 +38,7 @@ export function Cover({
   flightName?: string;
 }) {
   const showTitle = !!title && width >= 100;
+  const present = useIsPresent();
   const [imageUrl, setImageUrl] = useState<string>();
 
   useEffect(() => {
@@ -44,10 +48,13 @@ export function Cover({
     if (!path) return;
     void coverService
       .read({ coverPath: path })
-      .then((blob) => {
+      .then(async (blob) => {
         if (!blob || cancelled) return;
         currentUrl = URL.createObjectURL(blob);
-        setImageUrl(currentUrl);
+        const image = new Image();
+        image.src = currentUrl;
+        await image.decode();
+        if (!cancelled) setImageUrl(currentUrl);
       })
       .catch(() => {
         // The colour fallback remains a complete cover when OPFS is unavailable.
@@ -73,13 +80,16 @@ export function Cover({
         display: 'flex',
         alignItems: 'flex-end',
         padding: showTitle && !imageUrl ? 'var(--space-3)' : 0,
-        ...(flightName ? { viewTransitionName: flightName } : {}),
+        ...(flightName && present ? { viewTransitionName: flightName } : {}),
       }}
     >
       {imageUrl ? (
         <img
+          className="room-cover-image"
           src={imageUrl}
           alt=""
+          decoding="async"
+          onError={() => setImageUrl(undefined)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : showTitle ? (
@@ -91,6 +101,8 @@ export function Cover({
             fontSize: 'var(--size-body)',
             lineHeight: '20px',
             color: ink ?? 'var(--text-primary)',
+            minWidth: 0,
+            overflowWrap: 'anywhere',
           }}
         >
           {title}
@@ -316,6 +328,7 @@ export function Sheet({
   maxHeight = '92%',
   transitionName,
   footer,
+  memoryEntry,
 }: {
   children: ReactNode;
   onClose: () => void;
@@ -323,69 +336,30 @@ export function Sheet({
   maxHeight?: string;
   transitionName?: 'add-surface';
   footer?: ReactNode;
+  memoryEntry?: object;
 }) {
   const panel = useRef<HTMLDivElement>(null);
-  const close = useRef(onClose);
-  useEffect(() => {
-    close.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const element = panel.current;
-    const targets = () =>
-      Array.from(
-        element?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]',
-        ) ?? [],
-      ).filter((target) => target.getClientRects().length > 0);
-    const frame = requestAnimationFrame(() => {
-      (targets().find((target) => target.tagName === 'INPUT') ?? targets()[0])?.focus();
-    });
-    const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      if (dialogs.item(dialogs.length - 1) !== element?.parentElement) return;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        close.current();
-      }
-      if (e.key === 'Tab') {
-        const controls = targets();
-        const first = controls[0];
-        const last = controls.at(-1);
-        if (
-          e.shiftKey &&
-          (document.activeElement === first || !element?.contains(document.activeElement))
-        ) {
-          e.preventDefault();
-          last?.focus();
-        } else if (
-          !e.shiftKey &&
-          (document.activeElement === last || !element?.contains(document.activeElement))
-        ) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', onKey);
-      if (previous?.isConnected) previous.focus();
-    };
-  }, []);
-
+  const root = useRef<HTMLDivElement>(null);
+  const present = useIsPresent();
+  const { reduced, spring, exit } = useMotion();
+  const native = useRef(
+    !!transitionName && document.documentElement.dataset['nativeTransition'] === 'add',
+  );
+  useModalFocus(root, onClose, present);
+  usePresentationRestoration(root, memoryEntry, present);
   return (
     <div
+      ref={root}
+      inert={!present || undefined}
+      aria-hidden={!present || undefined}
+      tabIndex={-1}
       style={{ position: 'absolute', inset: 0, zIndex: 60 }}
       role="dialog"
       aria-modal="true"
       aria-label={title}
       className="room-sheet"
     >
-      <button
+      <m.button
         onClick={onClose}
         aria-label="Close"
         data-dismiss-scrim
@@ -394,13 +368,28 @@ export function Sheet({
           ...resetButton,
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          animation: 'exl-fade var(--dur-base) var(--ease-out) both',
-          transition: 'opacity var(--dur-fast) var(--ease-out)',
+          background: SCRIM,
         }}
+        initial={reduced || native.current ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={present ? spring : exit}
       />
-      <div
+      <m.div
         ref={panel}
+        layoutRoot
+        initial={
+          reduced || native.current
+            ? false
+            : { opacity: 0, y: MOTION.sheetDistance, scale: MOTION.depthScale }
+        }
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={
+          native.current || reduced
+            ? { opacity: 0, transition: { duration: 0 } }
+            : { opacity: 0, y: MOTION.sheetDistance / 2, scale: MOTION.depthScale }
+        }
+        transition={present ? spring : exit}
         className="room-sheet-panel"
         style={{
           position: 'absolute',
@@ -414,7 +403,7 @@ export function Sheet({
           borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
           boxShadow: 'var(--shadow-sheet)',
           overflow: 'hidden',
-          ...(transitionName ? { viewTransitionName: transitionName } : {}),
+          ...(transitionName && present ? { viewTransitionName: transitionName } : {}),
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
@@ -440,7 +429,7 @@ export function Sheet({
           {children}
         </div>
         {footer && <div className="room-sheet-footer">{footer}</div>}
-      </div>
+      </m.div>
     </div>
   );
 }
@@ -459,6 +448,8 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   ariaLabel: string;
 }) {
+  const selectionId = useId();
+  const { spring } = useMotion();
   return (
     <div
       role="radiogroup"
@@ -474,6 +465,7 @@ export function Segmented<T extends string>({
         const on = o.value === value;
         return (
           <button
+            className="room-segment"
             key={o.value}
             role="radio"
             aria-checked={on}
@@ -505,6 +497,8 @@ export function Segmented<T extends string>({
             }}
             style={{
               ...resetButton,
+              position: 'relative',
+              isolation: 'isolate',
               flex: 1,
               minWidth: 0,
               minHeight: 'var(--touch-min)',
@@ -517,11 +511,19 @@ export function Segmented<T extends string>({
             }}
           >
             {on && (
+              <m.span
+                className="room-selection"
+                layoutId={selectionId}
+                transition={spring}
+                aria-hidden="true"
+              />
+            )}
+            {on && (
               <span aria-hidden="true" data-selection-mark>
                 ✓{' '}
               </span>
             )}
-            {o.label}
+            <span>{o.label}</span>
           </button>
         );
       })}

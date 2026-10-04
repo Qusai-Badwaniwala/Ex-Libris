@@ -154,6 +154,7 @@ export function Codex({
       <div
         ref={root}
         className="codex-scroll exl-scroll"
+        data-scroll-owner="codex"
         role="region"
         tabIndex={0}
         aria-label="Codex bookcase"

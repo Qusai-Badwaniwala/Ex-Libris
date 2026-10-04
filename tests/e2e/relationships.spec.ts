@@ -143,6 +143,8 @@ test('series orders can be created, renamed, reordered, deleted, and roll back o
   await expect(editor.getByRole('alert')).toContainText('could not be saved');
   await expect(editor.getByLabel('Order name')).toHaveValue('A failed rename');
   await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Discard unsaved changes?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Discard changes' }).click();
   await expect(page.getByRole('option', { name: 'Chronological order' })).toHaveCount(1);
   await expect(page.getByRole('option', { name: 'A failed rename' })).toHaveCount(0);
 

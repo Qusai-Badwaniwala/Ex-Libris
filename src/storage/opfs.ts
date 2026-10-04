@@ -11,23 +11,20 @@
  */
 
 let cached: FileSystemDirectoryHandle | null = null;
-let probed = false;
-let available = false;
+let probe: Promise<boolean> | null = null;
 
-export async function opfsAvailable(): Promise<boolean> {
-  if (probed) return available;
-  probed = true;
-  try {
-    if (typeof navigator === 'undefined' || !navigator.storage?.getDirectory) {
-      available = false;
+export function opfsAvailable(): Promise<boolean> {
+  // Covers, snapshots and the catalogue can all ask during the same paint.
+  // Every caller must await the probe, rather than observe its initial false.
+  return (probe ??= (async () => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.storage?.getDirectory) return false;
+      cached = await navigator.storage.getDirectory();
+      return true;
+    } catch {
       return false;
     }
-    cached = await navigator.storage.getDirectory();
-    available = true;
-  } catch {
-    available = false;
-  }
-  return available;
+  })());
 }
 
 async function root(): Promise<FileSystemDirectoryHandle> {
@@ -64,10 +61,11 @@ export async function writeFile(path: string, data: Blob | ArrayBuffer | string)
   const w = await handle.createWritable();
   try {
     await w.write(data);
-  } finally {
-    // close() commits. Without the finally, a write that throws mid-stream
-    // leaves a zero-byte file behind that reads as "the cover is cached".
     await w.close();
+  } catch (cause) {
+    // Closing commits even a partial write. Abort preserves the previous file.
+    await w.abort().catch(() => {});
+    throw cause;
   }
 }
 
@@ -88,8 +86,10 @@ export async function writeFileAt(
   const writable = await handle.createWritable({ keepExistingData: true });
   try {
     await writable.write({ type: 'write', position, data });
-  } finally {
     await writable.close();
+  } catch (cause) {
+    await writable.abort().catch(() => {});
+    throw cause;
   }
 }
 
@@ -100,8 +100,10 @@ export async function truncateFile(path: string, size: number): Promise<void> {
   const writable = await handle.createWritable({ keepExistingData: true });
   try {
     await writable.truncate(size);
-  } finally {
     await writable.close();
+  } catch (cause) {
+    await writable.abort().catch(() => {});
+    throw cause;
   }
 }
 

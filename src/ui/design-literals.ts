@@ -77,3 +77,20 @@ export const WELCOME_BEATS = ['120ms', '260ms', '440ms', '620ms', '760ms', '900m
 
 /** The constellation scales 1.06 -> 1 behind all of it. */
 export const WELCOME_ART_MS = '1400ms'; // tokens-allow: MOTION.md §11
+
+/** E-117: shared product-evolution choreography. Seconds for Motion, pixels for
+ * distance; no per-screen timing guesses. Large surfaces have a bounded settle. */
+export const MOTION = {
+  fast: 0.12,
+  base: 0.2,
+  slow: 0.26,
+  surface: 0.32,
+  distance: 8,
+  sheetDistance: 28,
+  disclosureDistance: 6,
+  dealtScale: 0.96,
+  depthScale: 0.985,
+  ease: [0.32, 0.72, 0, 1] as [number, number, number, number],
+  bounce: 0.12,
+  stagger: 0.035,
+} as const;

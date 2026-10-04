@@ -1,4 +1,18 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { parseManifest } from '../../src/catalogue/manifest';
+
+function fixtureRanges() {
+  const manifest = parseManifest(
+    JSON.parse(readFileSync('pipeline/.cache/fixture-corpus/manifest.json', 'utf8')),
+  );
+  expect(manifest.distribution).toBe('engineering-fixture');
+  expect(manifest.sources).toEqual({ 'synthetic-test': 3_722 });
+  expect(manifest.counts.works).toBe(3_722);
+  expect(manifest.chunkSize).toBe(4_194_304);
+  expect(manifest.chunks.length).toBeGreaterThanOrEqual(2);
+  return manifest.chunks.map((chunk) => `bytes=${chunk.offset}-${chunk.offset + chunk.bytes - 1}`);
+}
 
 /**
  * The Phase 1 gate, as a journey rather than a checklist: add a book by hand,
@@ -154,7 +168,7 @@ test('a work added by hand can then have everything about it changed', async ({ 
 
   // A1 — the status. The design package has no control for this anywhere, so
   // without it nothing could ever be marked finished, dropped or caught up.
-  await page.getByRole('button', { name: /Reading/ }).click();
+  await page.getByRole('button', { name: 'Reading', exact: true }).click();
   await expect(page.getByText('Where are you with this')).toBeVisible();
   // Publication is unknown for a hand-added work, so caught up is not offered:
   // nothing that has finished publishing can be caught up with.
@@ -180,7 +194,7 @@ test('a work added by hand can then have everything about it changed', async ({ 
   // orthogonal and one is never derived from the other.
   await page.getByRole('button', { name: /Dropped/ }).click();
   await expect(page.getByRole('button', { name: /Caught up/ })).toBeVisible();
-  await page.getByRole('button', { name: /^Reading/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Reading', exact: true }).click();
 
   // D-105: for an ongoing work the total is what has been RELEASED, so
   // reaching it reads as caught up and never as finished.
@@ -379,11 +393,12 @@ test('the real catalogue installs into OPFS and answers through the worker', asy
     const found = await bridge.search('sol');
     const timings = [found.elapsedMs];
     const concurrent = await Promise.all(
-      ['soloist', 'dragon', 'soloist'].map((q) => bridge.search(q)),
+      ['solstice', 'dragon', 'solstice'].map((q) => bridge.search(q)),
     );
     if (
-      !concurrent[0]!.matches.some((m) => m.title === 'Soloist in a Cage') ||
-      !concurrent[2]!.matches.some((m) => m.title === 'Soloist in a Cage')
+      !concurrent[0]!.matches.some((m) => m.title === 'Solstice in a Lantern') ||
+      !concurrent[1]!.matches.some((m) => m.title.startsWith('The Dragon Archive')) ||
+      !concurrent[2]!.matches.some((m) => m.title === 'Solstice in a Lantern')
     ) {
       throw new Error('Concurrent catalogue searches mixed their statement state.');
     }
@@ -398,7 +413,7 @@ test('the real catalogue installs into OPFS and answers through the worker', asy
     phase: 'ready',
     works: 3722,
   });
-  expect(result.matches.map((match) => match.title)).toContain('Soloist in a Cage');
+  expect(result.matches.map((match) => match.title)).toContain('Solstice in a Lantern');
   expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
   // Pixel emulation changes the viewport and UA, not the desktop CPU. Keep a
   // broad cold-query regression alarm here; the contract's strict 50 ms check
@@ -406,7 +421,7 @@ test('the real catalogue installs into OPFS and answers through the worker', asy
   // pages are resident, every subsequent keystroke must already meet it.
   expect(result.elapsedMs).toBeLessThan(100);
   expect(result.timings.slice(1).every((elapsed) => elapsed < 50)).toBe(true);
-  expect(ranges).toEqual(['bytes=0-4194303', 'bytes=4194304-4825087']);
+  expect(ranges).toEqual(fixtureRanges());
 });
 
 test('an interrupted catalogue download resumes at the next verified chunk', async ({ page }) => {
@@ -423,7 +438,7 @@ test('an interrupted catalogue download resumes at the next verified chunk', asy
   });
   const interrupted = await page.evaluate(() => window.__EXL_CATALOGUE_TEST__!.install());
   expect(interrupted.phase).toBe('error');
-  expect(firstAttempt).toEqual(['bytes=0-4194303', 'bytes=4194304-4825087']);
+  expect(firstAttempt).toEqual(fixtureRanges().slice(0, 2));
 
   await page.unroute('**/corpus/corpus.sqlite');
   const resumedRanges: Array<string | undefined> = [];
@@ -434,7 +449,7 @@ test('an interrupted catalogue download resumes at the next verified chunk', asy
   });
   const resumed = await page.evaluate(() => window.__EXL_CATALOGUE_TEST__!.install());
   expect(resumed, JSON.stringify(resumed)).toMatchObject({ phase: 'ready', works: 3722 });
-  expect(resumedRanges).toEqual(['bytes=4194304-4825087']);
+  expect(resumedRanges).toEqual(fixtureRanges().slice(1));
   await page.evaluate(() => window.__EXL_CATALOGUE_TEST__!.close());
 });
 
@@ -562,26 +577,26 @@ test('Phase 3 catalogue UI installs, confirms format and status, and survives of
         setter?.call(field, query);
         field.dispatchEvent(new Event('input', { bubbles: true }));
       }),
-    { query: 'soloist', expectedTitle: 'Soloist in a Cage' },
+    { query: 'solstice', expectedTitle: 'Solstice in a Lantern' },
   );
   // This includes React state work and the next painted frame, not only the
   // worker's SQL timer. Desktop emulation is a regression alarm; the binding
   // 50 ms acceptance result still has to come from physical Android hardware.
   expect(cataloguePaintMs).toBeLessThan(100);
   await expect(
-    page.locator('[data-candidate]').filter({ hasText: 'Soloist in a Cage' }),
+    page.locator('[data-candidate]').filter({ hasText: 'Solstice in a Lantern' }),
   ).toContainText('Comic');
   await expect(
-    page.locator('[data-candidate]').filter({ hasText: 'Soloist in a Cage' }),
+    page.locator('[data-candidate]').filter({ hasText: 'Solstice in a Lantern' }),
   ).not.toContainText('·');
-  await page.getByRole('button', { name: 'Add Soloist in a Cage' }).click();
-  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Soloist in a Cage');
+  await page.getByRole('button', { name: 'Add Solstice in a Lantern' }).click();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Solstice in a Lantern');
   await expect(page.getByRole('radio', { name: 'Manhwa' })).toBeChecked();
   await expect(page.getByLabel('Cover reference')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Put it on the shelf' })).toBeDisabled();
   await page.getByRole('radio', { name: 'Wishlist' }).click();
   await page.getByRole('button', { name: 'Put it on the shelf' }).click();
-  await expect(page.getByText('Soloist in a Cage').first()).toBeVisible();
+  await expect(page.getByText('Solstice in a Lantern').first()).toBeVisible();
   // Wait for actual precaching, then cold-load the shell and WASM with no network.
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
   await page.reload();
@@ -598,9 +613,9 @@ test('Phase 3 catalogue UI installs, confirms format and status, and survives of
   await page.getByRole('button', { name: 'Dismiss connection message' }).click();
   await page.getByRole('button', { name: 'Add to the library' }).click();
   await page.getByRole('button', { name: 'Search the catalogue' }).click();
-  await page.getByRole('searchbox', { name: 'Search the catalogue' }).fill('soloist');
-  await page.getByRole('button', { name: 'Open Soloist in a Cage' }).click();
-  await expect(page.getByText('Soloist in a Cage').first()).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Search the catalogue' }).fill('solstice');
+  await page.getByRole('button', { name: 'Open Solstice in a Lantern' }).click();
+  await expect(page.getByText('Solstice in a Lantern').first()).toBeVisible();
 });
 
 test('Phase 3 online search only sends an explicit lookup and cancels stale results', async ({
@@ -762,6 +777,7 @@ test('a service-worker upgrade preserves local data and the downloaded catalogue
   await expect(offer).toBeVisible();
   await expect(offer.getByRole('button', { name: 'Update', exact: true })).toBeDisabled();
   await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   await expect(offer.getByRole('button', { name: 'Update', exact: true })).toBeEnabled();
   await offer.getByRole('button', { name: 'Update', exact: true }).click();
   await page.waitForFunction(() =>
@@ -783,8 +799,8 @@ test('a service-worker upgrade preserves local data and the downloaded catalogue
   await expect(relaunched.getByText('Still here after the upgrade').first()).toBeVisible();
   await relaunched.getByRole('button', { name: 'Add to the library' }).click();
   await relaunched.getByRole('button', { name: 'Search the catalogue' }).click();
-  await relaunched.getByRole('searchbox', { name: 'Search the catalogue' }).fill('soloist');
+  await relaunched.getByRole('searchbox', { name: 'Search the catalogue' }).fill('solstice');
   await expect(
-    relaunched.locator('[data-candidate]').filter({ hasText: 'Soloist in a Cage' }),
+    relaunched.locator('[data-candidate]').filter({ hasText: 'Solstice in a Lantern' }),
   ).toBeVisible();
 });

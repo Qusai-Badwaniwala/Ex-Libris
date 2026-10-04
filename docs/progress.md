@@ -1559,3 +1559,101 @@ re-read history remain deferred.
 Prettier checks passed for all changed documentation, including the workspace
 guide; `git diff --check` passed. No application tests or build were rerun for
 this documentation-only change.
+
+# 2026-10-04 · Product evolution Pass 1 (complete), Pass 2 in progress
+
+Owner explicitly approved the four-pass plan, app-wide Motion and all six
+consequential boundaries, including publication after verification (E-117).
+Clean `master` baseline; identity/immutable assets and schema are preserved.
+Implemented storage probe sharing, failed-write abort, atomic field-rule-based
+work edits, handled status/genre/caught-up errors, explicit drop-reason save,
+full known restore shape validation, collision disclosure and verified safety
+archives before overlapping merge. Retained snapshots now offer review/export;
+catalogue repair uses an inactive verified slot; immutable catalogue readers
+request compatible read-only handles. Wishlist removal now uses Trash/Undo.
+
+Focused tests: 27 passed. Temporarily restored the prior behaviors: twelve new
+assertions failed across concurrency, partial edits, validation, merge safety and
+repair; restored fixes and observed all pass. Strict types passed before the
+latest manifest-validation refinement. Full gate passed: 232 unit / 60 E2E,
+format/lint/types/frozen checks and normal build. Snapshot review/collisions
+inspected on desktop and 390×844 in both themes; preview stopped. Codex measured
+60.0fps with five mounted rows.
+No production release or commit yet. Archive work remains synchronous until
+Pass 4. No additional acquisition or dependency was added in Pass 1.
+
+Pass 2 installs pinned MIT Motion 14.0.0 and integrates LazyMotion/domMax,
+shared reviewed presets, immediate inert exits, modal focus/isolation, bounded
+disclosures, route/query/order context, proper backup step history and broader
+draft guards. Native transitions now commit a pending action before cancellation.
+The generated update helper's unconditional cross-client reload is replaced by
+a platform registration with per-client draft protection and a bounded on-demand
+window coordination check. Partial changes are not yet gate/browser verified.
+
+Pass 2 checkpoint: unweakened gate passed with 237 unit / 64 E2E and normal
+build. Fixed stale online result eligibility, order-editor presence identity,
+dynamic modal isolation, async focus restoration and virtual scroll ownership.
+Real phone light/dark add/acquisition/draft and local update inspected on 4291;
+preview stopped. Codex 60.0fps/five rows/top 68186. Unit regression proofs
+restored screen guards and update protection, observed failures, then passed.
+Pass 3 now in progress; record/history/stats and secondary-screen changes are
+not yet verified. Pass 4 worker/CI patches are prepared separately under .astra.
+
+## 2026-10-04 · Integrated evolution and final review
+
+Pass 3/4 code is integrated: record hierarchy, directly attached notes, read-only
+session history, current-year page/chapter totals, secondary-screen refinement,
+stable form actions, archive worker, offline asset trimming and reproducible
+release CI. The first combined gate passed 251 unit tests and 60 of 68 browser
+journeys. Eight browser failures identified stale selectors/new truthful-stat
+expectations and an attachment count that needed to expose attached titles.
+Focused reruns passed after correction.
+
+Sequential real-browser phone review in both themes covered Reading, Collection,
+Detail/session/history, note writing and nested tags, axes/editing, groups/worlds/
+orders, Wishlist/Surprise, Stats, Settings/About, backup/restore/paste import,
+catalogue/manual fallback and empty Trash; wider Stats/Settings hierarchy was
+also inspected. Review found a segment selection escaping its button, native
+disclosure button chrome, long-cover truncation, axis-underlay scroll loss and
+Surprise focus loss. Fixed these and reachable filter/session footers. Restoring
+the segment defect failed its bounding assertion; restoring the axis and reroll
+defects failed both new browser assertions, then both passed with repairs. The
+menu's underlying draft guard was missing; its new unit assertion failed before
+the fix and all 24 router tests passed after it. Browser acceptance is in the
+final gate. Native snapshots now allow live controls to receive immediate input.
+
+Archive/client suite passed 23 focused assertions including 16 MiB cover-byte
+fidelity; restoring synchronous ZIP parsing failed its structural boundary, then
+passed after repair. Authored synthetic fixture regenerated twice identically;
+production catalogue bytes and all deployment-part hashes were unchanged.
+Release guards passed/fail/passed and rejected the explicit test artifact.
+Normal shell precache: 41 entries/11520.57 KiB, formerly 53/15935.49 KiB.
+Motion code attribution: 42.8 KiB gzip; the 40 KiB target is missed by 2.8 KiB.
+Rejected fragile private Motion imports and a renderer rewrite. Final gate is
+running. Physical Android/TalkBack/launcher checks remain unpassed. No push or
+publication yet.
+
+The integrated gate completed: 252 unit / 72 E2E, normal production build,
+Codex 60.0fps/five rows/top 68186. Subsequent sequential theme→finish-profile
+review reproduced a swallowed rapid tap. A real-pointer assertion failed even
+with all snapshot pseudo-elements ignoring pointers: native capture suppresses
+hit testing before its callback. Replaced only the theme's native snapshot with
+a 200ms CSS colour handoff, retaining cover/add native transitions. Restored the
+native defect and observed the updated assertion fail again; restored the colour
+handoff and it passed. Programmatically focused headings retain screen-reader
+orientation without a decorative focus box; interactive keyboard focus remains.
+Final 73-journey gate is next. Production dependency audit: zero vulnerabilities.
+
+Final local gate passed: 252 unit / 73 E2E and normal build. Codex 60.0fps, five
+rows, exact top 68186. Archive worker: 16,781,472-byte archive, two faithful cover
+digests, 756ms, 46 frames, 16.8ms maximum frame gap and zero observed main-thread
+long tasks in this desktop-emulated run. Final tablet review caught the new nav
+indicator retaining its phone orientation from 768–899px; the extended assertion
+failed before aligning its breakpoint with the existing sidebar, then passed.
+No other production changes followed that targeted correction.
+
+Built normally for `/Ex-Libris/`, assembled the checked 273,784,832-byte catalogue
+and passed `check:release`: seven scripts without test bridges, approved licensed
+works/checksums and both offline theme derivatives. Candidate entry/CSS:
+index-C3h3hIoJ.js / index-ov2LJl_S.css. Actual Pages precache: 38 entries /
+11521.37 KiB. Publication next; CI will verify the committed state again.

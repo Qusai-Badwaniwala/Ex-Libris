@@ -19,6 +19,8 @@
     "icons": "node scripts/make-icons.mjs",
     "pages:corpus:split": "node scripts/pages-corpus.mjs split",
     "pages:corpus:assemble": "node scripts/pages-corpus.mjs assemble",
+    "check:release": "node scripts/check-release.ts",
+    "fixture:catalogue": "node pipeline/synthetic-fixture.ts",
     "pipeline": "node pipeline/run.ts"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "@journeyapps/wa-sqlite": "0.4.2",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
+    "motion": "14.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "three": "0.186.0"

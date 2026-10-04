@@ -3,6 +3,10 @@
 Anything needing the owner. Marked `BLOCKING` or `NON-BLOCKING`. Resolved items
 move to `DECISIONS.md` and are deleted from here.
 
+The 2026-10-04 product evolution and publication are fully approved (E-117–122).
+There is no remaining owner decision blocking this release. Physical checks
+below remain unpassed and distinct from browser acceptance.
+
 Questions inherited from the design session live in `design/OPEN-QUESTIONS.md`.
 The ones still live are restated below; the rest were answered on 2026-09-02 and
 2026-09-03.

@@ -2,6 +2,7 @@ import { nav, useNav } from '../../router/router';
 import { EmptyState } from '../components';
 import { NoteCard } from '../note-card';
 import { useNotes } from '../store';
+import { AnimatePresence } from '../motion';
 
 export function Notes() {
   const notes = useNotes();
@@ -25,13 +26,15 @@ export function Notes() {
         />
       ) : (
         <div className="room-note-feed">
-          {notes.map((context) => (
-            <NoteCard
-              key={context.note.id}
-              context={context}
-              onOpen={() => nav.open({ kind: 'noteEditor', id: context.note.id })}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {notes.map((context) => (
+              <NoteCard
+                key={context.note.id}
+                context={context}
+                onOpen={() => nav.open({ kind: 'noteEditor', id: context.note.id })}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </main>

@@ -34,6 +34,8 @@ test('manual choices have an explicit selected mark in both themes and support a
     await sheet.getByRole('radiogroup', { name: 'Shelf', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `.astra/review/adoption-selected-${theme}.png` });
     await sheet.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const discard = page.getByRole('button', { name: 'Discard changes', exact: true });
+    if (await discard.isVisible()) await discard.click();
   }
 });
 
@@ -134,7 +136,7 @@ test('the organiser protects drafts, previews membership and preserves books on 
   await page.getByRole('button', { name: 'Confirm changes' }).click();
   await expect(page.getByRole('heading', { name: 'Earthsea cycle', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Organise', exact: true }).click();
-  await page.getByText('Merge or remove this group', { exact: true }).click();
+  await page.getByRole('dialog').getByText('Merge or remove this group', { exact: true }).click();
   await page.getByRole('button', { name: 'Review group deletion' }).click();
   await page.getByRole('button', { name: 'Confirm changes' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);

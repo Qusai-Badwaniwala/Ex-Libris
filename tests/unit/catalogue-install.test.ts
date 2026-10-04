@@ -148,6 +148,32 @@ afterEach(() => {
 });
 
 describe('catalogue installation', () => {
+  it('repairs a damaged same-version file through a verified inactive slot', async () => {
+    const source = fixture();
+    const ranges = serve(source);
+    await installCatalogue('/corpus/manifest.json');
+    opfs.files.set('catalogue/corpus-20260905-test.sqlite', new Uint8Array([1]));
+    expect(await installCatalogue('/corpus/manifest.json')).toMatchObject({ phase: 'error' });
+    ranges.length = 0;
+    expect(await installCatalogue('/corpus/manifest.json', true)).toMatchObject({ phase: 'ready' });
+    expect(ranges).toEqual(['bytes=0-3', 'bytes=4-7']);
+    expect((await db.settings.get('singleton'))?.corpusVersion).toBe('20260905-test-repair');
+    expect(worker.verify).toHaveBeenLastCalledWith('catalogue/corpus-20260905-test-repair.sqlite');
+  });
+
+  it('keeps a healthy active file and pointer when repair is interrupted', async () => {
+    const source = fixture();
+    serve(source);
+    await installCatalogue('/corpus/manifest.json');
+    serve(source, () => {
+      throw new Error('offline');
+    });
+    expect(await installCatalogue('/corpus/manifest.json', true)).toMatchObject({ phase: 'error' });
+    expect((await db.settings.get('singleton'))?.corpusVersion).toBe(source.manifest.version);
+    expect(Array.from(opfs.files.get('catalogue/corpus-20260905-test.sqlite') ?? [])).toEqual(
+      Array.from(source.bytes),
+    );
+  });
   it('downloads verified ranges, promotes once complete, and cleans its marker', async () => {
     const source = fixture();
     const ranges = serve(source);

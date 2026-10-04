@@ -566,3 +566,22 @@ the chosen shelf and has no verified series/world evidence. The existing
 on-demand MangaDex connector remains comics-only. The licensed offline corpus,
 its 438,584 count and checksum are unchanged. Pure web-serial coverage remains
 limited by the lack of a compatible source, as documented above.
+
+## Authored gate fixture · 2026-10-04
+
+The default Playwright/CI path now runs `npm run fixture:catalogue`, reusing the
+production schema/FTS builder with 3,722 wholly authored synthetic records and
+`synthetic-test` source attribution. No remote or restricted cache is read.
+Two repeated Node 24 builds produced identical 7,573,504-byte databases and
+two four-MiB-boundary chunks (4,194,304 and 3,379,200 bytes), SHA256
+`6980113e7372d2d61da6634915ecce575f4774d5d6744e78469e1b1f4ad97eee`.
+Manifest SHA256 was `0227ac45b5d2ccd6be9df62246ad076d0221ee5fdd7677537fa48153a9e164ea`.
+The comic-title search is `Solstice in a Lantern`; concurrent searches also
+exercise `The Dragon Archive`. Install/resume asserts manifest-derived exact
+ranges and still requires multiple chunks; latency limits are unchanged.
+
+The historical restricted fixture remains a local opt-in engineering tool; it
+is no longer required by a clean checkout's gate. Production catalogue/parts,
+438,584 rows, licences and SHA256 remain unchanged. Release identity/bridge
+tests passed, failed with both protections bypassed and passed after restoration.
+Actual public artifact assembly/check evidence belongs in the final handoff.

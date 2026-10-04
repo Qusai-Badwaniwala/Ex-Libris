@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Disclosure } from './motion';
 import { ALL_TAGS, TAG_GROUPS, visibleTags } from '../data/taxonomy';
 import * as repo from '../db/repo';
-import { guardOverlayDismiss, nav } from '../router/router';
+import { nav } from '../router/router';
+import { useDraftGuard, DiscardDraft } from './draft-guard';
 import { Cover, Sheet, TagPill } from './components';
 import { tick } from './haptics';
 import { ChevronLeft, Search, TrashIcon } from './icons';
@@ -15,9 +17,11 @@ const fold = (value: string) => value.normalize('NFKC').toLocaleLowerCase('en-US
 
 export function NoteEditor({
   id,
+  initialWorkId,
   tagPickerOpen = false,
 }: {
   id?: string;
+  initialWorkId?: string;
   tagPickerOpen?: boolean;
 }) {
   const existing = useNote(id);
@@ -27,44 +31,47 @@ export function NoteEditor({
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [pinned, setPinned] = useState(false);
-  const [workIds, setWorkIds] = useState<string[]>([]);
+  const [workIds, setWorkIds] = useState<string[]>(initialWorkId ? [initialWorkId] : []);
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachQuery, setAttachQuery] = useState('');
   const [readyId, setReadyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const bypassGuard = useRef(false);
+  const titleInput = useRef<HTMLTextAreaElement>(null);
+  const bodyInput = useRef<HTMLTextAreaElement>(null);
+  const lastField = useRef<'title' | 'body'>('title');
+  const position = useRef<
+    { field: 'title' | 'body'; start: number; end: number; top: number } | undefined
+  >(undefined);
+  useLayoutEffect(() => {
+    if (titleInput.current) {
+      titleInput.current.style.height = 'auto';
+      titleInput.current.style.height = `${titleInput.current.scrollHeight}px`;
+    }
+  }, [title, tagPickerOpen]);
+  useLayoutEffect(() => {
+    if (tagPickerOpen || !position.current) return;
+    const saved = position.current;
+    const frame = requestAnimationFrame(() => {
+      const field = saved.field === 'body' ? bodyInput.current : titleInput.current;
+      field?.focus({ preventScroll: true });
+      field?.setSelectionRange(saved.start, saved.end);
+      const scroll = field?.closest<HTMLElement>('.room-sheet-content');
+      if (scroll) scroll.scrollTop = saved.top;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [tagPickerOpen]);
   const dirty =
-    title !== (existing?.note.title ?? '') ||
-    body !== (existing?.note.body ?? '') ||
-    pinned !== (existing?.note.pinned ?? false) ||
-    JSON.stringify([...workIds].sort()) !==
-      JSON.stringify((existing?.works.map((work) => work.id) ?? []).sort()) ||
-    JSON.stringify([...tagNames].sort()) !==
-      JSON.stringify((existing?.tags.map((tag) => tag.name) ?? []).sort());
-  useEffect(
-    () =>
-      guardOverlayDismiss('noteEditor', () => {
-        if (bypassGuard.current || !dirty) return true;
-        setConfirmDiscard((value) => !value);
-        return false;
-      }),
-    [dirty],
-  );
-  useEffect(() => {
-    if (!dirty) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty]);
-  useEffect(() => {
-    if (confirmDiscard) document.querySelector<HTMLButtonElement>('[data-keep-editing]')?.focus();
-  }, [confirmDiscard]);
+    (!id || readyId === id) &&
+    (title !== (existing?.note.title ?? '') ||
+      body !== (existing?.note.body ?? '') ||
+      pinned !== (existing?.note.pinned ?? false) ||
+      JSON.stringify([...workIds].sort()) !==
+        JSON.stringify((existing?.works.map((work) => work.id) ?? []).sort()) ||
+      JSON.stringify([...tagNames].sort()) !==
+        JSON.stringify((existing?.tags.map((tag) => tag.name) ?? []).sort()));
+  const guard = useDraftGuard(dirty, saving, 'noteEditor');
   const canSave = (title.trim().length > 0 || body.trim().length > 0) && !saving;
 
   useEffect(() => {
@@ -97,7 +104,7 @@ export function NoteEditor({
           ? repo.updateNote(id, { title, body, pinned, tagNames, workIds })
           : repo.createNote({ title, body, pinned, tagNames, workIds }),
       );
-      bypassGuard.current = true;
+      guard.allow();
       nav.close();
     } catch {
       setError('The note could not be saved. Your words and choices are still here; try again.');
@@ -112,7 +119,7 @@ export function NoteEditor({
     setError('');
     try {
       await withInteractionFeedback('Moving the note to Trash…', () => repo.softDeleteNote(id));
-      bypassGuard.current = true;
+      guard.allow();
       nav.close();
     } catch {
       setError('The note could not be moved to Trash. Nothing was deleted.');
@@ -120,27 +127,7 @@ export function NoteEditor({
     }
   };
 
-  if (confirmDiscard)
-    return (
-      <Sheet title="Discard unsaved changes?" onClose={() => setConfirmDiscard(false)}>
-        <div className="room-sheet-title">
-          <h2>Keep this thought?</h2>
-          <p>Your changes have not been saved.</p>
-        </div>
-        <button className="room-primary" data-keep-editing onClick={() => setConfirmDiscard(false)}>
-          Keep editing
-        </button>
-        <button
-          className="room-text"
-          onClick={() => {
-            bypassGuard.current = true;
-            nav.close();
-          }}
-        >
-          Discard changes
-        </button>
-      </Sheet>
-    );
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
 
   return (
     <Sheet
@@ -202,13 +189,20 @@ export function NoteEditor({
               <TrashIcon color="currentColor" />
             </button>
           </div>
-          <input
+          <textarea
+            ref={titleInput}
+            onFocus={() => {
+              lastField.current = 'title';
+            }}
+            rows={1}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Title, if it needs one"
             aria-label="Note title"
             style={{
               width: '100%',
+              resize: 'none',
+              overflow: 'hidden',
               minHeight: 40,
               background: 'transparent',
               border: 'none',
@@ -238,6 +232,10 @@ export function NoteEditor({
               </div>
             ) : null}
             <textarea
+              ref={bodyInput}
+              onFocus={() => {
+                lastField.current = 'body';
+              }}
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder="Write it however you think it."
@@ -278,7 +276,15 @@ export function NoteEditor({
               </span>
               <Chevron expanded={attachOpen} />
             </button>
-            {attachOpen ? (
+            {workIds.length > 0 && (
+              <div className="room-note-attachments" aria-label="Attached works">
+                {workIds.map((workId) => {
+                  const work = library?.find((row) => row.work.id === workId)?.work;
+                  return work ? <TagPill key={workId} name={work.title} /> : null;
+                })}
+              </div>
+            )}
+            <Disclosure open={attachOpen}>
               <AttachPicker
                 rows={library ?? []}
                 query={attachQuery}
@@ -292,11 +298,21 @@ export function NoteEditor({
                   )
                 }
               />
-            ) : null}
+            </Disclosure>
           </div>
 
           <button
-            onClick={() => nav.open({ kind: 'noteTags' })}
+            onClick={() => {
+              const field = lastField.current === 'body' ? bodyInput.current : titleInput.current;
+              if (field)
+                position.current = {
+                  field: field === bodyInput.current ? 'body' : 'title',
+                  start: field.selectionStart,
+                  end: field.selectionEnd,
+                  top: field.closest<HTMLElement>('.room-sheet-content')?.scrollTop ?? 0,
+                };
+              nav.open({ kind: 'noteTags' });
+            }}
             style={{
               ...resetButton,
               width: '100%',

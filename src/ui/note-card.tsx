@@ -2,6 +2,7 @@ import { localDay } from '../db/dates';
 import type { NoteContext } from '../db/repo';
 import { Cover } from './components';
 import { caption, displayS, resetButton } from './styles';
+import { m, useMotion, useIsPresent } from './motion';
 
 /** The same approved note hierarchy is used in the feed and on a linked work.
  * Keeping it here prevents Detail from drifting into a second kind of note. */
@@ -15,9 +16,17 @@ export function NoteCard({
   showAttachedWorks?: boolean;
 }) {
   const { note, works } = context;
+  const { reduced, settle, exit } = useMotion();
+  const present = useIsPresent();
   const accessibleName = note.title?.trim() || note.body.trim() || 'Open note';
   return (
-    <button
+    <m.button
+      layout={reduced ? false : 'position'}
+      initial={false}
+      exit={{ opacity: 0 }}
+      transition={present ? settle : exit}
+      inert={!present || undefined}
+      aria-hidden={!present || undefined}
       data-hover="raised"
       aria-label={`Edit note: ${accessibleName}`}
       onClick={onOpen}
@@ -41,7 +50,11 @@ export function NoteCard({
           <span style={{ ...caption, color: 'var(--text-secondary)' }}>Pinned</span>
         </span>
       ) : null}
-      {note.title ? <span style={displayS}>{note.title}</span> : null}
+      {note.title ? (
+        <span style={{ ...displayS, overflowWrap: 'anywhere', maxWidth: '100%' }}>
+          {note.title}
+        </span>
+      ) : null}
       {note.body ? (
         <span
           style={{
@@ -105,6 +118,6 @@ export function NoteCard({
         </span>
       ) : null}
       <span style={{ ...caption, color: 'var(--text-secondary)' }}>{localDay(note.updatedAt)}</span>
-    </button>
+    </m.button>
   );
 }

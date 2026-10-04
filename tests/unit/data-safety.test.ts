@@ -1,6 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import { db, loadSettings, saveSettings } from '../../src/db/db';
 import * as repo from '../../src/db/repo';
+
+// This suite tests archive/storage semantics in Node. Production and browser
+// tests use the real module worker; no browser fallback exists in the client.
+vi.mock('../../src/data-safety/archive-client', async () => {
+  const { processArchiveTask } = await import('../../src/data-safety/archive-codec');
+  return {
+    archiveBuffer: (bytes: Uint8Array) => bytes.slice().buffer,
+    encodeArchive: async (
+      data: import('../../src/db/backup').BackupFile,
+      manifest: import('../../src/data-safety/backup').BackupManifest,
+      entries: import('../../src/data-safety/zip').ZipEntry[],
+    ) => processArchiveTask({ type: 'build', data, manifest, entries }),
+    decodeArchive: async (filename: string, buffer: ArrayBuffer) =>
+      processArchiveTask({ type: 'read', filename, buffer }),
+    verifyArchive: async (filename: string, buffer: ArrayBuffer, expected?: ArrayBuffer) =>
+      processArchiveTask({ type: 'verify', filename, buffer, expected }),
+    validateArchiveData: async (data: import('../../src/db/backup').BackupFile) =>
+      processArchiveTask({ type: 'validate', data }),
+  };
+});
 
 interface StoredFile {
   bytes: Uint8Array;
@@ -95,6 +116,107 @@ describe('the Ex Libris ZIP', () => {
 });
 
 describe('complete backups', () => {
+  it('round-trips two eight-MiB user covers through the worker codec without losing bytes', async () => {
+    const expected = new Map<string, string>();
+    for (const [index, value] of [37, 219].entries()) {
+      const work = await repo.createWork({
+        title: `Large cover ${index + 1}`,
+        format: 'book',
+        status: 'reading',
+      });
+      const bytes = new Uint8Array(8 * 1024 * 1024).fill(value);
+      bytes[bytes.length - 1] = index;
+      const path = `covers/user/${work.id}/large.webp`;
+      opfs.files.set(path, { bytes, type: 'image/webp' });
+      await db.work.update(work.id, { coverSource: 'user', coverPath: path });
+      expected.set(work.id, createHash('sha256').update(bytes).digest('hex'));
+    }
+    const archive = await buildBackupArchive('test');
+    expect(archive.bytes.byteLength).toBeGreaterThan(16 * 1024 * 1024);
+    const prepared = await readBackupFile(
+      inMemoryFile('large.zip', archive.bytes, 'application/zip'),
+    );
+    for (const [id, digest] of expected) {
+      expect(createHash('sha256').update(prepared.coverBytes.get(id)!).digest('hex')).toBe(digest);
+    }
+    await Promise.all(db.tables.map((table) => table.clear()));
+    await restoreBackup(prepared, 'replace', 'test');
+    for (const [id, digest] of expected) {
+      const restored = await db.work.get(id);
+      expect(restored?.coverPath).toContain('/restore-');
+      expect(
+        createHash('sha256').update(opfs.files.get(restored!.coverPath!)!.bytes).digest('hex'),
+      ).toBe(digest);
+    }
+  });
+  it.each([
+    { status: 'invented' },
+    { genres: null },
+    { progressCurrent: -100 },
+    { progressCurrent: 1e100 },
+    { dateAdded: 'yesterday' },
+    { authorIds: {} },
+  ])('rejects malformed work fields before preview: %j', async (patch) => {
+    await repo.createWork({ title: 'Keep this work', format: 'book', status: 'reading' });
+    const archive = await buildBackupArchive('test');
+    Object.assign(archive.data.data.works[0]!, patch);
+    await expect(
+      readBackupFile(
+        inMemoryFile(
+          'bad.json',
+          new TextEncoder().encode(JSON.stringify(archive.data)),
+          'application/json',
+        ),
+      ),
+    ).rejects.toThrow(/invalid/);
+    expect((await db.work.toArray())[0]?.progressCurrent).toBe(0);
+  });
+
+  it('takes a verified safety snapshot before an overlapping merge while retaining incoming precedence', async () => {
+    const work = await repo.createWork({ title: 'Same record', format: 'book', status: 'reading' });
+    await repo.setProgressCurrent(work.id, 10);
+    const archive = await buildBackupArchive('test');
+    const prepared = await readBackupFile(
+      inMemoryFile('old.zip', archive.bytes, 'application/zip'),
+    );
+    await repo.setProgressCurrent(work.id, 99);
+    await restoreBackup(prepared, 'merge', 'test');
+    expect((await db.work.get(work.id))?.progressCurrent).toBe(10);
+    const snapshots = await inspectAutomaticBackups();
+    expect(snapshots.items).toHaveLength(1);
+    const file = await readFile(snapshots.items[0]!.path);
+    const saved = await readBackupFile(file!);
+    expect(saved.data.data.works[0]?.progressCurrent).toBe(99);
+  });
+
+  it('rolls back all edited fields when the last work update fails', async () => {
+    const work = await repo.createWork({ title: 'Original', format: 'book', status: 'reading' });
+    const fail = (changes: Record<string, unknown>) => {
+      if ('progressTotal' in changes) throw new Error('Late storage failure');
+    };
+    db.work.hook('updating').subscribe(fail);
+    try {
+      await expect(
+        repo.editWork(work.id, {
+          title: 'Edited',
+          author: 'New author',
+          format: 'novel',
+          unit: 'chapter',
+          current: 15,
+          total: 30,
+          publication: 'complete',
+        }),
+      ).rejects.toThrow('Late storage failure');
+      expect(await db.work.get(work.id)).toMatchObject({
+        title: 'Original',
+        format: 'book',
+        progressCurrent: 0,
+      });
+      expect(await db.author.count()).toBe(0);
+    } finally {
+      db.work.hook('updating').unsubscribe(fail);
+    }
+  });
   it('refuses a destructive restore when its safety archive cannot be read back intact', async () => {
     const work = await repo.createWork({
       title: 'Keep this book',

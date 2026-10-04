@@ -15,6 +15,8 @@ import { AxisProfile } from '../axis-profile';
 import { matchedAxesSentence, moreLikeThis } from '../../axes/axes';
 import { NoteCard } from '../note-card';
 import { readRelationships } from '../../relationships/library';
+import { Disclosure } from '../motion';
+import { usePresentationState } from '../../router/presentation';
 
 /**
  * Book detail. The landing site of the cover flight.
@@ -47,6 +49,16 @@ export function Detail({
     return (await readRelationships()).relation(work);
   }, [id]);
   const axisRating = useLiveQuery(() => db.axisRating.get(id), [id]);
+  const sessions = useLiveQuery(
+    () => db.readingSession.where('workId').equals(id).reverse().sortBy('at'),
+    [id],
+  );
+  const [profileOpen, setProfileOpen] = usePresentationState<boolean | undefined>(
+    'profile-open',
+    undefined,
+  );
+  const [historyOpen, setHistoryOpen] = usePresentationState('history-open', false);
+  const [historyLimit, setHistoryLimit] = usePresentationState('history-limit', 10);
   const recommendations = useLiveQuery(async () => {
     const [target, works, ratings] = await Promise.all([
       db.axisRating.get(id),
@@ -356,27 +368,7 @@ export function Detail({
 
         {suggestRelationships && !deleted ? <RelationshipOffer workId={id} /> : null}
 
-        <section aria-labelledby="axes-heading">
-          <div id="axes-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
-            Reading profile
-          </div>
-          <AxisProfile
-            work={work}
-            rating={axisRating}
-            onEdit={(axis) => nav.push({ screen: 'axis', id, axis })}
-          />
-        </section>
-
-        <section aria-labelledby="work-record-heading">
-          <div id="work-record-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
-            Record
-          </div>
-          <LedgerRow
-            label="Format"
-            value={work.format === 'book' ? 'Book' : work.format === 'novel' ? 'Novel' : 'Manhwa'}
-          />
-          <LedgerRow label="Publication" value={d.publicationLabel} />
-          <LedgerRow label="Progress unit" value={work.progressUnit} />
+        <section aria-label="Series and world">
           <LedgerRow
             label="Series"
             value={
@@ -391,28 +383,138 @@ export function Detail({
             }
             chevron
           />
-          {relationship?.universe ? (
+          {relationship?.universe && (
             <LedgerRow
               label="World"
               value={relationship.universe.name}
               onClick={() => nav.push({ screen: 'universe', id: relationship.universe!.id })}
               chevron
             />
-          ) : null}
-          {relationship?.series || relationship?.universe ? (
-            <button
-              onClick={() => nav.open({ kind: 'seriesPicker', id })}
-              style={{
-                ...resetButton,
-                ...caption,
-                color: 'var(--accent-text)',
-                minHeight: 36,
-                textAlign: 'left',
-              }}
-            >
+          )}
+          {(relationship?.series || relationship?.universe) && (
+            <button className="room-text" onClick={() => nav.open({ kind: 'seriesPicker', id })}>
               Organise series and world
             </button>
-          ) : null}
+          )}
+        </section>
+
+        <section aria-labelledby="work-notes-heading">
+          <div className="room-section-heading">
+            <h2 id="work-notes-heading" style={{ ...displayS, margin: 0 }}>
+              Notes
+            </h2>
+            {!deleted && (
+              <button
+                className="room-text"
+                onClick={() => nav.open({ kind: 'noteEditor', workId: id })}
+              >
+                Write a note
+              </button>
+            )}
+          </div>
+          {linkedNotes === undefined ? (
+            <p role="status">Opening attached notes…</p>
+          ) : linkedNotes.length ? (
+            linkedNotes.map((context) => (
+              <NoteCard
+                key={context.note.id}
+                context={context}
+                showAttachedWorks={false}
+                onOpen={() => nav.open({ kind: 'noteEditor', id: context.note.id })}
+              />
+            ))
+          ) : (
+            <p className="room-stat-note">
+              A passage, a thought, or a thread to keep with this work.
+            </p>
+          )}
+        </section>
+
+        <section aria-labelledby="axes-heading">
+          <button
+            className="room-disclosure-toggle"
+            id="axes-heading"
+            aria-expanded={profileOpen ?? !!axisRating}
+            aria-controls="work-profile"
+            onClick={() => setProfileOpen(!(profileOpen ?? !!axisRating))}
+          >
+            Reading profile
+            <span aria-hidden="true">{(profileOpen ?? !!axisRating) ? '−' : '+'}</span>
+          </button>
+          <Disclosure id="work-profile" open={profileOpen ?? !!axisRating}>
+            <AxisProfile
+              work={work}
+              rating={axisRating}
+              onEdit={(axis) => nav.push({ screen: 'axis', id, axis })}
+            />
+          </Disclosure>
+        </section>
+
+        <section aria-label="Reading history">
+          <button
+            className="room-disclosure-toggle"
+            aria-expanded={historyOpen}
+            aria-controls="work-sessions"
+            onClick={() => setHistoryOpen(!historyOpen)}
+          >
+            Reading history{' '}
+            <span>
+              {sessions === undefined ? '…' : sessions.length}{' '}
+              <span aria-hidden="true">{historyOpen ? '−' : '+'}</span>
+            </span>
+          </button>
+          <Disclosure id="work-sessions" open={historyOpen}>
+            {sessions === undefined ? (
+              <p role="status">Opening logged sessions…</p>
+            ) : sessions.length ? (
+              <>
+                <p className="room-stat-note">
+                  Logged sessions, most recent first. Progress corrections do not create sessions.
+                </p>
+                <ol className="room-session-history">
+                  {sessions.slice(0, historyLimit).map((session) => (
+                    <li key={session.id}>
+                      <time dateTime={session.at}>
+                        {localDay(session.at)} ·{' '}
+                        {new Date(session.at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                      <strong>
+                        +{session.delta.toLocaleString()} {session.unit}
+                        {session.delta === 1 ? '' : 's'}
+                      </strong>
+                      <span>
+                        {session.from.toLocaleString()} → {session.to.toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {sessions.length > historyLimit && (
+                  <button className="room-text" onClick={() => setHistoryLimit(historyLimit + 10)}>
+                    Show earlier sessions
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="room-stat-note">
+                Your logged sessions will appear here. An initial position is not a reading session.
+              </p>
+            )}
+          </Disclosure>
+        </section>
+
+        <section aria-labelledby="work-record-heading">
+          <div id="work-record-heading" style={{ ...label, marginBottom: 'var(--space-2)' }}>
+            Record
+          </div>
+          <LedgerRow
+            label="Format"
+            value={work.format === 'book' ? 'Book' : work.format === 'novel' ? 'Novel' : 'Manhwa'}
+          />
+          <LedgerRow label="Publication" value={d.publicationLabel} />
+          <LedgerRow label="Progress unit" value={work.progressUnit} />
           <LedgerRow label="Added" value={localDay(work.dateAdded)} />
         </section>
 
@@ -482,7 +584,8 @@ export function Detail({
                   <button
                     key={recommendation.work.id}
                     aria-label={`${recommendation.work.title}. ${matchedAxesSentence(recommendation.matchedAxes, recommendation.rating)}`}
-                    onClick={() => nav.push({ screen: 'detail', id: recommendation.work.id })}
+                    data-work={recommendation.work.id}
+                    onClick={() => nav.openWork(recommendation.work.id)}
                     data-hover="raised"
                     style={{
                       ...resetButton,
@@ -530,23 +633,6 @@ export function Detail({
                 );
               })}
             </div>
-          </section>
-        ) : null}
-
-        {linkedNotes?.length ? (
-          <section aria-labelledby="work-notes-heading">
-            <h2 id="work-notes-heading" style={{ ...displayS, margin: 0 }}>
-              Notes
-            </h2>
-            {linkedNotes.map((context) => (
-              <NoteCard
-                key={context.note.id}
-                context={context}
-                showAttachedWorks={false}
-                onOpen={() => nav.open({ kind: 'noteEditor', id: context.note.id })}
-              />
-            ))}
-            <div style={{ borderTop: 'var(--hairline-width) solid var(--hairline)' }} />
           </section>
         ) : null}
       </div>

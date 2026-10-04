@@ -4,6 +4,18 @@
 version-2 contract (2026-09-07) is retained below, with the append-only adoption
 changes recorded first.
 
+## Evolution contract · 2026-10-04
+
+No persisted shape, migration, ID or archive version changes. Session history is
+read-only; yearly page/chapter figures derive from `readingSession.at` in the
+local calendar year, while lifetime chapters remain separately available.
+Wishlist removal now uses the existing work Trash contract and Undo, retaining
+notes, profiles and covers. Catalogue repair points the existing `corpusVersion`
+setting at a verified inactive `-repair`/`-repair-2` slot. Backup parsing validates
+known record fields and all references; overlapping merges retain incoming
+precedence but require a complete verified safety ZIP. The archive worker owns
+encoding/decoding and validation; Dexie/OPFS ownership stays on the main thread.
+
 ## Adoption contract · 2026-09-20
 
 Dexie version **3** appends a preference-only migration: all retired `spine`

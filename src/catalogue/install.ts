@@ -65,8 +65,11 @@ async function sha256(data: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function readResumeMarker(manifest: CorpusManifest): Promise<ResumeMarker | null> {
-  const file = await readFile(resumePath(manifest.version));
+async function readResumeMarker(
+  manifest: CorpusManifest,
+  slot: string,
+): Promise<ResumeMarker | null> {
+  const file = await readFile(resumePath(slot));
   if (!file) return null;
   try {
     const marker = JSON.parse(await file.text()) as Partial<ResumeMarker>;
@@ -84,9 +87,13 @@ async function readResumeMarker(manifest: CorpusManifest): Promise<ResumeMarker 
   return null;
 }
 
-async function recoverCompletedChunks(manifest: CorpusManifest, path: string): Promise<number> {
+async function recoverCompletedChunks(
+  manifest: CorpusManifest,
+  path: string,
+  slot: string,
+): Promise<number> {
   const size = await fileSize(path);
-  const marker = await readResumeMarker(manifest);
+  const marker = await readResumeMarker(manifest, slot);
   // A marker records progress, not integrity: storage may have changed after
   // it was written. Rehash existing chunks in bounded memory before trusting
   // them, including when the marker survived. A lost marker costs no download.
@@ -136,7 +143,7 @@ async function fetchChunk(
   return data;
 }
 
-async function install(manifestURL: string): Promise<CatalogueInstallState> {
+async function install(manifestURL: string, repair: boolean): Promise<CatalogueInstallState> {
   if (!(await opfsAvailable())) {
     const unavailable: CatalogueInstallState = {
       phase: 'unavailable',
@@ -150,22 +157,43 @@ async function install(manifestURL: string): Promise<CatalogueInstallState> {
   let manifest: CorpusManifest | undefined;
   try {
     manifest = await fetchCorpusManifest(manifestURL);
-    const path = corpusPath(manifest.version);
     const active = await db.settings.get('singleton');
-    if (active?.corpusVersion === manifest.version) {
-      const stored = await readFile(manifestPath(manifest.version));
+    let sameVersion = active?.corpusVersion === manifest.version;
+    if (active?.corpusVersion) {
+      const stored = await readFile(manifestPath(active.corpusVersion));
       const installed = stored ? parseManifest(JSON.parse(await stored.text())) : null;
-      if (installed?.sha256 !== manifest.sha256)
+      sameVersion ||= installed?.version === manifest.version;
+      if (sameVersion && installed && installed.sha256 !== manifest.sha256)
         throw new Error(
           'The catalogue host reused an installed version for different data. Keep the current index and retry after the host is corrected.',
         );
-      const works = await openInstalledCatalogue(manifest.version);
-      const ready: CatalogueInstallState = { phase: 'ready', manifest, path, works };
-      publish(ready);
-      return ready;
+      if (sameVersion && !repair) {
+        try {
+          const works = await openInstalledCatalogue(active.corpusVersion);
+          const ready: CatalogueInstallState = {
+            phase: 'ready',
+            manifest,
+            path: corpusPath(active.corpusVersion),
+            works,
+          };
+          publish(ready);
+          return ready;
+        } catch {
+          throw new Error(
+            'The installed catalogue could not be opened. Choose Repair catalogue to download a verified replacement. You can still add by hand or search online.',
+          );
+        }
+      }
     }
+    // Repair downloads to an inactive, resumable slot. The current file and
+    // pointer survive interruption/quota errors, including a healthy repair.
+    const slot =
+      sameVersion || repair
+        ? `${manifest.version}-repair${active?.corpusVersion === `${manifest.version}-repair` ? '-2' : ''}`
+        : manifest.version;
+    const path = corpusPath(slot);
     const startedAt = performance.now();
-    let completed = await recoverCompletedChunks(manifest, path);
+    let completed = await recoverCompletedChunks(manifest, path, slot);
     let receivedBytes = chunkEnd(manifest, completed);
     publish({
       phase: 'downloading',
@@ -185,7 +213,7 @@ async function install(manifestURL: string): Promise<CatalogueInstallState> {
         manifestSha256: manifest.sha256,
         completedChunks: completed,
       };
-      await writeFile(resumePath(manifest.version), JSON.stringify(marker));
+      await writeFile(resumePath(slot), JSON.stringify(marker));
       const progress: InstallProgress = {
         receivedBytes,
         totalBytes: manifest.bytes,
@@ -206,9 +234,9 @@ async function install(manifestURL: string): Promise<CatalogueInstallState> {
     // old version remains active; after it completes, the fully verified,
     // versioned file is active. No half-file ever occupies the live path.
     const previous = await db.settings.get('singleton');
-    await writeFile(manifestPath(manifest.version), JSON.stringify(manifest));
+    await writeFile(manifestPath(slot), JSON.stringify(manifest));
     await saveSettings({
-      corpusVersion: manifest.version,
+      corpusVersion: slot,
       corpusInstalledAt: new Date().toISOString(),
       corpusSkippedAt: undefined,
     });
@@ -216,8 +244,8 @@ async function install(manifestURL: string): Promise<CatalogueInstallState> {
     // Cleanup is after the pointer switch and deliberately best-effort. A stale
     // old file costs storage; it must never turn a successfully installed,
     // already-active catalogue into an error screen.
-    const stalePaths = [resumePath(manifest.version)];
-    if (previous?.corpusVersion && previous.corpusVersion !== manifest.version) {
+    const stalePaths = [resumePath(slot)];
+    if (previous?.corpusVersion && previous.corpusVersion !== slot) {
       stalePaths.push(
         corpusPath(previous.corpusVersion),
         manifestPath(previous.corpusVersion),
@@ -240,9 +268,12 @@ async function install(manifestURL: string): Promise<CatalogueInstallState> {
 }
 
 /** Concurrent taps share one install. A retry starts only after failure settles. */
-export function installCatalogue(manifestURL = MANIFEST_URL): Promise<CatalogueInstallState> {
+export function installCatalogue(
+  manifestURL = MANIFEST_URL,
+  repair = false,
+): Promise<CatalogueInstallState> {
   if (running) return running;
-  running = install(manifestURL).finally(() => {
+  running = install(manifestURL, repair).finally(() => {
     running = null;
   });
   return running;

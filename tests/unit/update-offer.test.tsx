@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   overlays: [] as { kind: string }[],
   screen: 'home',
   pending: false,
+  otherClientBusy: false,
   automatic: { active: false },
   install: { phase: 'idle' },
   update: vi.fn(async () => {}),
@@ -14,8 +15,18 @@ const state = vi.hoisted(() => ({
 vi.mock('../../src/data-safety/backup', () => ({
   automaticBackupStore: { subscribe: () => () => {}, getSnapshot: () => state.automatic },
 }));
-vi.mock('virtual:pwa-register/react', () => ({
-  useRegisterSW: () => ({ needRefresh: [state.ready], updateServiceWorker: state.update }),
+vi.mock('../../src/pwa/client', () => ({
+  pwaUpdate: {
+    getSnapshot: () => state.ready,
+    subscribe: () => () => {},
+    start: () => {},
+    protect: () => {},
+    apply: state.update,
+  },
+  coordinateUpdates: () => ({
+    otherClientIsBusy: async () => state.otherClientBusy,
+    close: () => {},
+  }),
 }));
 vi.mock('../../src/router/router', () => ({
   useNav: () => ({ screens: [{ screen: state.screen }], overlays: state.overlays }),
@@ -27,6 +38,7 @@ vi.mock('../../src/catalogue/install', () => ({
   catalogueInstallStore: { subscribe: () => () => {}, getSnapshot: () => state.install },
 }));
 import { UpdateOffer } from '../../src/pwa/update';
+import { protectDraft } from '../../src/ui/draft-state';
 
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -39,6 +51,7 @@ beforeEach(() => {
     overlays: [],
     screen: 'home',
     pending: false,
+    otherClientBusy: false,
     automatic: { active: false },
     install: { phase: 'idle' },
   });
@@ -81,7 +94,31 @@ it('requires a click to activate a ready worker, and supports deferral', async (
   render();
   expect(state.update).not.toHaveBeenCalled();
   await act(async () => updateButton().click());
-  expect(state.update).toHaveBeenCalledWith(true);
+  expect(state.update).toHaveBeenCalledOnce();
+});
+
+it('protects a dirty screen without requiring an overlay', () => {
+  state.screen = 'axis';
+  let release: (() => void) | undefined;
+  act(() => {
+    release = protectDraft();
+  });
+  try {
+    render();
+    expect(updateButton().disabled).toBe(true);
+  } finally {
+    act(() => release?.());
+  }
+  expect(updateButton().disabled).toBe(false);
+});
+
+it('keeps a waiting release inactive while another client has a draft', async () => {
+  state.otherClientBusy = true;
+  render();
+  await act(async () => updateButton().click());
+  expect(state.update).not.toHaveBeenCalled();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain('other Ex Libris window');
+  expect(updateButton().disabled).toBe(false);
 });
 
 it('keeps the current app when Later is chosen', () => {

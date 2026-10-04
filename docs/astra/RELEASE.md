@@ -5,7 +5,13 @@ GitHub Pages publication on 2026-09-21. See the canonical HANDOFF for the exact
 release commit, verification and deployment status. No localhost sample data
 is transferred to the deployed reader's library.
 
-Latest application release, 2026-10-02: owner-supplied X-and-quill icon,
+**2026-10-04 product evolution:** the complete approved upgrade has passed its
+252-unit / 73-browser local gate and normal Pages artifact checks. Motion and
+secondary screens are refined; recovery and archive processing are safer. DB-v3,
+archive schema 2, origin, icon and Reading Room identity remain. Publication is
+next; use the canonical HANDOFF for the actual release/run and live evidence.
+
+Previous application release, 2026-10-02: owner-supplied X-and-quill icon,
 commit `9ad1246`, successful Pages run
 [37048612948](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37048612948).
 On 2026-10-03 the public assets still match the reviewed build:

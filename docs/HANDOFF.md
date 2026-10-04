@@ -1,4 +1,76 @@
-# Ex Libris — current Reading Room release
+# Ex Libris — verified product evolution, publication next
+
+Updated 2026-10-04. Repository: `H:\Ex libris Project\Website`, branch
+`master`, clean starting checkpoint `00c88d0`. The owner approved the entire
+four-pass [Product Evolution](PRODUCT-EVOLUTION.md), all six boundaries and
+publication after verification (E-117–122). No further scope approval is needed.
+Preserve the released Reading Room, immutable design files, deployed records and
+installation identity. No prescriptive design skills or architecture migration.
+
+## Current candidate
+
+All four passes are implemented: recovery and write safety; shared purposeful
+motion and continuity; record/secondary-screen refinement; archive worker,
+smaller offline shell and reproducible CI. Dexie v3 and archive schema 2 remain.
+Wishlist removal is recoverable, restore collisions are explicit with verified
+safety copies, retained snapshots are actionable and catalogue repair uses an
+inactive verified slot. Search/import/group context and drafts survive navigation
+and coordinated updates. Detail offers attached note creation and read-only
+session history; yearly statistics use local session dates. Native cover/add
+transitions remain; theme uses CSS because full-page capture swallowed rapid taps.
+
+The unweakened local gate passed: **252 unit / 73 production-mode E2E**,
+format/lint/types/frozen checks and normal build. Codex: **60.0fps**, five mounted
+rows, exact restored Back position **68186**, no idle rendering. The 16 MiB
+archive exercise returned 16,781,472 bytes with both cover digests intact:
+756ms elapsed, 46 frames, longest gap 16.8ms and no observed main-thread long task
+in that desktop-emulated run. Production dependency audit: zero vulnerabilities.
+Motion source-map attribution: 43,834 gzip bytes (42.8 KiB), 2.8 KiB over the
+40 KiB target; unsupported private imports were rejected.
+
+Sequential real-browser review covered Reading/Collection/Codex, search/manual
+acquisition, Detail/log/history/profile, Notes and nested tags, finish/axes,
+series/world/orders, Wishlist/Surprise/removal/Trash restore, Stats,
+Settings/About/tag maintenance, backup/snapshot/restore/paste review in both
+themes, plus phone/820px tablet/1280px desktop hierarchy. Automated layout
+journeys also cover 360/412/820/1440px and enlarged/reduced-motion states.
+The final tablet review found the new indicator's orientation breakpoint lagged
+the existing 768px sidebar; its assertion failed before the one-value correction
+and passed after it. CI will rerun the full gate on the committed
+release. Phone-sized browser review is not physical Android evidence.
+
+Final normal root build: entry 660.80 kB / 201.68 kB gzip; CSS 44.35 / 9.65;
+lazy Motion features 85.84 / 28.39; Codex 526.49 / 132.67; archive worker 15.16.
+Precache 41 entries / 11521.18 KiB, formerly 53 / 15935.49 KiB. Both illustration
+theme derivatives remain offline; unused originals and the catalogue are excluded.
+Synthetic CI fixture is authored, 3,722 works / 7,573,504 bytes / two chunks;
+the production catalogue and all deployment-part hashes are unchanged.
+
+## Next three actions
+
+The `/Ex-Libris/` normal build, catalogue assembly and `npm run check:release`
+passed: seven scripts without test bridges, approved 438,584-work checksum,
+scope/start URL, 404 fallback and both offline art themes. Pages candidate
+entry `index-C3h3hIoJ.js`, CSS `index-ov2LJl_S.css`; precache 38 entries /
+11521.37 KiB. These are pre-commit build names, not the final public identifiers.
+
+1. Commit named files and push `master` under the owner's authority; wait for
+   the Pages workflow's complete gate/artifact checks and deployment.
+2. Activate the live update, confirm the two pre-existing browser records survive,
+   record exact public assets/run/build ID, and push documentation-only evidence.
+3. Leave the verified release and handoff ready for the owner; physical device
+   checks remain separate and do not reopen approved implementation scope.
+
+No app commit/push/publication yet. Preview 4291 is stopped for builds.
+There are no known broken candidate workflows or owner decisions needed.
+Physical Q-028, TalkBack and launcher checks remain unpassed; rereads/session
+editing and separate tooling advisories remain deferred. No paid service or
+catalogue acquisition is needed. Read-only GitHub API checks work; `gh` is not
+on PATH. Tests/builds require escalation for Windows esbuild spawning. Before a
+build check 5173/4173/4284/4291 and relevant Node command lines; never overwrite
+a served artifact. Keep localhost fiction out of the deployed reader's library.
+
+## Unchanged public baseline
 
 Updated 2026-10-03. Production repository: `H:\Ex libris Project\Website`,
 branch `master`. The isolated historical implementation remains in

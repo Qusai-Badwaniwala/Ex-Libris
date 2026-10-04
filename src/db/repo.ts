@@ -104,6 +104,8 @@ export interface LibraryStats {
   year: number;
   finishedThisYear: number;
   chaptersRead: number;
+  pagesThisYear: number;
+  chaptersThisYear: number;
   yearsTracked: number;
   libraryTotal: number;
   readingNow: number;
@@ -223,6 +225,12 @@ export async function libraryStats(now = new Date()): Promise<LibraryStats> {
         ).length,
         chaptersRead: sessions
           .filter((session) => session.unit === 'chapter')
+          .reduce((sum, session) => sum + session.delta, 0),
+        pagesThisYear: sessions
+          .filter((session) => session.unit === 'page' && localYear(session.at) === year)
+          .reduce((sum, session) => sum + session.delta, 0),
+        chaptersThisYear: sessions
+          .filter((session) => session.unit === 'chapter' && localYear(session.at) === year)
           .reduce((sum, session) => sum + session.delta, 0),
         yearsTracked: settings?.firstTrackedAt ? yearsTracked(settings.firstTrackedAt, now) : 0,
         libraryTotal: library.length,
@@ -878,6 +886,38 @@ export async function createWorks(inputs: NewWorkInput[]): Promise<Work[]> {
 }
 
 // ── editing a work ────────────────────────────────────────────────────────
+
+/** Reuse field rules inside one commit; a late failure must not save half a draft. */
+export async function editWork(
+  id: string,
+  draft: {
+    title: string;
+    author: string;
+    format: Format;
+    unit: ProgressUnit;
+    current: number;
+    total?: number;
+    publication: PublicationStatus;
+  },
+): Promise<void> {
+  if (!draft.title.trim()) throw new Error('A work needs a title.');
+  if (
+    !Number.isSafeInteger(draft.current) ||
+    draft.current < 0 ||
+    (draft.total !== undefined && (!Number.isSafeInteger(draft.total) || draft.total < 0))
+  )
+    throw new Error('Progress must be a whole, non-negative number.');
+  await db.transaction('rw', db.work, db.author, async () => {
+    if (!(await db.work.get(id))) throw new Error('This work no longer exists.');
+    await setTitle(id, draft.title);
+    await setAuthor(id, draft.author);
+    await setFormat(id, draft.format);
+    await setProgressUnit(id, draft.unit);
+    await setPublicationStatus(id, draft.publication);
+    await setProgressCurrent(id, draft.current);
+    await setProgressTotal(id, draft.total);
+  });
+}
 
 async function patch(id: string, changes: Partial<Work>): Promise<Work> {
   await db.work.update(id, { ...changes, updatedAt: nowIso() });

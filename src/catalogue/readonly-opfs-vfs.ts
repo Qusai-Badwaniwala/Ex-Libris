@@ -16,7 +16,26 @@ async function accessHandleFor(path: string): Promise<FileSystemSyncAccessHandle
   if (typeof file.createSyncAccessHandle !== 'function') {
     throw new Error('This browser cannot open the on-device catalogue efficiently.');
   }
-  return file.createSyncAccessHandle();
+  try {
+    // The catalogue is immutable. Read-only handles let installed app/browser
+    // windows search together instead of taking an exclusive writer lock.
+    return await (
+      file.createSyncAccessHandle as (options: {
+        mode: 'read-only';
+      }) => Promise<FileSystemSyncAccessHandle>
+    )({ mode: 'read-only' });
+  } catch (cause) {
+    if (cause instanceof TypeError) {
+      try {
+        return await file.createSyncAccessHandle();
+      } catch {
+        /* Older implementations support a single exclusive reader. */
+      }
+    }
+    throw new Error(
+      'This browser could not open the catalogue. Close other Ex Libris windows and retry. Manual entry and online lookup remain available.',
+    );
+  }
 }
 
 /**

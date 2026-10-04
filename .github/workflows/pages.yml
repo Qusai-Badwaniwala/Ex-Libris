@@ -3,6 +3,10 @@ name: Deploy Ex Libris
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'AGENTS.md'
   workflow_dispatch:
 
 permissions:
@@ -17,6 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Check out the project
         uses: actions/checkout@v6
@@ -30,6 +35,21 @@ jobs:
       - name: Install exact dependencies
         run: npm ci
 
+      - name: Install the browser used by the gate
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify the complete application
+        run: npm run gate
+
+      - name: Retain failed browser evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-evidence
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Build for the project site
         run: npm run build
         env:
@@ -37,6 +57,9 @@ jobs:
 
       - name: Restore the checked production catalogue
         run: npm run pages:corpus:assemble
+
+      - name: Verify the exact public artifact
+        run: npm run check:release
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

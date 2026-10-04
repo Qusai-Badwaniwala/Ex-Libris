@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { nav } from '../router/router';
+import { nav, useTopOverlay } from '../router/router';
+import { usePresentationState } from '../router/presentation';
 import { catalogue } from '../catalogue/client';
 import { openInstalledCatalogue } from '../catalogue/install';
 import { searchMangaDex } from '../catalogue/mangadex';
@@ -11,6 +12,7 @@ import { Cover, Sheet } from './components';
 import { SearchField } from './search-field';
 import { withInteractionFeedback } from './interaction-feedback';
 import { caption, label, quietButton, resetButton } from './styles';
+import { Arrive } from './motion';
 
 const formatHintLabel = (match: CorpusMatch) =>
   match.formatHint === 'manhwa'
@@ -22,16 +24,24 @@ const formatHintLabel = (match: CorpusMatch) =>
         : 'Format unknown — choose before adding';
 
 export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [matches, setMatches] = useState<CorpusMatch[]>([]);
+  const overlay = useTopOverlay();
+  const entry = useRef(overlay).current;
+  const [query, setQuery] = usePresentationState('catalogue-query', initialQuery);
+  const [matches, setMatches] = usePresentationState<CorpusMatch[]>('catalogue-matches', []);
   const [message, setMessage] = useState('');
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [onlineResults, setOnlineResults] = useState<'books' | 'comics' | null>(null);
+  const [onlineResults, setOnlineResults] = usePresentationState<'books' | 'comics' | null>(
+    'catalogue-source',
+    null,
+  );
+  const [completedQuery, setCompletedQuery] = usePresentationState('catalogue-completed-query', '');
   const generation = useRef(0);
   const onlineRequest = useRef<AbortController | null>(null);
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   const owned = useLiveQuery(() => db.work.filter((work) => !work.deletedAt).toArray(), []);
+  const previousSearch = useRef({ completedQuery, onlineResults, matches: matches.length });
+  previousSearch.current = { completedQuery, onlineResults, matches: matches.length };
 
   useEffect(() => {
     let cancelled = false;
@@ -63,10 +73,14 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     const counter = generation;
     const request = ++counter.current;
     onlineRequest.current?.abort();
-    setMatches([]);
+    const previous = previousSearch.current;
+    if (previous.completedQuery === query && previous.onlineResults && previous.matches) return;
     setOnlineResults(null);
     setBusy(false);
-    if (!ready || query.trim().length < 3) return;
+    if (!ready || query.trim().length < 3) {
+      if (query.trim().length < 3 || previous.completedQuery !== query) setMatches([]);
+      return;
+    }
     setBusy(true);
     setMessage('');
     // No fixed debounce: 120ms of waiting would itself violate the 50ms gate.
@@ -75,6 +89,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
       .then((result) => {
         if (counter.current === request) {
           setMatches(result.matches);
+          setCompletedQuery(query);
           setBusy(false);
         }
       })
@@ -87,7 +102,7 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     return () => {
       counter.current++;
     };
-  }, [query, ready]);
+  }, [query, ready, setCompletedQuery, setMatches, setOnlineResults]);
 
   useEffect(() => {
     const counter = generation;
@@ -103,7 +118,6 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
     onlineRequest.current?.abort();
     const controller = new AbortController();
     onlineRequest.current = controller;
-    setMatches([]);
     setBusy(true);
     setMessage('');
     setOnlineResults(source);
@@ -115,7 +129,10 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
           ? searchOpenLibrary(query, controller.signal)
           : searchMangaDex(query, controller.signal),
       );
-      if (generation.current === request) setMatches(results);
+      if (generation.current === request) {
+        setMatches(results);
+        setCompletedQuery(query);
+      }
     } catch (error) {
       if (generation.current === request)
         setMessage(error instanceof Error ? error.message : 'Online search stopped.');
@@ -125,7 +142,12 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
   }
 
   return (
-    <Sheet title="The catalogue" onClose={() => nav.close()} transitionName="add-surface">
+    <Sheet
+      title="The catalogue"
+      onClose={() => nav.close()}
+      transitionName="add-surface"
+      memoryEntry={entry ?? undefined}
+    >
       <div>
         <h1 style={{ ...label, fontWeight: 400, margin: '0 0 8px' }}>The catalogue</h1>
         <SearchField catalogue value={query} onChange={setQuery} />
@@ -147,12 +169,36 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
           Search MangaDex comics online
         </button>
       </div>
-      <div aria-live="polite" aria-busy={busy}>
-        {busy && <p className="exl-sr">Search in progress.</p>}
-        {message && (
-          <p role="status" style={{ ...caption, color: 'var(--text-secondary)' }}>
-            {message}
+      {onlineResults && (
+        <div className="room-feedback">
+          <a
+            href={onlineResults === 'books' ? 'https://openlibrary.org' : 'https://mangadex.org'}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {onlineResults === 'books'
+              ? 'Online book results from Open Library.'
+              : 'Online manga results from MangaDex.'}
+          </a>
+          <p>
+            {onlineResults === 'comics'
+              ? 'These are comics, not the novels they may adapt.'
+              : 'Review the shelf before adding. Online results may not include series information.'}
           </p>
+        </div>
+      )}
+      <div aria-live="polite" aria-busy={busy}>
+        {busy && (
+          <p role="status" style={label}>
+            Searching… {matches.length ? 'Previous results remain below.' : ''}
+          </p>
+        )}
+        {message && (
+          <Arrive>
+            <p role="status" style={{ ...caption, color: 'var(--text-secondary)' }}>
+              {message}
+            </p>
+          </Arrive>
         )}
         {query.trim().length < 3 && (
           <p style={{ ...caption, color: 'var(--text-secondary)' }}>
@@ -225,11 +271,11 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
               </div>
               <button
                 aria-label={existing ? `Open ${match.title}` : `Add ${match.title}`}
-                disabled={!owned}
+                disabled={!owned || busy || completedQuery !== query}
                 onClick={() =>
                   existing
                     ? nav.closeAndPush({ screen: 'detail', id: existing.id })
-                    : nav.swap({ kind: 'byHand', candidate: match })
+                    : nav.swap({ kind: 'byHand', candidate: match, returnTo: entry ?? undefined })
                 }
                 style={{
                   ...resetButton,
@@ -249,44 +295,17 @@ export function CatalogueSheet({ initialQuery = '' }: { initialQuery?: string })
         })}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {onlineResults === 'books' && (
-          <a
-            href="https://openlibrary.org"
-            target="_blank"
-            rel="noreferrer"
-            style={{ ...label, color: 'var(--text-secondary)', textDecoration: 'underline' }}
-          >
-            Online book results from Open Library.
-          </a>
-        )}
-        {onlineResults === 'comics' && (
-          <a
-            href="https://mangadex.org"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              ...label,
-              color: 'var(--text-secondary)',
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
-            }}
-          >
-            Online manga results from MangaDex.
-          </a>
-        )}
-        {onlineResults === 'comics' && (
-          <span style={label}>These are comics, not the novels they may adapt.</span>
-        )}
-        {onlineResults === 'books' && (
-          <span style={label}>
-            Online book results may not have series information. Review the shelf before adding.
-          </span>
-        )}
         <button onClick={() => nav.closeAndPush({ screen: 'corpus' })} style={quietButton}>
           {settings?.corpusVersion ? 'Manage the downloaded index' : 'Download the index'}
         </button>
         <button
-          onClick={() => nav.swap({ kind: 'byHand', initialTitle: query.trim() || undefined })}
+          onClick={() =>
+            nav.swap({
+              kind: 'byHand',
+              initialTitle: query.trim() || undefined,
+              returnTo: entry ?? undefined,
+            })
+          }
           style={quietButton}
         >
           Add by hand

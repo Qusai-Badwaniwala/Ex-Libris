@@ -9,6 +9,8 @@ import { APP_VERSION } from './store';
 import { Field, Sheet } from './components';
 import { guardOverlayDismiss, nav } from '../router/router';
 import { withInteractionFeedback } from './interaction-feedback';
+import { protectDraft } from './draft-state';
+import { useIsPresent } from './motion';
 
 export function GroupOrganiser({ id, kind }: { id: string; kind: 'series' | 'universe' }) {
   const graph = useLiveQuery(readRelationships, []);
@@ -31,13 +33,18 @@ export function GroupOrganiser({ id, kind }: { id: string; kind: 'series' | 'uni
   const bypassGuard = useRef(false);
   const draft = JSON.stringify([name, world, selected, selectedSeries, positions, startingPoint]);
   const dirty = !!initialDraft && draft !== initialDraft;
+  const present = useIsPresent();
+  useEffect(
+    () => (present && (dirty || busy) ? protectDraft() : undefined),
+    [dirty, busy, present],
+  );
   useEffect(
     () =>
       guardOverlayDismiss('groupOrganiser', () => {
         if (bypassGuard.current) return true;
         if (busy) return false;
         if (!dirty) return true;
-        setDiscard((value) => !value);
+        setDiscard(true);
         return false;
       }),
     [busy, dirty],

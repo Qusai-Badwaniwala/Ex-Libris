@@ -23,6 +23,9 @@ import type {
 import { catalogueCoverUrl } from '../metadata/cover-urls';
 import { coverService } from '../covers';
 import { withInteractionFeedback } from './interaction-feedback';
+import { useDraftGuard, DiscardDraft } from './draft-guard';
+import { nav, useTopOverlay } from '../router/router';
+import { Arrive } from './motion';
 
 /* ── A1 · the status picker ─────────────────────────────────────────────── */
 
@@ -46,6 +49,8 @@ export function StatusPicker({
   onFinished: () => void;
 }) {
   const row = useWork(id);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   if (!row) return null;
   const { work } = row;
   const offered = repo.statusesFor(work.publicationStatus);
@@ -71,19 +76,25 @@ export function StatusPicker({
               key={s}
               data-hover="raised"
               aria-pressed={on}
+              disabled={saving}
               onClick={() => {
+                setSaving(true);
+                setError('');
                 void withInteractionFeedback('Updating the reading status…', () =>
                   repo.setStatus(id, s),
-                ).then(() => {
-                  // MOTION.md: a tick on marking something finished, on the
-                  // state change and not on the tap. Nowhere else here — a tick
-                  // that fires often stops meaning anything.
-                  const becameFinished = s === 'finished' && work.status !== 'finished';
-                  if (becameFinished) {
-                    tick();
-                    onFinished();
-                  } else onClose();
-                });
+                )
+                  .then(() => {
+                    // MOTION.md: a tick on marking something finished, on the
+                    // state change and not on the tap. Nowhere else here — a tick
+                    // that fires often stops meaning anything.
+                    const becameFinished = s === 'finished' && work.status !== 'finished';
+                    if (becameFinished) {
+                      tick();
+                      onFinished();
+                    } else onClose();
+                  })
+                  .catch(() => setError('The status could not be saved. Try again.'))
+                  .finally(() => setSaving(false));
               }}
               style={{
                 ...resetButton,
@@ -106,6 +117,7 @@ export function StatusPicker({
         <div style={{ borderTop: 'var(--hairline-width) solid var(--hairline)' }} />
       </div>
 
+      {error && <p role="alert">{error}</p>}
       {work.status === 'dropped' ? <DropReason id={id} /> : null}
     </Sheet>
   );
@@ -115,17 +127,41 @@ export function StatusPicker({
  *  already dropped rather than as a step in dropping it. */
 function DropReason({ id }: { id: string }) {
   const row = useWork(id);
-  const [text, setText] = useState(row?.work.dropReason ?? '');
+  const [draft, setText] = useState<string | null>(null);
+  const text = draft ?? row?.work.dropReason ?? '';
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const guard = useDraftGuard(
+    draft !== null && text !== (row?.work.dropReason ?? ''),
+    saving,
+    'statusPicker',
+  );
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   return (
-    <Field
-      label="Why you stopped, if you want to record it"
-      value={text}
-      onChange={(v) => {
-        setText(v);
-        void repo.setDropReason(id, v);
-      }}
-      placeholder="Optional"
-    />
+    <div>
+      <Field
+        label="Why you stopped, if you want to record it"
+        value={text}
+        onChange={setText}
+        placeholder="Optional"
+      />
+      <button
+        className="room-text"
+        disabled={saving || text === (row?.work.dropReason ?? '')}
+        onClick={() => {
+          setSaving(true);
+          setError('');
+          void withInteractionFeedback('Saving why you stopped…', () =>
+            repo.setDropReason(id, text),
+          )
+            .catch(() => setError('The reason could not be saved. Your words are still here.'))
+            .finally(() => setSaving(false));
+        }}
+      >
+        Save reason
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </div>
   );
 }
 
@@ -166,7 +202,9 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const guard = useDraftGuard(!!draft, saving, 'editWork');
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!row) return null;
   const { work } = row;
 
@@ -191,28 +229,21 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
   const titleOk = d.title.trim().length > 0 && !saving;
 
   const save = async () => {
-    // Each of these is a separate write because each one has a rule attached —
-    // retitling rebuilds the sort key, changing the shelf must NOT touch the
-    // unit. Batching them into one update would put those rules at the call
-    // site, which is where they get forgotten.
     setSaving(true);
     setError('');
     try {
-      await withInteractionFeedback('Saving the work…', async () => {
-        if (d.title.trim() !== work.title) await repo.setTitle(id, d.title);
-        if (d.author.trim() !== (row.authorName ?? '')) await repo.setAuthor(id, d.author);
-        if (d.format !== work.format) await repo.setFormat(id, d.format);
-        if (d.unit !== work.progressUnit) await repo.setProgressUnit(id, d.unit);
-        if (d.publication !== work.publicationStatus)
-          await repo.setPublicationStatus(id, d.publication);
-
-        const current = Number(digits(d.current) || '0');
-        if (current !== work.progressCurrent) await repo.setProgressCurrent(id, current);
-
-        const totalText = digits(d.total);
-        const total = totalText === '' ? undefined : Number(totalText);
-        if (total !== work.progressTotal) await repo.setProgressTotal(id, total);
-      });
+      await withInteractionFeedback('Saving the work…', () =>
+        repo.editWork(id, {
+          title: d.title,
+          author: d.author,
+          format: d.format,
+          unit: d.unit,
+          publication: d.publication,
+          current: Number(digits(d.current) || '0'),
+          total: digits(d.total) === '' ? undefined : Number(digits(d.total)),
+        }),
+      );
+      guard.allow();
       onClose();
     } catch {
       setError('The changes could not be saved. Your edits are still here; try again.');
@@ -222,7 +253,52 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
   };
 
   return (
-    <Sheet onClose={onClose} title="Edit this work">
+    <Sheet
+      footer={
+        <div className="room-form-actions">
+          <button
+            onClick={onClose}
+            style={{
+              ...resetButton,
+              flex: 'none',
+              width: 96,
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              border: 'var(--hairline-width) solid var(--hairline-strong)',
+              fontSize: 'var(--size-body)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            data-ripple
+            data-active="accent"
+            disabled={!titleOk}
+            onClick={() => void save()}
+            style={{
+              ...resetButton,
+              flex: 1,
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              background: titleOk ? 'var(--accent)' : 'var(--surface-raised)',
+              color: titleOk ? 'var(--on-accent)' : 'var(--text-faint)',
+              cursor: titleOk ? 'pointer' : 'default',
+              fontSize: 'var(--size-body)',
+              fontWeight: 500,
+            }}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      }
+      onClose={onClose}
+      title="Edit this work"
+    >
       <div style={displayS}>Edit this work</div>
 
       <Field label="Title" value={d.title} onChange={(v) => set({ title: v })} display />
@@ -332,46 +408,6 @@ export function EditWork({ id, onClose }: { id: string; onClose: () => void }) {
           {error}
         </div>
       ) : null}
-      <div style={{ display: 'flex', gap: 'var(--space-2)', paddingTop: 'var(--space-1)' }}>
-        <button
-          onClick={onClose}
-          style={{
-            ...resetButton,
-            flex: 'none',
-            width: 96,
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            border: 'var(--hairline-width) solid var(--hairline-strong)',
-            fontSize: 'var(--size-body)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          data-ripple
-          data-active="accent"
-          disabled={!titleOk}
-          onClick={() => void save()}
-          style={{
-            ...resetButton,
-            flex: 1,
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            background: titleOk ? 'var(--accent)' : 'var(--surface-raised)',
-            color: titleOk ? 'var(--on-accent)' : 'var(--text-faint)',
-            cursor: titleOk ? 'pointer' : 'default',
-            fontSize: 'var(--size-body)',
-            fontWeight: 500,
-          }}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
     </Sheet>
   );
 }
@@ -408,7 +444,13 @@ export function SessionSheet({
    * not asked again for that session — never a nag, never twice.
    */
   const [offerCaughtUp, setOfferCaughtUp] = useState(false);
+  const guard = useDraftGuard(
+    !offerCaughtUp && to !== null && to !== row?.work.progressCurrent,
+    saving,
+    'session',
+  );
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!row) return null;
   const { work } = row;
   const from = work.progressCurrent;
@@ -449,10 +491,16 @@ export function SessionSheet({
           data-ripple
           data-active="accent"
           onClick={() => {
+            setSaving(true);
+            setSaveError('');
             void withInteractionFeedback('Updating the reading status…', () =>
               repo.setStatus(id, 'caught_up'),
-            ).then(onClose);
+            )
+              .then(onClose)
+              .catch(() => setSaveError('The status could not be saved. Try again.'))
+              .finally(() => setSaving(false));
           }}
+          disabled={saving}
           style={{
             ...resetButton,
             width: '100%',
@@ -468,6 +516,7 @@ export function SessionSheet({
         >
           Mark it caught up
         </button>
+        {saveError && <p role="alert">{saveError}</p>}
         <button
           onClick={onClose}
           style={{
@@ -488,7 +537,54 @@ export function SessionSheet({
   }
 
   return (
-    <Sheet onClose={onClose} title="Where did you get to?">
+    <Sheet
+      onClose={onClose}
+      title="Where did you get to?"
+      footer={
+        <button
+          data-ripple
+          data-active="accent"
+          disabled={delta === 0 || saving}
+          onClick={() => {
+            if (saving) return;
+            setSaving(true);
+            setSaveError('');
+            void withInteractionFeedback('Registering the reading session…', () =>
+              repo.logSession(id, at),
+            )
+              .then(({ finished, atPublishedEdge }) => {
+                guard.allow();
+                if (finished) {
+                  tick();
+                  onFinished();
+                } else if (atPublishedEdge) setOfferCaughtUp(true);
+                else onClose();
+              })
+              .catch(() =>
+                setSaveError(
+                  'This session could not be saved. Your destination is still here; try again.',
+                ),
+              )
+              .finally(() => setSaving(false));
+          }}
+          style={{
+            ...resetButton,
+            width: '100%',
+            height: 48,
+            lineHeight: '48px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-button)',
+            background: delta ? 'var(--accent)' : 'var(--surface-raised)',
+            color: delta ? 'var(--on-accent)' : 'var(--text-faint)',
+            cursor: delta ? 'pointer' : 'default',
+            fontSize: 'var(--size-body)',
+            fontWeight: 500,
+          }}
+        >
+          {saving ? 'Saving…' : delta === 0 ? 'Log a session' : willFinish ? 'Finish it' : 'Log it'}
+        </button>
+      }
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={displayS}>Where did you get to?</div>
         <div style={{ ...caption, color: 'var(--text-secondary)' }}>{sub}</div>
@@ -554,60 +650,21 @@ export function SessionSheet({
         ))}
       </div>
 
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            ...caption,
-            color: delta ? 'var(--text-primary)' : 'var(--text-secondary)',
-          }}
-        >
-          {delta === 0
-            ? 'Nothing logged yet'
-            : `${n(delta)} ${unit}${delta === 1 ? '' : 's'} this session`}
+      <Arrive motionKey={at}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              ...caption,
+              color: delta ? 'var(--text-primary)' : 'var(--text-secondary)',
+            }}
+          >
+            {delta === 0
+              ? 'Nothing logged yet'
+              : `${n(delta)} ${unit}${delta === 1 ? '' : 's'} this session`}
+          </div>
         </div>
-      </div>
+      </Arrive>
 
-      <button
-        data-ripple
-        data-active="accent"
-        disabled={delta === 0 || saving}
-        onClick={() => {
-          if (saving) return;
-          setSaving(true);
-          setSaveError('');
-          void withInteractionFeedback('Registering the reading session…', () =>
-            repo.logSession(id, at),
-          )
-            .then(({ finished, atPublishedEdge }) => {
-              if (finished) {
-                tick();
-                onFinished();
-              } else if (atPublishedEdge) setOfferCaughtUp(true);
-              else onClose();
-            })
-            .catch(() =>
-              setSaveError(
-                'This session could not be saved. Your destination is still here; try again.',
-              ),
-            )
-            .finally(() => setSaving(false));
-        }}
-        style={{
-          ...resetButton,
-          width: '100%',
-          height: 48,
-          lineHeight: '48px',
-          textAlign: 'center',
-          borderRadius: 'var(--radius-button)',
-          background: delta ? 'var(--accent)' : 'var(--surface-raised)',
-          color: delta ? 'var(--on-accent)' : 'var(--text-faint)',
-          cursor: delta ? 'pointer' : 'default',
-          fontSize: 'var(--size-body)',
-          fontWeight: 500,
-        }}
-      >
-        {saving ? 'Saving…' : delta === 0 ? 'Log a session' : willFinish ? 'Finish it' : 'Log it'}
-      </button>
       {saveError && (
         <p role="alert" style={{ ...caption, color: 'var(--danger-text)' }}>
           {saveError}
@@ -662,7 +719,15 @@ function Stepper({
 export function GenreEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const row = useWork(id);
   const [picked, setPicked] = useState<GenreIndex[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const guard = useDraftGuard(
+    !!picked && JSON.stringify(picked) !== JSON.stringify(row?.work.genres),
+    saving,
+    'genreEditor',
+  );
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!row) return null;
   const sel = picked ?? row.work.genres;
   const full = sel.length >= 2;
@@ -745,10 +810,17 @@ export function GenreEditor({ id, onClose }: { id: string; onClose: () => void }
 
       <button
         data-active="accent"
+        disabled={saving}
         onClick={() => {
-          void withInteractionFeedback('Saving the genres…', () => repo.setGenres(id, sel)).then(
-            onClose,
-          );
+          setSaving(true);
+          setError('');
+          void withInteractionFeedback('Saving the genres…', () => repo.setGenres(id, sel))
+            .then(() => {
+              guard.allow();
+              onClose();
+            })
+            .catch(() => setError('The genres could not be saved. Your choices are still here.'))
+            .finally(() => setSaving(false));
         }}
         style={{
           ...resetButton,
@@ -765,6 +837,7 @@ export function GenreEditor({ id, onClose }: { id: string; onClose: () => void }
       >
         Done
       </button>
+      {error && <p role="alert">{error}</p>}
     </Sheet>
   );
 }
@@ -814,13 +887,113 @@ export function ByHandSheet({
   const openLibraryWork = candidate?.corpusId.startsWith('openlibrary:')
     ? candidate.corpusId.slice('openlibrary:'.length)
     : undefined;
+  const acquisition = useTopOverlay();
+  const dirty =
+    title !== (candidate?.title ?? initialTitle) ||
+    author !== (candidate?.authors.join(', ') ?? '') ||
+    format !== initialFormat ||
+    unit !== (initialFormat === 'book' ? 'page' : 'chapter') ||
+    status !== (candidate ? '' : defaultStatus) ||
+    total !== (candidate?.chapterCount?.toString() ?? '') ||
+    publication !== (candidate?.publicationStatus ?? 'unknown');
+  const guard = useDraftGuard(dirty, saving, 'byHand');
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
 
   return (
     <Sheet
+      footer={
+        <div className="room-form-actions">
+          <button
+            onClick={onClose}
+            style={{
+              ...resetButton,
+              flex: 'none',
+              width: 96,
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              border: 'var(--hairline-width) solid var(--hairline-strong)',
+              fontSize: 'var(--size-body)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            data-ripple
+            data-active="accent"
+            disabled={!ok}
+            onClick={() => {
+              if (!ok || !status) return;
+              setSaving(true);
+              setError('');
+              void withInteractionFeedback('Putting the work on the shelf…', () =>
+                repo.createWork({
+                  title,
+                  authorName: author,
+                  format,
+                  status,
+                  progressUnit: unit,
+                  publicationStatus: publication,
+                  progressTotal: total ? Number(total) : undefined,
+                  corpusId: candidate?.corpusId,
+                  externalIds: {
+                    ...(candidate?.mangadexId ? { mangadex: candidate.mangadexId } : {}),
+                    ...(openLibraryWork ? { openLibraryWork } : {}),
+                  },
+                  coverRemoteUrl: candidateCoverUrl,
+                }),
+              )
+                .then((w) => {
+                  if (candidateCoverUrl) {
+                    // The work is already durable. Cover acquisition continues
+                    // independently, and a failed fetch remains retryable from
+                    // the detail screen without undoing the library addition.
+                    void withInteractionFeedback('Fetching the catalogue cover…', () =>
+                      coverService.fetchApiCover(w.id, candidateCoverUrl),
+                    ).catch(() => undefined);
+                  }
+                  guard.allow();
+                  onAdded(w.id);
+                })
+                .catch(() =>
+                  setError(
+                    'The work could not be saved. Your entered details are still here; try again.',
+                  ),
+                )
+                .finally(() => setSaving(false));
+            }}
+            style={{
+              ...resetButton,
+              flex: 1,
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              background: ok ? 'var(--accent)' : 'var(--surface-raised)',
+              color: ok ? 'var(--on-accent)' : 'var(--text-faint)',
+              cursor: ok ? 'pointer' : 'default',
+              fontSize: 'var(--size-body)',
+              fontWeight: 500,
+            }}
+          >
+            Put it on the shelf
+          </button>
+        </div>
+      }
       onClose={onClose}
       title={candidate ? 'Add to library' : 'Add by hand'}
       transitionName="add-surface"
     >
+      {acquisition?.returnTo && (
+        <button
+          className="room-text"
+          onClick={() => guard.request(() => nav.swap(acquisition.returnTo!))}
+        >
+          Back to results
+        </button>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={displayS}>{candidate ? 'Add to library' : 'Add by hand'}</div>
         <div style={{ ...caption, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
@@ -947,85 +1120,6 @@ export function ByHandSheet({
           {error}
         </p>
       )}
-
-      <div style={{ display: 'flex', gap: 'var(--space-2)', paddingTop: 'var(--space-1)' }}>
-        <button
-          onClick={onClose}
-          style={{
-            ...resetButton,
-            flex: 'none',
-            width: 96,
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            border: 'var(--hairline-width) solid var(--hairline-strong)',
-            fontSize: 'var(--size-body)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          data-ripple
-          data-active="accent"
-          disabled={!ok}
-          onClick={() => {
-            if (!ok || !status) return;
-            setSaving(true);
-            setError('');
-            void withInteractionFeedback('Putting the work on the shelf…', () =>
-              repo.createWork({
-                title,
-                authorName: author,
-                format,
-                status,
-                progressUnit: unit,
-                publicationStatus: publication,
-                progressTotal: total ? Number(total) : undefined,
-                corpusId: candidate?.corpusId,
-                externalIds: {
-                  ...(candidate?.mangadexId ? { mangadex: candidate.mangadexId } : {}),
-                  ...(openLibraryWork ? { openLibraryWork } : {}),
-                },
-                coverRemoteUrl: candidateCoverUrl,
-              }),
-            )
-              .then((w) => {
-                if (candidateCoverUrl) {
-                  // The work is already durable. Cover acquisition continues
-                  // independently, and a failed fetch remains retryable from
-                  // the detail screen without undoing the library addition.
-                  void withInteractionFeedback('Fetching the catalogue cover…', () =>
-                    coverService.fetchApiCover(w.id, candidateCoverUrl),
-                  ).catch(() => undefined);
-                }
-                onAdded(w.id);
-              })
-              .catch(() =>
-                setError(
-                  'The work could not be saved. Your entered details are still here; try again.',
-                ),
-              )
-              .finally(() => setSaving(false));
-          }}
-          style={{
-            ...resetButton,
-            flex: 1,
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            background: ok ? 'var(--accent)' : 'var(--surface-raised)',
-            color: ok ? 'var(--on-accent)' : 'var(--text-faint)',
-            cursor: ok ? 'pointer' : 'default',
-            fontSize: 'var(--size-body)',
-            fontWeight: 500,
-          }}
-        >
-          Put it on the shelf
-        </button>
-      </div>
     </Sheet>
   );
 }

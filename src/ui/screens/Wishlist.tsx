@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { nav, useTopOverlay } from '../../router/router';
 import { caption, displayS, resetButton } from '../styles';
 import { Close } from '../icons';
@@ -7,8 +7,10 @@ import { PUBLICATION_LABEL } from '../../db/derive';
 import { useWishlist } from '../store';
 import * as repo from '../../db/repo';
 import { tick } from '../haptics';
-import { prefersReducedMotion } from '../theme';
-import { SCRIM } from '../design-literals';
+import { AnimatePresence, Arrive, m, useIsPresent, useMotion } from '../motion';
+import { useModalFocus } from '../modal-focus';
+import { useDraftGuard } from '../draft-guard';
+import { MOTION, SCRIM } from '../design-literals';
 import { localDay } from '../../db/dates';
 import type { WorkWithAuthor } from '../store';
 import { withInteractionFeedback } from '../interaction-feedback';
@@ -20,13 +22,24 @@ import { withInteractionFeedback } from '../interaction-feedback';
  * the design's Start button has no handler at all, and the rows are not
  * tappable, so a wishlist entry could be removed but never opened or started.
  *
- * Removing from the wishlist is NOT a deletion and gets no confirmation and no
- * trash entry: the work was never in the library, so nothing is destroyed
- * (D-080). That is why this is the only single-tap × in the app.
+ * Removal uses Trash so authored covers, notes and profiles remain recoverable.
  */
 export function Wishlist() {
   const rows = useWishlist();
   const [error, setError] = useState('');
+  const feedback = useRef<HTMLDivElement>(null);
+  const showNotice = (next: { id: string; title: string; kind: 'started' | 'removed' }) => {
+    setNotice(next);
+    requestAnimationFrame(() =>
+      feedback.current?.querySelector('button')?.focus({ preventScroll: true }),
+    );
+  };
+  const [notice, setNotice] = useState<{
+    id: string;
+    title: string;
+    kind: 'started' | 'removed';
+  } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   /**
    * The dealt card is an OVERLAY, not local state.
    *
@@ -74,6 +87,27 @@ export function Wishlist() {
         </div>
       </header>
       {error && <p role="alert">{error}</p>}
+      {notice && (
+        <div ref={feedback} className="room-feedback" role="status">
+          <span>
+            {notice.title} {notice.kind === 'started' ? 'moved to Reading.' : 'moved to Trash.'}
+          </span>
+          <button
+            className="room-text"
+            onClick={() => {
+              if (notice.kind === 'started') nav.push({ screen: 'detail', id: notice.id });
+              else
+                void withInteractionFeedback('Restoring the wishlist entry…', () =>
+                  repo.restoreWork(notice.id),
+                )
+                  .then(() => setNotice(null))
+                  .catch(() => setError('The entry could not be restored. Try again.'));
+            }}
+          >
+            {notice.kind === 'started' ? 'Open record' : 'Undo'}
+          </button>
+        </div>
+      )}
       {rows === undefined ? (
         <p role="status">Opening your wishlist…</p>
       ) : !items.length ? (
@@ -85,57 +119,76 @@ export function Wishlist() {
         />
       ) : (
         <div className="room-wishlist-grid">
-          {items.map(({ work, authorName }) => (
-            <article className="room-wish" key={work.id} data-work={work.id}>
-              <button
-                className="room-wish-open"
-                onClick={() => nav.push({ screen: 'detail', id: work.id })}
-              >
-                <Cover
-                  color={work.coverDominantColor ?? 'var(--cover-fallback)'}
-                  path={work.coverPath}
-                  width={112}
-                  height={168}
-                  title={work.title}
-                />
-                <span>
-                  <h2>{work.title}</h2>
-                  <p>{authorName ?? 'Author unknown'}</p>
-                  <small>
-                    {work.publicationStatus === 'unknown'
-                      ? 'Publication unknown'
-                      : PUBLICATION_LABEL[work.publicationStatus]}
-                  </small>
-                </span>
-              </button>
-              <div className="room-wish-actions">
-                <button
-                  className="room-primary"
-                  onClick={() =>
-                    void withInteractionFeedback('Moving the work to Reading…', () =>
-                      repo.setStatus(work.id, 'reading'),
-                    ).catch(() => setError('This work could not be moved to Reading. Try again.'))
-                  }
-                >
-                  Start reading ↗
+          <AnimatePresence initial={false}>
+            {items.map(({ work, authorName }) => (
+              <WishItem key={work.id} workId={work.id}>
+                <button className="room-wish-open" onClick={() => nav.openWork(work.id)}>
+                  <Cover
+                    color={work.coverDominantColor ?? 'var(--cover-fallback)'}
+                    path={work.coverPath}
+                    width={112}
+                    height={168}
+                    title={work.title}
+                  />
+                  <span>
+                    <h2>{work.title}</h2>
+                    <p>{authorName ?? 'Author unknown'}</p>
+                    <small>
+                      {work.publicationStatus === 'unknown'
+                        ? 'Publication unknown'
+                        : PUBLICATION_LABEL[work.publicationStatus]}
+                    </small>
+                  </span>
                 </button>
-                <button
-                  className="room-icon"
-                  aria-label={`Remove ${work.title} from the wishlist`}
-                  onClick={() =>
-                    void withInteractionFeedback('Removing the wishlist entry…', () =>
-                      repo.purgeWork(work.id),
-                    ).catch(() => setError('This wishlist entry could not be removed. Try again.'))
-                  }
-                >
-                  <Close />
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="room-wish-actions">
+                  <button
+                    className="room-primary"
+                    disabled={busy === work.id}
+                    onClick={() => {
+                      setBusy(work.id);
+                      setError('');
+                      void withInteractionFeedback('Moving the work to Reading…', () =>
+                        repo.setStatus(work.id, 'reading'),
+                      )
+                        .then(() => showNotice({ id: work.id, title: work.title, kind: 'started' }))
+                        .catch(() =>
+                          setError('This work could not be moved to Reading. Try again.'),
+                        )
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    Start reading ↗
+                  </button>
+                  <button
+                    className="room-icon"
+                    aria-label={`Remove ${work.title} from the wishlist`}
+                    disabled={busy === work.id}
+                    onClick={() => {
+                      setBusy(work.id);
+                      setError('');
+                      void withInteractionFeedback('Removing the wishlist entry…', () =>
+                        repo.softDeleteWork(work.id),
+                      )
+                        .then(() => showNotice({ id: work.id, title: work.title, kind: 'removed' }))
+                        .catch(() =>
+                          setError('This wishlist entry could not be removed. Try again.'),
+                        )
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    <Close />
+                  </button>
+                </div>
+              </WishItem>
+            ))}
+          </AnimatePresence>
         </div>
       )}
-      {pick ? <SurpriseCard pick={pick} onRoll={roll} onClose={() => nav.close()} /> : null}
+      <AnimatePresence>
+        {pick ? (
+          <SurpriseCard key="surprise" pick={pick} onRoll={roll} onClose={() => nav.close()} />
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 }
@@ -154,65 +207,25 @@ function SurpriseCard({
   onRoll: () => void;
   onClose: () => void;
 }) {
-  const card = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const controls = () =>
-      Array.from(card.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? []);
-    const frame = requestAnimationFrame(() => controls()[0]?.focus());
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-      if (e.key === 'Tab') {
-        const buttons = controls();
-        const first = buttons[0];
-        const last = buttons.at(-1);
-        if (
-          e.shiftKey &&
-          (document.activeElement === first || !card.current?.contains(document.activeElement))
-        ) {
-          e.preventDefault();
-          last?.focus();
-        } else if (
-          !e.shiftKey &&
-          (document.activeElement === last || !card.current?.contains(document.activeElement))
-        ) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', onKey);
-      if (previous?.isConnected) previous.focus();
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    const el = card.current;
-    if (!el || prefersReducedMotion()) return;
-    el.style.transition = 'none';
-    el.style.transform = 'scale(0.96)';
-    el.style.opacity = '0';
-    void el.offsetWidth;
-    el.style.transition =
-      'transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) linear';
-    el.style.transform = 'none';
-    el.style.opacity = '1';
-    // Keyed on the work: a re-roll deals a NEW card onto the list, so it plays
-    // again rather than swapping the text inside a card already at rest.
-  }, [pick.work.id]);
+  const [busy, setBusy] = useState(false);
+  const present = useIsPresent();
+  const { reduced, spring, exit, settle } = useMotion();
+  useDraftGuard(false, busy, 'surprise');
+  useModalFocus(root, onClose, present);
 
   const { work, authorName } = pick;
 
   return (
-    <div
+    <m.div
+      ref={root}
+      initial={reduced ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={present ? settle : exit}
+      inert={!present || undefined}
+      aria-hidden={!present || undefined}
       role="dialog"
       aria-modal="true"
       aria-label="A pick from your wishlist"
@@ -236,11 +249,12 @@ function SurpriseCard({
           position: 'absolute',
           inset: 0,
           background: SCRIM,
-          animation: 'exl-fade var(--dur-base) var(--ease-out) both',
         }}
       />
-      <div
-        ref={card}
+      <m.div
+        initial={reduced ? false : { scale: MOTION.dealtScale }}
+        animate={{ scale: 1 }}
+        transition={spring}
         style={{
           position: 'relative',
           width: '100%',
@@ -259,21 +273,36 @@ function SurpriseCard({
           textAlign: 'center',
         }}
       >
-        <Cover
-          color={work.coverDominantColor ?? 'var(--cover-fallback)'}
-          path={work.coverPath}
-          width={96}
-          height={144}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={displayS}>{work.title}</div>
-          {authorName ? (
-            <div style={{ ...caption, color: 'var(--text-secondary)' }}>{authorName}</div>
-          ) : null}
-          <div style={{ ...caption, color: 'var(--text-secondary)' }}>
-            On the list since {localDay(work.dateAdded)}
+        <Arrive
+          motionKey={work.id}
+          style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 'var(--space-4)',
+          }}
+        >
+          <Cover
+            color={work.coverDominantColor ?? 'var(--cover-fallback)'}
+            path={work.coverPath}
+            width={96}
+            height={144}
+          />
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+          >
+            <h2 style={{ ...displayS, margin: 0 }}>{work.title}</h2>
+            {authorName ? (
+              <div style={{ ...caption, color: 'var(--text-secondary)' }}>{authorName}</div>
+            ) : null}
+            <div style={{ ...caption, color: 'var(--text-secondary)' }}>
+              On the list since {localDay(work.dateAdded)}
+            </div>
           </div>
-        </div>
+        </Arrive>
         <div
           style={{
             width: '100%',
@@ -284,12 +313,17 @@ function SurpriseCard({
         >
           <button
             data-active="accent"
+            disabled={busy}
             onClick={() => {
+              if (busy) return;
+              setBusy(true);
+              setError('');
               void withInteractionFeedback('Moving the work to Reading…', () =>
                 repo.setStatus(work.id, 'reading'),
               )
                 .then(() => nav.closeAndPush({ screen: 'detail', id: work.id }))
-                .catch(() => setError('This work could not be moved to Reading. Try again.'));
+                .catch(() => setError('This work could not be moved to Reading. Try again.'))
+                .finally(() => setBusy(false));
             }}
             style={{
               ...resetButton,
@@ -304,18 +338,19 @@ function SurpriseCard({
               fontWeight: 500,
             }}
           >
-            Start reading it
+            {busy ? 'Starting…' : 'Start reading it'}
           </button>
           {error && <p role="alert">{error}</p>}
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button
               data-hover="ink"
+              disabled={busy}
               onClick={onRoll}
               style={{
                 ...resetButton,
                 flex: 1,
-                height: 40,
-                lineHeight: '40px',
+                height: 44,
+                lineHeight: '44px',
                 textAlign: 'center',
                 borderRadius: 'var(--radius-button)',
                 border: 'var(--hairline-width) solid var(--hairline-strong)',
@@ -327,12 +362,13 @@ function SurpriseCard({
             </button>
             <button
               data-hover="ink"
+              disabled={busy}
               onClick={onClose}
               style={{
                 ...resetButton,
                 flex: 1,
-                height: 40,
-                lineHeight: '40px',
+                height: 44,
+                lineHeight: '44px',
                 textAlign: 'center',
                 borderRadius: 'var(--radius-button)',
                 color: 'var(--text-secondary)',
@@ -343,7 +379,26 @@ function SurpriseCard({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </m.div>
+    </m.div>
+  );
+}
+
+function WishItem({ children, workId }: { children: ReactNode; workId: string }) {
+  const present = useIsPresent();
+  const { reduced, settle, exit } = useMotion();
+  return (
+    <m.article
+      className="room-wish"
+      data-work={workId}
+      layout={reduced ? false : 'position'}
+      initial={false}
+      exit={{ opacity: 0 }}
+      transition={present ? settle : exit}
+      inert={!present || undefined}
+      aria-hidden={!present || undefined}
+    >
+      {children}
+    </m.article>
   );
 }

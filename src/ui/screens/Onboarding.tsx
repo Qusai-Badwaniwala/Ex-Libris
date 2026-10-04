@@ -4,6 +4,9 @@ import { prefersReducedMotion } from '../theme';
 import { TOUR_SCRIM } from '../design-literals';
 import { Illustration } from '../illustration';
 import { requestPwaInstall, usePwaInstall } from '../../pwa/install';
+import { m, useMotion } from '../motion';
+import { MOTION } from '../design-literals';
+import { useModalFocus } from '../modal-focus';
 
 /**
  * First run. Ported from design/Ex Libris.dc.html.
@@ -20,12 +23,23 @@ import { requestPwaInstall, usePwaInstall } from '../../pwa/install';
  */
 
 export function Welcome({ onNext }: { onNext: () => void }) {
+  const { reduced, settle } = useMotion();
   return (
     <main className="room-welcome exl-scroll">
-      <div className="room-welcome-art">
+      <m.div
+        className="room-welcome-art"
+        initial={reduced ? false : { opacity: 0, y: MOTION.distance }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={settle}
+      >
         <Illustration name="magic-tree-cuate" style={{ width: '100%', maxWidth: 300 }} />
-      </div>
-      <div className="room-welcome-copy">
+      </m.div>
+      <m.div
+        className="room-welcome-copy"
+        initial={reduced ? false : { opacity: 0, y: MOTION.disclosureDistance }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...settle, delay: reduced ? 0 : MOTION.stagger }}
+      >
         <p className="room-eyebrow">A place for what you read</p>
         <h1>Ex Libris</h1>
         <p className="room-welcome-intro">
@@ -38,7 +52,7 @@ export function Welcome({ onNext }: { onNext: () => void }) {
           Open the library <span aria-hidden="true">↗</span>
         </button>
         <small>No account. No signal needed. Your library stays on this device.</small>
-      </div>
+      </m.div>
     </main>
   );
 }
@@ -135,6 +149,7 @@ export function SpotlightTour({
   const reduceMotion = prefersReducedMotion();
   const install = usePwaInstall();
   const visible = rect !== null;
+  useModalFocus(layerRef, onDone, visible);
 
   useLayoutEffect(() => {
     const card = cardRef.current;

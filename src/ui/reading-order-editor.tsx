@@ -1,4 +1,5 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { DiscardDraft, useDraftGuard } from './draft-guard';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { readRelationships } from '../relationships/library';
@@ -7,6 +8,7 @@ import type { ReadingOrder, ReadingOrderEntry } from '../db/schema';
 import { Field, Sheet } from './components';
 import { withInteractionFeedback } from './interaction-feedback';
 import { caption, displayS, label, resetButton } from './styles';
+import { m, useMotion } from './motion';
 
 type ContextType = ReadingOrder['contextType'];
 
@@ -28,6 +30,7 @@ export function ReadingOrderEditor({
   id: string;
   onClose: () => void;
 }) {
+  const { reduced, settle } = useMotion();
   const data = useLiveQuery(async () => {
     const graph = await readRelationships();
     const context = contextType === 'series' ? graph.seriesById.get(id) : graph.worldsById.get(id);
@@ -104,6 +107,15 @@ export function ReadingOrderEditor({
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [error, setError] = useState('');
   const candidateSelectId = useId();
+  const baseline = useRef('');
+  const orderDraft = JSON.stringify({ name, description, entries: entries.map(stripDraftKey) });
+  const storedStart =
+    data && 'readingOrderNote' in data.context ? (data.context.readingOrderNote ?? '') : '';
+  const guard = useDraftGuard(
+    initialized && (baseline.current !== orderDraft || startingPoint.trim() !== storedStart.trim()),
+    !!busy,
+    'readingOrderEditor',
+  );
 
   useEffect(() => {
     if (!data || initialized) return;
@@ -116,6 +128,7 @@ export function ReadingOrderEditor({
     setInitialized(true);
   }, [data, initialized]);
 
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (!data) return null;
 
   const available = data.candidates.filter(
@@ -127,6 +140,11 @@ export function ReadingOrderEditor({
   const startingChanged = startingPoint.trim() !== storedStartingPoint.trim();
 
   function loadOrder(order: ReadingOrder & { entries: ReadingOrderEntry[] }) {
+    baseline.current = JSON.stringify({
+      name: order.name,
+      description: order.description ?? '',
+      entries: order.entries.map(asNewEntry),
+    });
     setSelectedOrderId(order.id);
     setName(order.name);
     setDescription(order.description ?? '');
@@ -142,6 +160,11 @@ export function ReadingOrderEditor({
   }
 
   function loadNew(candidates: Candidate[]) {
+    baseline.current = JSON.stringify({
+      name: '',
+      description: '',
+      entries: candidates.map((candidate) => candidate.entry),
+    });
     setSelectedOrderId(undefined);
     setName('');
     setDescription('');
@@ -178,6 +201,7 @@ export function ReadingOrderEditor({
                 cleanEntries,
               ),
       );
+      guard.allow();
       onClose();
     } catch (caught) {
       setError(
@@ -202,6 +226,7 @@ export function ReadingOrderEditor({
       await withInteractionFeedback('Deleting the reading order…', () =>
         repo.deleteReadingOrder(selectedOrderId),
       );
+      guard.allow();
       onClose();
     } catch {
       setError('The reading order could not be deleted. It is still here; try again.');
@@ -275,7 +300,7 @@ export function ReadingOrderEditor({
             Named orders
           </h2>
           <button
-            onClick={() => loadNew(data.candidates)}
+            onClick={() => guard.request(() => loadNew(data.candidates))}
             style={{ ...secondaryButton, flex: 'none', padding: '0 14px' }}
           >
             New order
@@ -291,7 +316,7 @@ export function ReadingOrderEditor({
               <button
                 key={order.id}
                 aria-pressed={selectedOrderId === order.id}
-                onClick={() => loadOrder(order)}
+                onClick={() => guard.request(() => loadOrder(order))}
                 style={{
                   ...secondaryButton,
                   flex: 'none',
@@ -323,7 +348,14 @@ export function ReadingOrderEditor({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           <div style={label}>Sequence</div>
           {entries.map((entry, index) => (
-            <div key={entry.key} style={entryRowStyle}>
+            <m.div
+              key={entry.key}
+              layout={reduced ? false : 'position'}
+              layoutDependency={entries}
+              initial={false}
+              transition={settle}
+              style={entryRowStyle}
+            >
               <span style={{ ...caption, flex: 1, minWidth: 0 }}>
                 <span style={{ color: 'var(--text-secondary)', marginRight: 8 }}>{index + 1}</span>
                 {entry.label}
@@ -356,7 +388,7 @@ export function ReadingOrderEditor({
                   Remove
                 </button>
               </span>
-            </div>
+            </m.div>
           ))}
           {entries.length === 0 ? (
             <p role="note" style={{ ...caption, color: 'var(--danger-text)', margin: 0 }}>

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { nav, useNav, type Screen } from '../router/router';
+import { nav, navigationPresentation, useNav, type Screen } from '../router/router';
+import { presentationKey, PresentationScope } from '../router/presentation';
+import { AnimatePresence, MotionPage } from './motion';
 import { purgeExpired } from '../db/repo';
 import { requestPersistence } from '../storage/persist';
 import { applyTheme, watchSystemTheme } from './theme';
@@ -51,6 +53,7 @@ export function App() {
   const { screens, overlays } = useNav();
   const route = screens[screens.length - 1]!;
   const underRoute = route.screen === 'axis' ? screens.at(-2) : undefined;
+  const presentedRoute = underRoute ?? route;
   const overlay = overlays[overlays.length - 1] ?? null;
   const noteEditorOverlay = [...overlays].reverse().find((layer) => layer.kind === 'noteEditor');
   const [booted, setBooted] = useState(false);
@@ -149,16 +152,13 @@ export function App() {
     <Frame>
       <RoomToolbar theme={theme} onTheme={setTheme} />
       <div className="room-stage" data-screen={route.screen}>
-        {underRoute ? (
-          <>
-            <div aria-hidden="true" inert style={{ position: 'absolute', inset: 0 }}>
-              {renderScreen(underRoute.screen, underRoute, theme, setTheme, settings, update)}
-            </div>
-            {renderScreen(route.screen, route, theme, setTheme, settings, update)}
-          </>
-        ) : (
-          renderScreen(route.screen, route, theme, setTheme, settings, update)
-        )}
+        <MotionPage
+          key={presentationKey(presentedRoute)}
+          route={presentedRoute}
+          direction={underRoute ? 'native' : navigationPresentation()}
+        >
+          {renderScreen(presentedRoute.screen, presentedRoute, theme, setTheme, settings, update)}
+        </MotionPage>
       </div>
 
       <NavBar screen={route.screen === 'bookplate' ? 'home' : route.screen} />
@@ -183,69 +183,102 @@ export function App() {
         />
       ) : null}
 
-      {overlay?.kind === 'drawer' ? (
-        <Drawer onClose={() => nav.close()} ownerName={settings.ownerName} />
-      ) : null}
-      {overlay?.kind === 'fabMenu' ? (
-        <FabMenu
-          onClose={() => nav.close()}
-          onCatalogue={() => nav.swap({ kind: 'catalogue' })}
-          // One layer, one history entry: the menu and the sheet it becomes
-          // are the same step. Closing then opening is a race that loses.
-          onByHand={() => nav.swap({ kind: 'byHand' })}
-        />
-      ) : null}
-      {overlay?.kind === 'catalogue' ? <CatalogueSheet initialQuery={overlay.query} /> : null}
-      {overlay?.kind === 'groupOrganiser' && overlay.id && overlay.contextType ? (
-        <GroupOrganiser id={overlay.id} kind={overlay.contextType} />
-      ) : null}
-      {overlay?.kind === 'byHand' ? (
-        <ByHandSheet
-          candidate={overlay.candidate}
-          initialTitle={overlay.initialTitle}
-          onClose={() => nav.close()}
-          onAdded={(id) => nav.closeAndPush({ screen: 'detail', id, suggestRelationships: true })}
-          // The screen you were on says what you meant. Adding from the
-          // Wishlist means adding to the wishlist; adding from the Manhwa shelf
-          // means adding a manhwa.
-          defaultStatus={route.screen === 'wishlist' ? 'wishlist' : 'reading'}
-          defaultFormat={route.screen === 'format' && route.format ? route.format : 'novel'}
-        />
-      ) : null}
-      {overlay?.kind === 'editWork' && overlay.id ? (
-        <EditWork id={overlay.id} onClose={() => nav.close()} />
-      ) : null}
-      {overlay?.kind === 'statusPicker' && overlay.id ? (
-        <StatusPicker
-          id={overlay.id}
-          onClose={() => nav.close()}
-          onFinished={() => nav.closeAndPush({ screen: 'finish', id: overlay.id })}
-        />
-      ) : null}
-      {overlay?.kind === 'seriesPicker' && overlay.id ? (
-        <RelationshipEditor id={overlay.id} onClose={() => nav.close()} />
-      ) : null}
-      {overlay?.kind === 'readingOrderEditor' && overlay.id && overlay.contextType ? (
-        <ReadingOrderEditor
-          id={overlay.id}
-          contextType={overlay.contextType}
-          onClose={() => nav.close()}
-        />
-      ) : null}
-      {overlay?.kind === 'session' && overlay.id ? (
-        <SessionSheet
-          id={overlay.id}
-          onClose={() => nav.close()}
-          onFinished={() => nav.closeAndPush({ screen: 'finish', id: overlay.id })}
-        />
-      ) : null}
-      {overlay?.kind === 'genreEditor' && overlay.id ? (
-        <GenreEditor id={overlay.id} onClose={() => nav.close()} />
-      ) : null}
-      {overlay?.kind === 'coverPicker' && overlay.id ? <CoverPicker id={overlay.id} /> : null}
-      {noteEditorOverlay ? (
-        <NoteEditor id={noteEditorOverlay.id} tagPickerOpen={overlay?.kind === 'noteTags'} />
-      ) : null}
+      <AnimatePresence initial={false} mode="sync">
+        {underRoute && route.id ? (
+          <AxisScreen key={presentationKey(route)} id={route.id} initialKey={route.axis} />
+        ) : null}
+        {overlay?.kind === 'drawer' ? (
+          <Drawer
+            key={presentationKey(overlay)}
+            onClose={() => nav.close()}
+            ownerName={settings.ownerName}
+          />
+        ) : null}
+        {overlay?.kind === 'fabMenu' ? (
+          <FabMenu
+            key={presentationKey(overlay)}
+            onClose={() => nav.close()}
+            onCatalogue={() => nav.swap({ kind: 'catalogue' })}
+            // One layer, one history entry: the menu and the sheet it becomes
+            // are the same step. Closing then opening is a race that loses.
+            onByHand={() => nav.swap({ kind: 'byHand' })}
+          />
+        ) : null}
+        {overlay?.kind === 'catalogue' ? (
+          <PresentationScope key={presentationKey(overlay)} entry={overlay}>
+            <CatalogueSheet initialQuery={overlay.query} />
+          </PresentationScope>
+        ) : null}
+        {overlay?.kind === 'groupOrganiser' && overlay.id && overlay.contextType ? (
+          <GroupOrganiser
+            key={presentationKey(overlay)}
+            id={overlay.id}
+            kind={overlay.contextType}
+          />
+        ) : null}
+        {overlay?.kind === 'byHand' ? (
+          <ByHandSheet
+            key={presentationKey(overlay)}
+            candidate={overlay.candidate}
+            initialTitle={overlay.initialTitle}
+            onClose={() => nav.close()}
+            onAdded={(id) => nav.closeAndPush({ screen: 'detail', id, suggestRelationships: true })}
+            // The screen you were on says what you meant. Adding from the
+            // Wishlist means adding to the wishlist; adding from the Manhwa shelf
+            // means adding a manhwa.
+            defaultStatus={route.screen === 'wishlist' ? 'wishlist' : 'reading'}
+            defaultFormat={route.screen === 'format' && route.format ? route.format : 'novel'}
+          />
+        ) : null}
+        {overlay?.kind === 'editWork' && overlay.id ? (
+          <EditWork key={presentationKey(overlay)} id={overlay.id} onClose={() => nav.close()} />
+        ) : null}
+        {overlay?.kind === 'statusPicker' && overlay.id ? (
+          <StatusPicker
+            key={presentationKey(overlay)}
+            id={overlay.id}
+            onClose={() => nav.close()}
+            onFinished={() => nav.closeAndPush({ screen: 'finish', id: overlay.id })}
+          />
+        ) : null}
+        {overlay?.kind === 'seriesPicker' && overlay.id ? (
+          <RelationshipEditor
+            key={presentationKey(overlay)}
+            id={overlay.id}
+            onClose={() => nav.close()}
+          />
+        ) : null}
+        {overlay?.kind === 'readingOrderEditor' && overlay.id && overlay.contextType ? (
+          <ReadingOrderEditor
+            key={presentationKey(overlay)}
+            id={overlay.id}
+            contextType={overlay.contextType}
+            onClose={() => nav.close()}
+          />
+        ) : null}
+        {overlay?.kind === 'session' && overlay.id ? (
+          <SessionSheet
+            key={presentationKey(overlay)}
+            id={overlay.id}
+            onClose={() => nav.close()}
+            onFinished={() => nav.closeAndPush({ screen: 'finish', id: overlay.id })}
+          />
+        ) : null}
+        {overlay?.kind === 'genreEditor' && overlay.id ? (
+          <GenreEditor key={presentationKey(overlay)} id={overlay.id} onClose={() => nav.close()} />
+        ) : null}
+        {overlay?.kind === 'coverPicker' && overlay.id ? (
+          <CoverPicker key={presentationKey(overlay)} id={overlay.id} />
+        ) : null}
+        {noteEditorOverlay ? (
+          <NoteEditor
+            key={presentationKey(noteEditorOverlay)}
+            id={noteEditorOverlay.id}
+            initialWorkId={noteEditorOverlay.workId}
+            tagPickerOpen={overlay?.kind === 'noteTags'}
+          />
+        ) : null}
+      </AnimatePresence>
     </Frame>
   );
 }
@@ -356,6 +389,7 @@ function SettingsLoadError({ message }: { message: string }) {
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div
+      className="room-frame"
       style={{
         position: 'fixed',
         inset: 0,

@@ -169,3 +169,22 @@ test('a cold-start share target opens a prefilled Wishlist add flow', async ({ p
   await expect(byHand.getByLabel('Title')).toHaveValue('Piranesi');
   await expect(byHand.getByRole('radio', { name: 'Wishlist' })).toBeChecked();
 });
+
+test('large-cover archives stay responsive through the real worker and restore every byte', async ({
+  page,
+}, testInfo) => {
+  await page.evaluate(() => window.__EXL_PHASE8_TEST__!.openBackup());
+  const result = await page.evaluate(() => window.__EXL_PHASE8_TEST__!.stressArchive());
+  expect(page.workers().some((worker) => /archive-worker-.*\.js/.test(worker.url()))).toBe(true);
+  expect(result.bytes).toBeGreaterThan(16 * 1024 * 1024);
+  expect(result.covers).toBe(2);
+  expect(result.coverDigestsMatch).toBe(true);
+  expect(result.frames).toBeGreaterThan(1);
+  expect(result.longestFrameMs).toBeLessThan(100);
+  console.log(`Archive worker desktop emulation: ${JSON.stringify(result)}`);
+  await expect(page.getByRole('heading', { name: 'Backup', exact: true })).toBeVisible();
+  await testInfo.attach('archive-worker-measurement', {
+    body: JSON.stringify(result, null, 2),
+    contentType: 'application/json',
+  });
+});

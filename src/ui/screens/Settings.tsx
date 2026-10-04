@@ -11,6 +11,8 @@ import type { Settings as SettingsRow, ThemeChoice } from '../../db/schema';
 import { applyTheme } from '../theme';
 import { withInteractionFeedback } from '../interaction-feedback';
 import { closeInstallInstructions, requestPwaInstall, usePwaInstall } from '../../pwa/install';
+import { DiscardDraft, useDraftGuard } from '../draft-guard';
+import { BUILD_ID } from '../version';
 
 /**
  * Settings. Ported from design/Ex Libris.dc.html as a ruled ledger — label
@@ -316,9 +318,9 @@ export function Settings({
         </Row>
         {usage && !usage.persisted ? (
           <p style={{ ...label, padding: 'var(--space-2) 0 0', textWrap: 'pretty' }}>
-            Browsers only promise to keep an app&apos;s data once it is installed to the home
-            screen. Until then this library could be cleared under storage pressure, so an export is
-            worth having.
+            This browser has not granted persistent storage. Installation may help it decide, but
+            does not guarantee protection from storage pressure. Export a copy to keep your library
+            safe if this device or its browser data is lost.
           </p>
         ) : null}
       </Group>
@@ -364,6 +366,9 @@ export function Settings({
       </Group>
 
       <Group heading="">
+        <Row label="Build">
+          <span style={caption}>{BUILD_ID}</span>
+        </Row>
         <button data-hover="raised" onClick={() => nav.push({ screen: 'about' })} style={rowButton}>
           <span style={{ flex: 1, textAlign: 'left', fontSize: 'var(--size-body)' }}>About</span>
           <ChevronRight />
@@ -373,7 +378,7 @@ export function Settings({
   );
 }
 
-const mb = (n: number) => `${(n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+const mb = (n: number) => `${(n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MiB`;
 
 const rowButton = {
   ...resetButton,
@@ -552,9 +557,18 @@ function OwnerName({
   onSave: (name: string) => Promise<boolean>;
 }) {
   const [name, setName] = useState(settings.ownerName ?? '');
+  const [baseline, setBaseline] = useState(settings.ownerName ?? '');
   const [saving, setSaving] = useState(false);
-  const changed = name.trim() !== (settings.ownerName ?? '');
+  const changed = name.trim() !== baseline;
+  const guard = useDraftGuard(changed, saving);
   const ok = name.trim().length > 0;
+  useEffect(() => {
+    if (!changed && settings.ownerName !== baseline) {
+      setName(settings.ownerName ?? '');
+      setBaseline(settings.ownerName ?? '');
+    }
+  }, [settings.ownerName, baseline, changed]);
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
 
   return (
     <div
@@ -576,7 +590,10 @@ function OwnerName({
           onClick={() => {
             setSaving(true);
             void onSave(name.trim()).then((saved) => {
-              if (saved) setName(name.trim());
+              if (saved) {
+                setName(name.trim());
+                setBaseline(name.trim());
+              }
               setSaving(false);
             });
           }}

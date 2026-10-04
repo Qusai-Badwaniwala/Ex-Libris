@@ -8,6 +8,7 @@ import { Filter } from '../icons';
 import { useLibrary, useSettings } from '../store';
 import { caption, displayS, resetButton, tabular } from '../styles';
 import { SORTS, sortWorks, type SortKey } from '../work-sort';
+import { AnimatePresence, m, useMotion } from '../motion';
 
 type FormatFilter = 'all' | Format;
 const Codex = lazy(() => import('../Codex').then((module) => ({ default: module.Codex })));
@@ -33,6 +34,8 @@ export function Everything({
   initialFormat?: Format;
 }) {
   const library = useLibrary();
+  const { reduced, settle } = useMotion();
+  const measured = useRef({ columns: 1, rowHeight: 132 });
   const [view, setView] = useState(collectionView);
   const [browseOptions, setBrowseOptions] = useState(false);
   const { settings, update } = useSettings();
@@ -65,9 +68,19 @@ export function Everything({
     const element = scroll.current;
     if (!element) return;
     const measure = () => {
+      const nextColumns = element.clientWidth > 850 ? 2 : 1;
+      const nextHeight = Math.max(132, parseFloat(getComputedStyle(element).fontSize) * 8.25);
+      const previous = measured.current;
+      if (previous.columns !== nextColumns || previous.rowHeight !== nextHeight) {
+        const anchor = Math.floor(element.scrollTop / previous.rowHeight) * previous.columns;
+        const nextTop = Math.floor(anchor / nextColumns) * nextHeight;
+        element.scrollTop = nextTop;
+        setScrollTop(nextTop);
+      }
+      measured.current = { columns: nextColumns, rowHeight: nextHeight };
       setViewport(element.clientHeight);
-      setColumns(element.clientWidth > 850 ? 2 : 1);
-      setRowHeight(Math.max(132, parseFloat(getComputedStyle(element).fontSize) * 8.25));
+      setColumns(nextColumns);
+      setRowHeight(nextHeight);
     };
     measure();
     element.scrollTop = positions.get(cacheKey)?.top ?? 0;
@@ -194,6 +207,7 @@ export function Everything({
       <div
         ref={scroll}
         className="exl-scroll room-collection-list"
+        data-scroll-owner="collection"
         onScroll={(event) => {
           if (view === 'index') setScrollTop(event.currentTarget.scrollTop);
         }}
@@ -240,7 +254,11 @@ export function Everything({
               const d = displayWork(work, authorName);
               const position = start + index;
               return (
-                <button
+                <m.button
+                  layout={reduced ? false : 'position'}
+                  layoutDependency={filtered}
+                  initial={false}
+                  transition={settle}
                   key={work.id}
                   className="room-collection-row"
                   data-work={work.id}
@@ -279,34 +297,37 @@ export function Everything({
                       />
                     )}
                   </span>
-                </button>
+                </m.button>
               );
             })}
           </div>
         )}
       </div>
-      {genreOpen && (
-        <GenreFilter
-          library={library ?? []}
-          picked={picked}
-          mode={mode}
-          sort={sort}
-          onMode={(next) => {
-            setMode(next);
-            void update({ genreFilterMode: next });
-            resetScroll();
-          }}
-          onPicked={(next) => {
-            setPicked(next);
-            resetScroll();
-          }}
-          onSort={(next) => {
-            setSort(next);
-            resetScroll();
-          }}
-          resultCount={filtered.length}
-        />
-      )}
+      <AnimatePresence initial={false}>
+        {genreOpen && (
+          <GenreFilter
+            key="genre-filter"
+            library={library ?? []}
+            picked={picked}
+            mode={mode}
+            sort={sort}
+            onMode={(next) => {
+              setMode(next);
+              void update({ genreFilterMode: next });
+              resetScroll();
+            }}
+            onPicked={(next) => {
+              setPicked(next);
+              resetScroll();
+            }}
+            onSort={(next) => {
+              setSort(next);
+              resetScroll();
+            }}
+            resultCount={filtered.length}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
@@ -338,7 +359,52 @@ function GenreFilter({
         : `Show ${resultCount.toLocaleString('en-US')} works`;
 
   return (
-    <Sheet onClose={() => nav.close()} title="Filter and sort" maxHeight="88%">
+    <Sheet
+      onClose={() => nav.close()}
+      title="Filter and sort"
+      maxHeight="88%"
+      footer={
+        <div className="room-form-actions">
+          <button
+            disabled={picked.length === 0}
+            onClick={() => onPicked([])}
+            style={{
+              ...resetButton,
+              flex: 'none',
+              padding: '0 18px',
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              border: 'var(--hairline-width) solid var(--hairline-strong)',
+              fontSize: 'var(--size-body)',
+              color: picked.length ? 'var(--text-primary)' : 'var(--text-faint)',
+            }}
+          >
+            Clear
+          </button>
+          <button
+            data-ripple
+            data-active="accent"
+            onClick={() => nav.close()}
+            style={{
+              ...resetButton,
+              flex: 1,
+              height: 48,
+              lineHeight: '48px',
+              textAlign: 'center',
+              borderRadius: 'var(--radius-button)',
+              background: 'var(--accent)',
+              color: 'var(--on-accent)',
+              fontSize: 'var(--size-body)',
+              fontWeight: 500,
+            }}
+          >
+            {resultLabel}
+          </button>
+        </div>
+      }
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <div style={{ ...displayS, flex: 1 }}>Filter and sort</div>
         <Segmented
@@ -433,52 +499,6 @@ function GenreFilter({
             </button>
           );
         })}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--space-2)',
-          paddingTop: 'var(--space-3)',
-          borderTop: 'var(--hairline-width) solid var(--hairline)',
-        }}
-      >
-        <button
-          disabled={picked.length === 0}
-          onClick={() => onPicked([])}
-          style={{
-            ...resetButton,
-            flex: 'none',
-            padding: '0 18px',
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            border: 'var(--hairline-width) solid var(--hairline-strong)',
-            fontSize: 'var(--size-body)',
-            color: picked.length ? 'var(--text-primary)' : 'var(--text-faint)',
-          }}
-        >
-          Clear
-        </button>
-        <button
-          data-ripple
-          data-active="accent"
-          onClick={() => nav.close()}
-          style={{
-            ...resetButton,
-            flex: 1,
-            height: 48,
-            lineHeight: '48px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-button)',
-            background: 'var(--accent)',
-            color: 'var(--on-accent)',
-            fontSize: 'var(--size-body)',
-            fontWeight: 500,
-          }}
-        >
-          {resultLabel}
-        </button>
       </div>
     </Sheet>
   );

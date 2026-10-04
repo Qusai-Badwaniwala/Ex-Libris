@@ -1,25 +1,13 @@
 import { buildBackup, type BackupFile } from '../db/backup';
 import { saveSettings } from '../db/db';
 import { deleteFile, listDir, opfsAvailable, readFile, writeFile } from '../storage/opfs';
-import { createZip, readZip, type ZipEntry } from './zip';
+import type { ZipEntry } from './zip';
+import type { BackupManifest } from './archive-format';
+import { archiveBuffer, encodeArchive, verifyArchive } from './archive-client';
+export type { BackupManifest } from './archive-format';
 
 const AUTO_AFTER_MS = 48 * 60 * 60 * 1000;
 const AUTO_LIMIT = 10;
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
-
-export interface BackupManifest {
-  format: 'ex-libris-backup';
-  version: 1;
-  schemaVersion: number;
-  dbVersion: number;
-  appVersion: string;
-  createdAt: string;
-  kind: 'auto' | 'manual';
-  counts: BackupFile['counts'];
-  covers: { workId: string; archivePath: string; filename: string; mediaType: string }[];
-}
-
 export interface BackupArchive {
   bytes: Uint8Array;
   data: BackupFile;
@@ -48,10 +36,6 @@ export function archiveFilename(kind: 'auto' | 'manual', at = new Date()): strin
     .replace(/Z$/, '')
     .replace(/:/g, '-');
   return `ex-libris-${kind}-${local}.zip`;
-}
-
-function bytesAsBlobPart(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
 export async function buildBackupArchive(
@@ -88,11 +72,8 @@ export async function buildBackupArchive(
     counts: data.counts,
     covers,
   };
-  entries.unshift(
-    { name: 'manifest.json', data: textEncoder.encode(JSON.stringify(manifest, null, 2)) },
-    { name: 'data.json', data: textEncoder.encode(JSON.stringify(data, null, 2)) },
-  );
-  return { bytes: createZip(entries), data, manifest, filename: archiveFilename(kind) };
+  const bytes = await encodeArchive(data, manifest, entries);
+  return { bytes, data, manifest, filename: archiveFilename(kind) };
 }
 
 let autoRun: Promise<boolean> | null = null;
@@ -113,21 +94,13 @@ export const automaticBackupStore = {
 /** Fresh, read-back-verified archive before a destructive group operation.
  * This deliberately cannot reuse an unrelated in-flight automatic snapshot. */
 export async function createSafetyBackup(appVersion: string): Promise<void> {
-  if (!(await opfsAvailable())) throw new Error('Storage is unavailable; no group was changed.');
+  if (!(await opfsAvailable())) throw new Error('Storage is unavailable; nothing was changed.');
   const archive = await buildBackupArchive(appVersion, 'auto');
   const path = `backups/${archive.filename.replace('.zip', `-${crypto.randomUUID()}.zip`)}`;
-  await writeFile(path, bytesAsBlobPart(archive.bytes));
+  await writeFile(path, archiveBuffer(archive.bytes));
   const stored = await readFile(path);
   if (!stored) throw new Error('The safety backup could not be read back. Nothing was changed.');
-  const bytes = new Uint8Array(await stored.arrayBuffer());
-  if (
-    bytes.length !== archive.bytes.length ||
-    bytes.some((value, index) => value !== archive.bytes[index])
-  ) {
-    throw new Error('The safety backup verification failed. Nothing was changed.');
-  }
-  // ZIP CRC validation verifies each stored entry, including every user cover.
-  readZip(bytesAsBlobPart(bytes));
+  await verifyArchive(archive.filename, await stored.arrayBuffer(), archiveBuffer(archive.bytes));
   await saveSettings({ lastAutoBackupAt: archive.manifest.createdAt });
 }
 
@@ -145,7 +118,7 @@ export function maybeCreateAutomaticBackup(
     if (!(await opfsAvailable())) return false;
     const archive = await buildBackupArchive(appVersion, 'auto');
     const path = `backups/${archive.filename}`;
-    await writeFile(path, bytesAsBlobPart(archive.bytes));
+    await writeFile(path, archiveBuffer(archive.bytes));
     const names = (await listDir('backups'))
       .filter((name) => /^ex-libris-auto-.*\.zip$/.test(name))
       .sort();
@@ -181,11 +154,7 @@ export async function inspectAutomaticBackups(): Promise<BackupHistoryResult> {
     const file = await readFile(`backups/${name}`);
     if (!file) continue;
     try {
-      const entries = readZip(await file.arrayBuffer());
-      const raw = entries.get('manifest.json');
-      if (!raw) continue;
-      const manifest = JSON.parse(textDecoder.decode(raw)) as BackupManifest;
-      if (manifest.format !== 'ex-libris-backup' || manifest.version !== 1) continue;
+      const { manifest } = await verifyArchive(name, await file.arrayBuffer());
       history.push({
         path: `backups/${name}`,
         createdAt: manifest.createdAt,
@@ -213,7 +182,7 @@ type SavePickerWindow = Window & {
 };
 
 function downloadArchive(archive: BackupArchive): void {
-  const blob = new Blob([bytesAsBlobPart(archive.bytes)], { type: 'application/zip' });
+  const blob = new Blob([archiveBuffer(archive.bytes)], { type: 'application/zip' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -222,6 +191,48 @@ function downloadArchive(archive: BackupArchive): void {
   link.click();
   link.remove();
   requestAnimationFrame(() => URL.revokeObjectURL(url));
+}
+
+/** Export the retained snapshot itself, not a newly assembled current library. */
+export async function exportStoredBackup(path: string): Promise<void> {
+  if (!/^backups\/ex-libris-auto-[a-zA-Z0-9._-]+\.zip$/.test(path))
+    throw new Error('Invalid snapshot path.');
+  const picker = (window as SavePickerWindow).showSaveFilePicker;
+  const filename = path.split('/').at(-1)!;
+  let handle: FileSystemFileHandle | null = null;
+  if (picker) {
+    try {
+      handle = await picker({
+        suggestedName: filename,
+        types: [{ description: 'Ex Libris backup', accept: { 'application/zip': ['.zip'] } }],
+      });
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError') return;
+      throw cause;
+    }
+  }
+  const file = await readFile(path);
+  if (!file) throw new Error('This snapshot is no longer on this device.');
+  const { buffer } = await verifyArchive(filename, await file.arrayBuffer());
+  if (handle) {
+    const writable = await handle.createWritable();
+    try {
+      await writable.write(buffer);
+      await writable.close();
+    } catch (cause) {
+      await writable.abort().catch(() => {});
+      throw cause;
+    }
+  } else {
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/zip' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+  }
 }
 
 /** The picker is requested before archive assembly so Chrome keeps user activation. */
@@ -243,9 +254,11 @@ export async function exportManualBackup(appVersion: string): Promise<BackupArch
   if (handle) {
     const writable = await handle.createWritable();
     try {
-      await writable.write(bytesAsBlobPart(archive.bytes));
-    } finally {
+      await writable.write(archiveBuffer(archive.bytes));
       await writable.close();
+    } catch (cause) {
+      await writable.abort().catch(() => {});
+      throw cause;
     }
   } else {
     downloadArchive(archive);

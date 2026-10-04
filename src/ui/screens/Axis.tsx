@@ -8,6 +8,9 @@ import { nav } from '../../router/router';
 import { tickStops } from '../haptics';
 import { caption, resetButton } from '../styles';
 import { withInteractionFeedback } from '../interaction-feedback';
+import { DiscardDraft, useDraftGuard } from '../draft-guard';
+import { Arrive } from '../motion';
+import { Sheet } from '../components';
 
 export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKey }) {
   const data = useLiveQuery(async () => {
@@ -24,6 +27,12 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
   const initializedKey = useRef<AxisKey | undefined>(undefined);
 
   const axis = AXES[index]!;
+  const dirty =
+    initializedKey.current === axis.key &&
+    !!data &&
+    (value !== data.rating?.[axis.key] ||
+      unfinished !== (axis.key === 'ending' && data.rating?.endingNone === true));
+  const guard = useDraftGuard(dirty, saving);
   useEffect(() => {
     if (!data || initializedKey.current === axis.key) return;
     initializedKey.current = axis.key;
@@ -32,14 +41,7 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
     setError('');
   }, [axis.key, data]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') nav.back();
-    };
-    addEventListener('keydown', onKeyDown);
-    return () => removeEventListener('keydown', onKeyDown);
-  }, []);
-
+  if (guard.confirm) return <DiscardDraft guard={guard} />;
   if (data === undefined) return null;
   if (data === null) {
     return (
@@ -77,9 +79,10 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
     void persist()
       .then(() => {
         const next = index + direction;
-        if (next < 0) nav.back();
-        else if (next >= AXES.length) nav.back();
-        else setIndex(next);
+        if (initialKey || next < 0 || next >= AXES.length) {
+          guard.allow();
+          nav.back();
+        } else setIndex(next);
       })
       .catch(() => setError('This axis could not be saved. Your previous profile is unchanged.'))
       .finally(() => setSaving(false));
@@ -87,39 +90,7 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 60 }}>
-      <button
-        aria-label="Close axes"
-        data-dismiss-scrim
-        onClick={() => nav.back()}
-        style={{ ...resetButton, position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${axis.name} axis`}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          maxHeight: 'calc(100% - var(--safe-top))',
-          overflowY: 'auto',
-          background: 'var(--surface-overlay)',
-          borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
-          boxShadow: 'var(--shadow-sheet)',
-          padding: '8px 0 calc(24px + var(--safe-bottom))',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
-          <div
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 999,
-              background: 'var(--hairline-strong)',
-            }}
-          />
-        </div>
+      <Sheet onClose={() => nav.back()} title={`${axis.name} axis`}>
         <div
           style={{
             display: 'flex',
@@ -158,25 +129,25 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
             textAlign: 'center',
           }}
         >
-          <div
-            key={unfinished ? 'unfinished' : (value ?? 'unset')}
-            className="exl-axis-word"
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 'var(--display-vf)' as unknown as number,
-              fontSize: 40,
-              lineHeight: '44px',
-              color: value || unfinished ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}
-          >
-            {endingLocked
-              ? 'Finish it first'
-              : unfinished
-                ? 'Unfinished'
-                : value
-                  ? axisWord(axis.key, value)
-                  : 'Not set'}
-          </div>
+          <Arrive motionKey={`${axis.key}:${unfinished ? 'unfinished' : (value ?? 'unset')}`}>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 'var(--display-vf)' as unknown as number,
+                fontSize: 40,
+                lineHeight: '44px',
+                color: value || unfinished ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}
+            >
+              {endingLocked
+                ? 'Finish it first'
+                : unfinished
+                  ? 'Unfinished'
+                  : value
+                    ? axisWord(axis.key, value)
+                    : 'Not set'}
+            </div>
+          </Arrive>
         </div>
 
         <AxisTrack axis={axis} value={value} disabled={endingLocked} onChange={setScore} />
@@ -242,7 +213,7 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
         <div style={{ display: 'flex', gap: 8, padding: '24px 16px 0' }}>
           <button
             disabled={saving}
-            onClick={() => move(-1)}
+            onClick={() => (initialKey ? nav.back() : move(-1))}
             style={{
               ...resetButton,
               height: 44,
@@ -253,7 +224,7 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
               fontSize: 'var(--size-body)',
             }}
           >
-            Back
+            {initialKey ? 'Cancel' : 'Back'}
           </button>
           <button
             data-active="accent"
@@ -271,10 +242,10 @@ export function AxisScreen({ id, initialKey }: { id: string; initialKey?: AxisKe
               fontWeight: 500,
             }}
           >
-            {index === AXES.length - 1 ? 'Done' : 'Next'}
+            {initialKey ? 'Save' : index === AXES.length - 1 ? 'Done' : 'Next'}
           </button>
         </div>
-      </div>
+      </Sheet>
     </div>
   );
 }

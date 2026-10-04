@@ -8,6 +8,8 @@ import { storageUsage, type StorageUsage } from '../../storage/opfs';
 import { localDay } from '../../db/dates';
 import { LEAF_GRADIENT } from '../design-literals';
 import { Illustration } from '../illustration';
+import { BUILD_ID } from '../version';
+import { Arrive } from '../motion';
 
 /**
  * About — the bookplate, kept.
@@ -42,9 +44,7 @@ export function About({ settings }: { settings: Settings }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
         <button
           aria-label="Back"
-          // D-051: a drawer destination goes home, because a back arrow that
-          // always returned to Settings would lie to whoever arrived by drawer.
-          onClick={() => nav.reset({ screen: 'home' })}
+          onClick={() => nav.back()}
           style={{
             ...resetButton,
             width: 44,
@@ -68,10 +68,12 @@ export function About({ settings }: { settings: Settings }) {
           padding: 'var(--space-5) 0 var(--space-6)',
         }}
       >
-        <Illustration
-          name="magic-tree-cuate"
-          style={{ width: '72%', maxWidth: 260, marginBottom: 'var(--space-5)' }}
-        />
+        <Arrive className="room-about-art">
+          <Illustration
+            name="magic-tree-cuate"
+            style={{ width: '72%', maxWidth: 260, marginBottom: 'var(--space-5)' }}
+          />
+        </Arrive>
         <h1 style={{ ...displayL, margin: 0 }}>Ex Libris</h1>
         <div style={{ ...label, margin: 'var(--space-3) 0 var(--space-1)' }}>From the books of</div>
         <div style={{ ...displayS, overflowWrap: 'anywhere', maxWidth: '100%' }}>
@@ -93,6 +95,7 @@ export function About({ settings }: { settings: Settings }) {
       </div>
 
       <Row label="Version" value={APP_VERSION} />
+      <Row label="Build" value={BUILD_ID} />
       <Row
         label="Search index"
         value={settings.corpusVersion ? `v${settings.corpusVersion}` : 'not installed'}
@@ -107,7 +110,7 @@ export function About({ settings }: { settings: Settings }) {
           usageError
             ? 'unavailable'
             : usage && usage.quotaBytes > 0
-              ? `${(usage.usedBytes / 1048576).toFixed(1)} MB`
+              ? `${(usage.usedBytes / 1048576).toFixed(1)} MiB`
               : '—'
         }
       />

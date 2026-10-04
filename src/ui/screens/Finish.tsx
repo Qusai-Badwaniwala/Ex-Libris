@@ -4,6 +4,7 @@ import { nav } from '../../router/router';
 import { Illustration } from '../illustration';
 import { useWork } from '../store';
 import { resetButton } from '../styles';
+import { Arrive } from '../motion';
 
 export function Finish({ id }: { id: string }) {
   const row = useWork(id);
@@ -29,22 +30,11 @@ export function Finish({ id }: { id: string }) {
         overflow: 'hidden',
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          width: '150%',
-          transform: 'translate(-50%, -50%)',
-          opacity: 0.14,
-          pointerEvents: 'none',
-        }}
-      >
+      <Arrive className="room-finish-art">
         <Illustration name="cherry-tree-pana" style={{ display: 'block', width: '100%' }} />
-      </div>
+      </Arrive>
 
-      <div style={{ position: 'relative', width: 88, height: 88 }}>
+      <Arrive className="room-finish-mark" still>
         <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true">
           <circle cx="44" cy="44" r="43" stroke="var(--status-finished)" strokeWidth="1" />
           <path
@@ -57,7 +47,7 @@ export function Finish({ id }: { id: string }) {
             strokeDasharray="48"
           />
         </svg>
-      </div>
+      </Arrive>
 
       <div
         style={{

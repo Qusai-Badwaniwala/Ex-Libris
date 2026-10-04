@@ -1,5 +1,11 @@
 # Ex Libris approved execution plan
 
+**2026-10-04 superseding instruction:** execute the owner-approved four-pass
+[Product Evolution](PRODUCT-EVOLUTION.md), including app-wide intentional motion
+and publication after the full gate and real browser review (E-117–121). Preserve
+the released Reading Room identity and data. Earlier phase boundaries remain
+historical evidence, not additional approval stops.
+
 **2026-09-20 superseding instruction:** Phases 0–10 below remain release history.
 The owner approved the complete Reading Room adoption in an isolated branch,
 covering production identity/themes/artwork, relationships, optional Codex and
