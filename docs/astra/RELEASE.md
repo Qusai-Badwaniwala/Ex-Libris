@@ -5,11 +5,17 @@ GitHub Pages publication on 2026-09-21. See the canonical HANDOFF for the exact
 release commit, verification and deployment status. No localhost sample data
 is transferred to the deployed reader's library.
 
-**2026-10-04 product evolution:** the complete approved upgrade has passed its
-252-unit / 73-browser local gate and normal Pages artifact checks. Motion and
-secondary screens are refined; recovery and archive processing are safer. DB-v3,
-archive schema 2, origin, icon and Reading Room identity remain. Publication is
-next; use the canonical HANDOFF for the actual release/run and live evidence.
+**2026-10-04 product evolution is published:** application commit
+`53fa87dcd6cfe307e2f3c9f17ed0de5d340ff0d0`, successful
+[Pages run 37187502145](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37187502145).
+The 252-unit / 73-browser local gate and complete committed-state CI gate passed,
+followed by normal Pages artifact checks and deployment. Public entry/CSS:
+`index-DiZDPZr2.js` / `index-ov2LJl_S.css`; Settings shows Build `53fa87dc`.
+The live waiting-worker update preserved both existing browser records and
+preferences. Motion and secondary screens are refined; recovery and archive
+processing are safer. DB-v3, archive schema 2, origin, icon and Reading Room
+identity remain. See the canonical HANDOFF for exact hashes, measurements,
+phone update instructions and explicitly unpassed physical-device checks.
 
 Previous application release, 2026-10-02: owner-supplied X-and-quill icon,
 commit `9ad1246`, successful Pages run

@@ -70,14 +70,23 @@ were inspected at desktop and 390×844 in both themes on 4291. Codex measured
 Pass 2 complete: 237 unit / 64 E2E full gate and normal build passed. Phone
 light/dark sheets, acquisition, draft dismissal and local SW activation inspected
 on 4291, then preview stopped. Codex 60.0fps/five rows/exact restored top 68186.
-Pass 3/4 are integrated. The combined gate passed 252 unit / 72 E2E and normal
-build; a subsequent real-pointer theme regression failed with the native capture
-restored and passed with the CSS colour handoff. The final 73-journey gate and
-Pages artifact/publication checks are in progress. The final local 252-unit /
-73-E2E gate passed, including rapid theme input. The final tablet indicator
-breakpoint assertion failed before repair and passed after it. Normal Pages
-build/assembly/release verification passed; publication is next. Codex remains 60.0fps/five
-rows with exact restored top 68186. Archive work runs off-thread; both offline
-illustration themes remain, with 41 precache entries instead of 53. Motion's
-measured attribution is 42.8 KiB gzip, 2.8 KiB above target; unsupported private
-imports were rejected. Public release is unchanged until verification completes.
+**All four passes are complete and published.** Application commit
+`53fa87dcd6cfe307e2f3c9f17ed0de5d340ff0d0` passed the full GitHub gate,
+normal Pages build, licensed catalogue assembly and exact release checks in
+[successful run 37187502145](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37187502145).
+The local final gate passed 252 unit / 73 E2E, including rapid theme input.
+Theme-capture and tablet-indicator regressions failed with defects restored,
+then passed with their fixes. The live waiting-worker update retained both
+existing browser works and preferences; Settings shows Build `53fa87dc`.
+Public entry/CSS are `index-DiZDPZr2.js` / `index-ov2LJl_S.css`, matching the
+exact local Pages build byte for byte. No localhost fiction was transferred.
+
+Phone/tablet/desktop hierarchy and sequential journeys were inspected in both
+themes. Codex remains 60.0fps/five rows with exact restored top 68186. The 16 MiB
+archive exercise preserved both cover digests with no observed main-thread long
+task. Archive work runs off-thread; both offline illustration themes remain,
+with 38 entries in the final Pages precache (41 in the root build), formerly 53.
+Motion's measured attribution is 42.8 KiB gzip, 2.8 KiB above target; unsupported
+private imports were rejected. Physical Android latency, TalkBack and launcher
+review remain explicitly unpassed; they are separate device checks. The
+[canonical handoff](HANDOFF.md) records exact measurements and update instructions.

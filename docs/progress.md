@@ -1657,3 +1657,47 @@ and passed `check:release`: seven scripts without test bridges, approved license
 works/checksums and both offline theme derivatives. Candidate entry/CSS:
 index-C3h3hIoJ.js / index-ov2LJl_S.css. Actual Pages precache: 38 entries /
 11521.37 KiB. Publication next; CI will verify the committed state again.
+
+## 2026-10-04 · Product evolution publicly released
+
+Committed the complete approved four-pass evolution as
+`53fa87dcd6cfe307e2f3c9f17ed0de5d340ff0d0` (94 named files, 5,428 insertions /
+1,720 deletions) and pushed `master` normally under the owner's explicit
+authority. [Pages run 37187502145](https://github.com/Qusai-Badwaniwala/Ex-Libris/actions/runs/37187502145)
+completed successfully: complete gate on the final commit, normal Pages build,
+checksum-verified production catalogue assembly, exact release checks and deploy.
+The final tablet breakpoint correction is therefore covered by the release's
+complete CI gate as well as its local regression proof.
+
+Built the exact clean commit locally before hosting it. Public entry
+`index-DiZDPZr2.js` (660,890 bytes), CSS `index-ov2LJl_S.css` (44,373 bytes),
+archive worker (15,155 bytes), ordinary and maskable icons match that artifact
+byte for byte. Entry SHA-256:
+`744eb8d7bafc67b2911701be666426101905f34813b40683f55d607bbb85b2af`.
+Final Pages precache is 38 entries / 11521.36 KiB. Public catalogue manifest
+retains 438,584 works / 273,784,832 bytes and approved checksum
+`1d5c9eba8347481ab55db124378c15d1d6ac05264f7012160fc0954a0a7272c7`.
+A streaming range request read only 32 bytes: HTTP 206,
+`bytes 0-31/273784832`, `SQLite format 3`; no full catalogue re-download.
+
+Activated the live browser's waiting-worker Update; its two pre-existing works,
+bookplate, theme, progress and completion survived. Settings visibly identifies
+Build `53fa87dc`. Read-only follow-up inspected actual 390×844 published Reading
+and Detail, plus wider Settings. No public records were added, removed or
+imported. Full sequential both-theme local review and performance measurements
+remain recorded above; physical Android, TalkBack and launcher checks are unpassed.
+
+The exact released build is hosted on `http://localhost:4292/Ex-Libris/`
+(preview session 92915). The first preview omitted `VITE_BASE_PATH` and served
+incorrect asset responses; setting `/Ex-Libris/` for preview corrected this
+environment issue without a source change. The previous 4291 server is stopped.
+Do not rebuild while 4292 serves this artifact. Windows sandbox network reads
+required escalation; anonymous GitHub REST release verification then succeeded.
+
+Reconciled the canonical handoff, execution checkpoint and release notes with
+the successful public release. This evidence-only follow-up changes no code or
+data contract; named-file formatting and diff checks are the appropriate checks.
+Documentation-only pushes skip deployment and preserve the released Build
+`53fa87dc`. All approved implementation/publication work is complete; no further
+owner approval is needed. Physical device evidence and separate tooling/reread
+work remain distinct from this finished upgrade.
